@@ -5,6 +5,12 @@ on:
     branches:
       - main # Trigger on push to the main branch
 
+# Use 'env' block to define the ACR login server once for clean use in steps
+env:
+  # IMPORTANT: You must define AZURE_CR_LOGIN_SERVER in an 'env' block or use its full name in the ACR Login step
+  # For example: AZURE_CR_LOGIN_SERVER: myregistry.azurecr.io
+  AZURE_CR_LOGIN_SERVER: myregistry.azurecr.io
+
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
@@ -14,40 +20,45 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
       
-      # 1. Login to Azure using a service principal/credentials
+      # 1. NEW STEP: Login to Docker Hub to pull base images (node and nginx)
+      - name: Docker Hub Login
+        uses: docker/login-action@v3
+        with:
+          # Use secrets for security
+          username: ${{ secrets.DOCKER_HUB_USERNAME }}
+          password: ${{ secrets.DOCKER_HUB_PASSWORD }}
+      
+      # 2. Login to Azure using a service principal/credentials
       - name: Azure Login
         uses: azure/login@v2
         with:
-          # This Service Principal must have access to the Resource Group containing the Web App.
           creds: ${{ secrets.AZURE_CREDENTIALS }}
       
-      # 2. Login to Azure Container Registry (ACR)
+      # 3. Login to Azure Container Registry (ACR)
       - name: ACR Login
         uses: docker/login-action@v3
         with:
-          registry: "${{ env.AZURE_CR_LOGIN_SERVER }}"
-          # These are the shared ACR admin credentials
+          # Using standard environment context
+          registry: ${{ env.AZURE_CR_LOGIN_SERVER }}
           username: ${{ secrets.AZURE_ACR_USERNAME }}
           password: ${{ secrets.AZURE_ACR_PASSWORD }}
       
-      # 3. Build and Push the Docker Image
+      # 4. Build and Push the Docker Image
       - name: Build and Push Frontend Image
         uses: docker/build-push-action@v5
         with:
           context: .
           push: true
-          # CRITICAL CHANGE: Use the Git SHA for a unique tag. This guarantees the latest image is deployed.
+          # Use the unique Git SHA tag
           tags: ${{ env.AZURE_CR_LOGIN_SERVER }}/frontend-app:${{ github.sha }}
           file: Dockerfile
-          # Build arguments can be passed here if needed, but the current Dockerfile handles the staging env fine.
       
-      # 4. Deploy the new image to the Azure Web App
+      # 5. Deploy the new image to the Azure Web App
       - name: Deploy to Azure Web App
         uses: azure/webapps-deploy@v2
         with:
-          app-name: "${{ secrets.AZURE_FRONTEND_WEB_APP_NAME }}"
-          # Use 'production' if your Web App is configured as a single slot,
-          # or the name of a specific Staging slot.
+          # Using a secret for the app name is best practice
+          app-name: ${{ secrets.AZURE_FRONTEND_WEB_APP_NAME }}
           slot-name: 'production'
-          # USE THE SAME UNIQUE TAG FOR DEPLOYMENT
+          # Use the same unique tag for deployment
           images: ${{ env.AZURE_CR_LOGIN_SERVER }}/frontend-app:${{ github.sha }}
