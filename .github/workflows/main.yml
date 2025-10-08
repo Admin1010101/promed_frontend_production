@@ -57,7 +57,7 @@ jobs:
       - name: Deploy to Azure Web App
         uses: azure/webapps-deploy@v2
         with:
-          # Using a secret for the app name is best practice
+          # Using a secret for the app name is best practices
           app-name: ${{ secrets.AZURE_FRONTEND_WEB_APP_NAME }}
           slot-name: 'production'
           # Use the same unique tag for deployment
