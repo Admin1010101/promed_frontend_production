@@ -7,8 +7,8 @@ on:
 
 # Define key variables once
 env:
-  # CRITICAL: Replace with your actual ACR login server (e.g., promedhealthdashboard.azurecr.io)
-  AZURE_CR_LOGIN_SERVER: "YOUR_ACR_LOGIN_SERVER"
+  # CRITICAL FIX: This MUST be the actual, all-lowercase ACR login server URL (e.g., promedhealthdashboard.azurecr.io)
+  AZURE_CR_LOGIN_SERVER: "promedhealthdashboard.azurecr.io"
   IMAGE_NAME: frontend-app
   IMAGE_TAG: staging-${{ github.sha }}
 
@@ -50,7 +50,7 @@ jobs:
         with:
           context: .
           push: true
-          # Use defined variables for consistency
+          # Image tag now uses the all-lowercase environment variable
           tags: ${{ env.AZURE_CR_LOGIN_SERVER }}/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}
           file: Dockerfile
       
@@ -58,8 +58,8 @@ jobs:
       - name: Deploy to Azure Web App
         uses: azure/webapps-deploy@v2
         with:
-          # CRITICAL: Replace with your actual Web App name
-          app-name: "YOUR_FRONTEND_WEB_APP_NAME"
+          # CRITICAL: Replace with your actual frontend Azure Web App Name (e.g., app-promed-frontend-staging)
+          app-name: "app-promed-frontend-staging"
           slot-name: 'production'
           # Use the same full tag for deployment
           images: ${{ env.AZURE_CR_LOGIN_SERVER }}/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}
