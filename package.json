@@ -1,5 +1,4 @@
 {
-  "homepage": "https://wchandler2020.github.io/promedhealthplus_portal_client",
   "name": "promed_frontend",
   "version": "0.1.0",
   "private": true,
@@ -37,8 +36,8 @@
     "react-spinners": "^0.17.0",
     "react-uploader": "^3.43.0",
     "sentry": "^0.1.2",
-    "slate": "^0.118.0",
-    "slate-react": "^0.117.4",
+    "slate": "0.94.1",
+    "slate-react": "0.94.0",
     "web-vitals": "^2.1.4"
   },
   "scripts": {
@@ -69,6 +68,8 @@
   },
   "devDependencies": {
     "gh-pages": "^6.3.0",
-    "tailwindcss": "^3.4.17"
+    "tailwindcss": "^3.4.17",
+    "ajv": "6.12.6",
+    "ajv-keywords": "3.5.2"
   }
 }

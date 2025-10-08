@@ -32,9 +32,6 @@ const Login = () => {
     setIsLoading(false);
   };
 
-  // --- Framer Motion Variants ---
-
-  // For the left (image) panel, slides in from the left
   const imagePanelVariants = {
     hidden: { x: "-100vw" },
     visible: {

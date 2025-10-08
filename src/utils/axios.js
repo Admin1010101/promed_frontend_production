@@ -1,8 +1,8 @@
 import axios from 'axios';
 
 const authRequest = () => {
-  const baseURL = process.env.REACT_APP_PYTHONANYWHERE_API;
-  // const baseURL = 'http://localhost:8000/api/v1';
+  // const baseURL = process.env.REACT_APP_PYTHONANYWHERE_API;
+  const baseURL = 'http://localhost:8000/api/v1';
   if (!baseURL) {
     throw new Error('Missing REACT_APP_PYTHONANYWHERE_API environment variable');
   }

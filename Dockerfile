@@ -1,17 +1,21 @@
-# Stage 1: Build the React application
-FROM node:18-alpine as build
+# Stage 1: Build the React Application
+# Using a more recent Node version for stability
+FROM node:20-alpine as build 
 
 WORKDIR /app
 
 # Copy package.json and package-lock.json to install dependencies
 COPY package*.json ./
-RUN npm install
+
+# IMPORTANT CHANGE: Added --legacy-peer-deps to ignore peer dependency conflicts
+RUN npm install --legacy-peer-deps
 
 # Copy the rest of the application code
 COPY . .
 
-# Build the React app for production
-RUN npm run build
+# CRITICAL CHANGE: Build the React app specifically for the staging environment.
+# This ensures the API URL from .env.staging (the Azure URL) is baked into the code.
+RUN NODE_ENV=staging npm run build 
 
 # Stage 2: Serve the application with Nginx
 FROM nginx:stable-alpine
@@ -19,7 +23,7 @@ FROM nginx:stable-alpine
 # Copy the built files from the previous stage to Nginx's web root
 COPY --from=build /app/build /usr/share/nginx/html
 
-# Copy the custom Nginx configuration
+# Copy the custom Nginx configuration (containing the SPA routing fix)
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 
 # Expose the port Nginx runs on

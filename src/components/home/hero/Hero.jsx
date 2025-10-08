@@ -47,7 +47,7 @@ const Hero = () => {
 
     try {
       const response = await axios.post(
-        `${process.env.REACT_APP_PYTHONANYWHERE_API}/contact-us/`,
+        `${process.env.REACT_APP_API_URL}/contact-us/`,
         formData
       );
 
