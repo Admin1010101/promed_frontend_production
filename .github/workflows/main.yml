@@ -59,7 +59,7 @@ jobs:
         uses: azure/webapps-deploy@v2
         with:
           # CRITICAL: Replace with your actual frontend Azure Web App Name (e.g., app-promed-frontend-staging)
-          app-name: "app-promed-frontend-staging"
+          app-name: "app-promed-frontend-prod-dev"
           slot-name: 'production'
           # Use the same full tag for deployment
           images: ${{ env.AZURE_CR_LOGIN_SERVER }}/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}
