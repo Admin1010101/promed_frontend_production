@@ -49,5 +49,5 @@ jobs:
           # Use 'production' if your Web App is configured as a single slot,
           # or the name of a specific Staging slot.
           slot-name: 'production'
-          # USE THE SAME UNIQUE TAG FOR DEPLOYMENT
+          # USE THE SAME UNIQUE TAG FOR DEPLOYMENT STATUS
           images: ${{ env.AZURE_CR_LOGIN_SERVER }}/frontend-app:${{ github.sha }}
