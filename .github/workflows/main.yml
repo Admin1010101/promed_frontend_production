@@ -63,8 +63,8 @@ jobs:
         uses: azure/docker-login@v2
         with:
           login-server: ${{ env.AZURE_CR_NAME }}.azurecr.io
-          username: ${{ secrets.ACR_USERNAME }}
-          password: ${{ secrets.ACR_PASSWORD }}
+          username: ${{ secrets.AZURE_ACR_USERNAME }}
+          password: ${{ secrets.AZURE_ACR_PASSWORD }}
 
       - name: Build and Push Docker Image
         run: |
