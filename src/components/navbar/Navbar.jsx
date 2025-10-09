@@ -632,7 +632,7 @@ const Navbar = ({ isDarkMode, setIsDarkMode }) => {
                 </Link>
                 <Link to="/register" onClick={closeMobileMenu}>
                   <button className="w-full px-4 py-2 text-sm tracking-wide text-teal-500 border border-teal-500 rounded-md transition-colors duration-200 hover:bg-teal-100 focus:outline-none focus:ring focus:ring-teal-500 focus:ring-opacity-50 uppercase">
-                    Provider Registration
+                    User Registration
                   </button>
                 </Link>
               </div>
