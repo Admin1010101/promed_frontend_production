@@ -1,65 +1,120 @@
-name: Deploy Frontend to Azure Staging
+name: Deploy Backend to Azure App Service
 
 on:
   push:
     branches:
-      - main # Trigger on push to the main branch
+      - main
+    paths:
+      - '**'
+      - '.github/workflows/main.yml'
 
-# Define key variables once
 env:
-  # CRITICAL FIX: This MUST be the actual, all-lowercase ACR login server URL (e.g., promedhealthdashboard.azurecr.io)
-  AZURE_CR_LOGIN_SERVER: "promedhealthdashboard.azurecr.io"
-  IMAGE_NAME: frontend-app
-  IMAGE_TAG: staging-${{ github.sha }}
+  AZURE_WEBAPP_NAME: app-promed-backend-prod-dev
+  AZURE_CR_NAME: promedhealthdashboard
+  IMAGE_NAME: backend
+  IMAGE_TAG: latest
+  RESOURCE_GROUP: PromedHealth-Dev
 
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
-    environment: Staging # Target the Staging environment
-    
+
     steps:
-      - name: Checkout Code
+      - name: Checkout Repository
         uses: actions/checkout@v4
-      
-      # 1. Login to Docker Hub
-      - name: Docker Hub Login
-        uses: docker/login-action@v3
         with:
-          username: ${{ secrets.DOCKER_HUB_USERNAME }}
-          password: ${{ secrets.DOCKER_HUB_PASSWORD }}
-      
-      # 2. Login to Azure using Service Principal
-      - name: Azure Login
-        uses: azure/login@v2
-        with:
-          creds: ${{ secrets.AZURE_CREDENTIALS }}
-      
-      # 3. CRITICAL FIX: Log in to Azure Container Registry (ACR)
-      # Using the robust Azure action that worked for the backend
+          fetch-depth: 0
+
+      - name: Create Entrypoint Script
+        run: |
+          ENTRYPOINT_PATH="./entrypoint.sh"
+          echo "Creating entrypoint script at: $ENTRYPOINT_PATH"
+          
+          cat > "$ENTRYPOINT_PATH" << 'EOF'
+          #!/bin/sh
+          echo "Starting entrypoint script..."
+          
+          echo "Waiting for database to be ready..."
+          DB_HOST="${MYSQL_DB_HOST:-mysql-promedhealthplue-dev.mysql.database.azure.com}"
+          DB_PORT="${MYSQL_DB_PORT:-3306}"
+          timeout=60
+          counter=0
+          while ! nc -z "$DB_HOST" "$DB_PORT"; do
+              sleep 1
+              counter=$((counter + 1))
+              if [ $counter -ge $timeout ]; then
+                  echo "Database connection timeout after ${timeout} seconds"
+                  exit 1
+              fi
+          done
+
+          echo "Database is available. Running migrations..."
+          python manage.py migrate --noinput
+
+          echo "Starting Gunicorn server..."
+          exec gunicorn promed_backend_api.wsgi:application --workers 4 --bind 0.0.0.0:8000 --timeout 120
+          EOF
+
+          chmod +x "$ENTRYPOINT_PATH"
+          echo "Entrypoint script created:"
+          ls -la "$ENTRYPOINT_PATH"
+
       - name: Log in to Azure Container Registry
         uses: azure/docker-login@v2
         with:
-          login-server: ${{ env.AZURE_CR_LOGIN_SERVER }}
-          # Use the same credentials that work for the backend
-          username: ${{ secrets.AZURE_ACR_USERNAME }}
-          password: ${{ secrets.AZURE_ACR_PASSWORD }}
-      
-      # 4. Build and Push the Docker Image
-      - name: Build and Push Frontend Image
-        uses: docker/build-push-action@v5
+          login-server: ${{ env.AZURE_CR_NAME }}.azurecr.io
+          username: ${{ secrets.ACR_USERNAME }}
+          password: ${{ secrets.ACR_PASSWORD }}
+
+      - name: Build and Push Docker Image
+        run: |
+          IMAGE_FULL_NAME="${{ env.AZURE_CR_NAME }}.azurecr.io/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}"
+          echo "Dockerfile location: $(pwd)/Dockerfile"
+          
+          if [ ! -f "Dockerfile" ]; then
+            echo "ERROR: Dockerfile not found in $(pwd)"
+            exit 1
+          fi
+
+          docker build \
+            --platform linux/amd64 \
+            -t "$IMAGE_FULL_NAME" \
+            .
+
+          echo "Pushing Docker image to ACR: $IMAGE_FULL_NAME"
+          docker push "$IMAGE_FULL_NAME"
+
+      - name: Azure Login for Deployment
+        uses: azure/login@v1
         with:
-          context: .
-          push: true
-          # Image tag now uses the all-lowercase environment variable
-          tags: ${{ env.AZURE_CR_LOGIN_SERVER }}/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}
-          file: Dockerfile
-      
-      # 5. This will deploy the new image to the Azure Web App
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
       - name: Deploy to Azure Web App
         uses: azure/webapps-deploy@v2
         with:
-          # CRITICAL: Replace with your actual frontend Azure Web App Name (e.g., app-promed-frontend-staging)
-          app-name: "app-promed-frontend-prod-dev"
-          slot-name: 'production'
-          # Use the same full tag for deployment
-          images: ${{ env.AZURE_CR_LOGIN_SERVER }}/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}
+          app-name: ${{ env.AZURE_WEBAPP_NAME }}
+          images: ${{ env.AZURE_CR_NAME }}.azurecr.io/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}
+
+      - name: Restart Azure App Service
+        run: |
+          echo "Restarting App Service: ${{ env.AZURE_WEBAPP_NAME }}"
+          az webapp restart --name ${{ env.AZURE_WEBAPP_NAME }} --resource-group ${{ env.RESOURCE_GROUP }}
+
+      - name: Post-deployment Health Check (Optional)
+        run: |
+          URL="https://${{ env.AZURE_WEBAPP_NAME }}.azurewebsites.net/health/"
+          echo "Checking app health at $URL"
+          for i in {1..10}; do
+            if curl -fs $URL; then
+              echo "Health check passed!"
+              exit 0
+            else
+              echo "Waiting for app to become healthy... (attempt $i)"
+              sleep 5
+            fi
+          done
+          echo "App failed health check after deployment."
+          exit 1
+
+      - name: Logout of Azure
+        run: az logout
