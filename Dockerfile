@@ -1,33 +1,55 @@
 # Stage 1: Build the React Application
-# Using a more recent Node version for stability
-FROM node:20-alpine as build 
+FROM node:20-alpine AS build
 
+# Set working directory
 WORKDIR /app
 
-# Copy package.json and package-lock.json to install dependencies
+# Copy package files first (better layer caching)
 COPY package*.json ./
 
-# IMPORTANT CHANGE: Added --legacy-peer-deps to ignore peer dependency conflicts
-RUN npm install --legacy-peer-deps
+# Install dependencies with legacy peer deps
+# Using npm ci for faster, more reliable builds (if you have package-lock.json)
+RUN npm ci --legacy-peer-deps || npm install --legacy-peer-deps
+
+# Copy environment files
+# IMPORTANT: Make sure .env.staging exists in your repo or is created by CI/CD
+COPY .env.staging .env.production ./
 
 # Copy the rest of the application code
 COPY . .
 
-# CRITICAL CHANGE: Build the React app specifically for the staging environment.
-# This ensures the API URL from .env.staging (the Azure URL) is baked into the code.
-RUN NODE_ENV=staging npm run build 
+# Build the React app for production
+# React will automatically use .env.production for production builds
+ENV NODE_ENV=production
+RUN npm run build
 
-# Stage 2: Serve the application with Nginx
+# Verify build output exists
+RUN ls -la /app/build && echo "Build completed successfully"
+
+# Stage 2: Serve with Nginx
 FROM nginx:stable-alpine
 
-# Copy the built files from the previous stage to Nginx's web root
+# Install curl for health checks
+RUN apk add --no-cache curl
+
+# Remove default Nginx static assets
+RUN rm -rf /usr/share/nginx/html/*
+
+# Copy built React app from build stage
 COPY --from=build /app/build /usr/share/nginx/html
 
-# Copy the custom Nginx configuration (containing the SPA routing fix)
+# Copy custom Nginx configuration
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 
-# Expose the port Nginx runs on
+# Create a simple health check endpoint
+RUN echo "OK" > /usr/share/nginx/html/health.txt
+
+# Expose port 80
 EXPOSE 80
 
-# Start Nginx
+# Add health check
+HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --retries=3 \
+    CMD curl -f http://localhost/health.txt || exit 1
+
+# Start Nginx in foreground
 CMD ["nginx", "-g", "daemon off;"]
