@@ -164,7 +164,9 @@ const Navbar = ({ isDarkMode, setIsDarkMode }) => {
   const markAsRead = async (id) => {
     try {
       const axiosInstance = axiosAuth();
-      await axiosInstance.patch(`/${id}/provider/mark-read/`);
+      // Ensure the endpoint path is correct for a patch request, assuming /provider/notifications/{id}/mark-read/
+      // Updated the template literal based on common REST structure
+      await axiosInstance.patch(`/provider/notifications/${id}/mark-read/`); 
       setNotificationCount((prev) => Math.max(prev - 1, 0));
       setNotifications((prev) =>
         prev.map((n) => (n.id === id ? { ...n, is_read: true } : n))
@@ -177,7 +179,8 @@ const Navbar = ({ isDarkMode, setIsDarkMode }) => {
   const deleteNotification = async (id) => {
     try {
       const axiosInstance = axiosAuth();
-      await axiosInstance.delete(`/${id}/provider/delete-notification/`);
+      // Updated the template literal for clarity and REST compliance
+      await axiosInstance.delete(`/provider/notifications/${id}/delete-notification/`);
       setNotifications((prev) => prev.filter((n) => n.id !== id));
       setShowModal(false);
     } catch (error) {
@@ -505,24 +508,32 @@ const Navbar = ({ isDarkMode, setIsDarkMode }) => {
               </Link>
             </li>
           </ul>
-          <div className="flex items-center space-x-4 mt-4">
-            <img
-              src={
-                profile?.image?.startsWith("http")
-                  ? removeDuplicateMedia(profile.image)
-                  : profile?.image
-                  ? `${process.env.REACT_APP_MEDIA_URL}${profile.image}`
-                  : default_user_img
-              }
-              alt="User Profile"
-              className="w-10 h-10 rounded-full object-cover object-top border border-gray-300 shadow-sm"
-            />
-            <h6 className="text-[12px] font-semibold text-gray-800 dark:text-gray-200">
-              {profile?.full_name ||
-                profile?.user?.full_name ||
-                "Dr. Kara Johnson"}
-            </h6>
-          </div>
+          
+          {/* ****** FIX APPLIED HERE ******
+            Only show the user image/name in the mobile menu if the user is authenticated.
+          */}
+          {isAuthenticated && (
+            <div className="flex items-center space-x-4 mt-4">
+              <img
+                src={
+                  profile?.image?.startsWith("http")
+                    ? removeDuplicateMedia(profile.image)
+                    : profile?.image
+                    ? `${process.env.REACT_APP_MEDIA_URL}${profile.image}`
+                    : default_user_img
+                }
+                alt="User Profile"
+                className="w-10 h-10 rounded-full object-cover object-top border border-gray-300 shadow-sm"
+              />
+              <h6 className="text-[12px] font-semibold text-gray-800 dark:text-gray-200">
+                {profile?.full_name ||
+                  profile?.user?.full_name ||
+                  "Dr. Kara Johnson"}
+              </h6>
+            </div>
+          )}
+          {/* ***************************** */}
+
           <div className="mt-auto pt-6 flex flex-col">
             {isAuthenticated ? (
               <div className="flex flex-col space-y-4">

@@ -217,7 +217,7 @@ const About = () => {
           </motion.section>
           
           {/* Meet Our Leadership (Flippable Cards) */}
-          <motion.section
+          {/* <motion.section
             className="mb-20 p-6 md:p-12"
             initial="hidden"
             whileInView="visible"
@@ -243,7 +243,7 @@ const About = () => {
                     transition={{ duration: 0.6 }}
                     style={{ transformStyle: "preserve-3d" }}
                   >
-                    {/* Front of the Card */}
+              
                     <div
                       className="absolute inset-0 bg-white dark:bg-gray-800 rounded-xl shadow-lg dark:shadow-2xl overflow-hidden transition-colors duration-300"
                       style={{ backfaceVisibility: "hidden" }}
@@ -268,7 +268,7 @@ const About = () => {
                       </div>
                     </div>
 
-                    {/* Back of the Card */}
+
                     <div
                       className="absolute inset-0 bg-teal-600 rounded-xl shadow-lg dark:shadow-2xl overflow-hidden text-white flex flex-col justify-center items-center p-6"
                       style={{
@@ -305,7 +305,7 @@ const About = () => {
                 </motion.div>
               ))}
             </div>
-          </motion.section>
+          </motion.section> */}
 
           {/* Call to Action */}
           <motion.section
