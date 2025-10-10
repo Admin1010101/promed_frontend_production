@@ -5,11 +5,7 @@ const Services = () => {
   return (
     <section>
         <div>
-            {
-              products.map((product) => (
-                <h1>{product.name}</h1>
-              ))
-            }
+            <h1>COMING SOON</h1>
         </div>
     </section>
   )

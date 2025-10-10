@@ -249,18 +249,21 @@ const Contact = () => {
                 <div>
                   <p className="font-semibold text-gray-800 dark:text-white">Our Main Office</p>
                   <p className="text-gray-600 dark:text-gray-400 text-sm">
-                    1100 Ludlow Street<br />
-                    Philadelphia, PA 19107
+                    30839 Thousand Oaks Blvd<br />
+                    Westlake Village, CA 91362
                   </p>
                 </div>
               </div>
-
+                
               <div className="flex items-start space-x-4 mb-4">
                 <IoCallOutline className="text-teal-600 dark:text-teal-400 text-2xl flex-shrink-0 mt-1" />
                 <div>
                   <p className="font-semibold text-gray-800 dark:text-white">Call Us</p>
                   <a href="tel:+12675551212" className="text-teal-600 dark:text-teal-400 text-sm hover:underline">
-                    (267) 555-1212
+                    P - (888)338-0490
+                  </a>
+                  <a href="tel:+12675551212" className="text-teal-600 dark:text-teal-400 text-sm hover:underline">
+                    F - (888)338-0490
                   </a>
                 </div>
               </div>

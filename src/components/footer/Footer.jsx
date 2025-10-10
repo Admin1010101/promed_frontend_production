@@ -76,7 +76,7 @@ const Footer = () => {
             <ul className="text-xs space-y-3">
               <li className="flex items-center whitespace-nowrap">
                 <AiOutlineHome className="mr-2 text-lg min-w-[1.5rem]" />
-                1100 Ludlow Street, Philadelphia, PA
+                30839 Thousand Oaks Blvd, Westlake Village, CA 91362
               </li>
               <li className="flex items-center whitespace-nowrap overflow-hidden text-ellipsis">
                 <AiOutlineMail className="mr-2 text-lg min-w-[1.5rem]" />
@@ -84,7 +84,7 @@ const Footer = () => {
               </li>
               <li className="flex items-center whitespace-nowrap">
                 <AiOutlinePhone className="mr-2 text-lg min-w-[1.5rem]" />
-                (215) 555 - 1212
+                (888)338-0490
               </li>
             </ul>
           </div>
