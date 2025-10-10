@@ -280,13 +280,15 @@ const Contact = () => {
             </motion.div>
 
             <motion.div variants={itemVariants} className="w-full h-80 rounded-2xl overflow-hidden shadow-xl">
+              <motion.div variants={itemVariants} className="w-full h-80 rounded-2xl overflow-hidden shadow-xl">
               <iframe
                 title="Office Location"
                 className="w-full h-full border-0"
-                src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3058.412150937402!2d-75.1652215846152!3d39.95258397942202!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x89c6c62d0f5e1f01%3A0xc6e4b9f2d1e2b6a!2sPhiladelphia%2C%20PA!5e0!3m2!1sen!2sus!4v1628173549219!5m2!1sen!2sus"
+                src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3298.8!2d-118.8058!3d34.1436!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x80e81f3a5a5a5a5a%3A0x5a5a5a5a5a5a5a5a!2s30839%20Thousand%20Oaks%20Blvd%2C%20Westlake%20Village%2C%20CA%2091362!5e0!3m2!1sen!2sus!4v1628173549219!5m2!1sen!2sus"
                 allowFullScreen=""
                 loading="lazy"
               ></iframe>
+            </motion.div>
             </motion.div>
           </div>
         </motion.div>
