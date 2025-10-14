@@ -155,7 +155,6 @@ const Login = () => {
                     required
                   />
                 </motion.div>
-
                 {/* Password Input */}
                 <motion.div className="mt-6" variants={contentVariants}>
                   <div className="flex justify-between mb-2">
