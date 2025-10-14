@@ -495,7 +495,7 @@ const Navbar = ({ isDarkMode, setIsDarkMode }) => {
                 to="/products/"
                 onClick={closeMobileMenu}
               >
-                Services
+                Products
               </Link>
             </li>
             <li className="mb-1">
