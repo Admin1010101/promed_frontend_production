@@ -7,7 +7,7 @@ import Register from "./components/register/Register";
 import Login from "./components/login/Login";
 import Navbar from "./components/navbar/Navbar";
 import About from "./components/about/About";
-import Services from "./components/services/Services";
+import Products from "./components/products/Products";
 import Contact from "./components/contact/Contact";
 import MFA from "./components/MFA/MFA";
 import FillablePdf from "./components/dashboard/documemts/FillablePdf";
@@ -127,7 +127,7 @@ function AppWrapper() {
             <Route path="/login" element={<Login />} />
             <Route path="/mfa" element={<MFA />} />
             <Route path="/about" element={<About />} />
-            <Route path="/services" element={<Services />} />
+            <Route path="/products" element={<Products />} />
             <Route path="/contact" element={<Contact />} />
             <Route
               path="/dashboard"

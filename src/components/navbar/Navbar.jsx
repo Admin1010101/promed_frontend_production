@@ -44,6 +44,7 @@ const Navbar = ({ isDarkMode, setIsDarkMode }) => {
   const [notifications, setNotifications] = useState([]);
   const [showModal, setShowModal] = useState(false);
   const [selectedNotification, setSelectedNotification] = useState(null);
+  const [test, setTest] = useState('')
 
   const [showDropdown, setShowDropdown] = useState(false);
   const [profile, setProfile] = useState(null);
