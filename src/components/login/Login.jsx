@@ -1,15 +1,18 @@
 import React, { useState, useContext } from "react";
 import { AuthContext } from "../../utils/auth";
 import { useNavigate, Link } from "react-router-dom";
-// 1. Import motion
-import { motion } from "framer-motion"; 
-import login_bg_img_2 from "../../assets/images/login_bg.jpg";
+import { motion } from "framer-motion";
 import { IoArrowBack } from "react-icons/io5";
+
+// Assuming this image path is correct
+import login_bg_img_2 from "../../assets/images/login_bg.jpg"; 
 
 const Login = () => {
   const { login } = useContext(AuthContext);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  // **NEW STATE:** State to track the chosen MFA method (sms or email)
+  const [method, setMethod] = useState("email"); 
   const [errorMsg, setErrorMsg] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
@@ -19,18 +22,34 @@ const Login = () => {
     setIsLoading(true);
     setErrorMsg("");
 
-    const result = await login(email, password);
+    // **UPDATED:** Pass the chosen method to the login function
+    const result = await login(email, password, method);
 
     if (result.mfa_required) {
+      // Navigate to the MFA page, passing the session_id and email
       navigate("/mfa", { state: { session_id: result.session_id, email } });
     } else if (result.success) {
       navigate("/dashboard");
     } else {
-      setErrorMsg(result.error);
+      // result.error is the whole response, including {"username": ["This field is required."]}
+      let displayError = "An unknown error occurred.";
+      if (typeof result.error === 'object' && result.error !== null) {
+          // Attempt to extract the first error message from the object
+          const firstKey = Object.keys(result.error)[0];
+          displayError = result.error[firstKey] && Array.isArray(result.error[firstKey]) 
+              ? `${firstKey}: ${result.error[firstKey][0]}` 
+              : JSON.stringify(result.error);
+      } else if (typeof result.error === 'string') {
+          displayError = result.error;
+      }
+      
+      setErrorMsg(displayError);
     }
 
     setIsLoading(false);
   };
+
+  // --- Framer Motion Variants (Unchanged, but included for completeness) ---
 
   const imagePanelVariants = {
     hidden: { x: "-100vw" },
@@ -40,7 +59,6 @@ const Login = () => {
     },
   };
 
-  // For the right (login form) panel, fades and slides in from the right
   const formPanelVariants = {
     hidden: { opacity: 0, x: 50 },
     visible: {
@@ -50,17 +68,18 @@ const Login = () => {
     },
   };
 
-  // For the content within the form (staggered entrance)
   const contentVariants = {
     hidden: { opacity: 0, y: 10 },
     visible: { opacity: 1, y: 0, transition: { duration: 0.4 } },
   };
 
+  // ------------------------------------------------------------------------
+
   return (
     <div className="bg-white dark:bg-gray-900 transition-colors duration-500">
       <div className="flex justify-center h-screen relative">
         
-        {/* Back arrow - Ensured rounded-full is present */}
+        {/* Back Arrow */}
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -76,7 +95,7 @@ const Login = () => {
           </Link>
         </motion.div>
 
-        {/* Left image panel (only shown on large screens) - now uses motion */}
+        {/* Left image panel */}
         <motion.div
           className="relative hidden bg-cover lg:block lg:w-2/3"
           style={{ backgroundImage: `url(${login_bg_img_2})` }}
@@ -84,7 +103,6 @@ const Login = () => {
           animate="visible"
           variants={imagePanelVariants}
         >
-          {/* Darker, professional overlay */}
           <div className="absolute inset-0 z-0 bg-gray-900/60"></div>
           
           <div className="flex items-center h-full px-20 relative z-20">
@@ -99,7 +117,7 @@ const Login = () => {
           </div>
         </motion.div>
 
-        {/* Right login panel - now uses motion for entrance */}
+        {/* Right login panel */}
         <motion.div
           className="flex items-center w-full max-w-md px-6 mx-auto lg:w-2/6 bg-white dark:bg-gray-900 rounded-lg"
           initial="hidden"
@@ -119,7 +137,7 @@ const Login = () => {
             <div className="mt-10">
               <form onSubmit={handleLogin} className="space-y-6">
                 
-                {/* Email Input */}
+                {/* Email Input (The value for the Django 'username' field) */}
                 <motion.div variants={contentVariants}>
                   <label
                     htmlFor="email"
@@ -166,6 +184,38 @@ const Login = () => {
                     required
                   />
                 </motion.div>
+                
+                {/* --- MFA Method Selection (New UI Element) --- */}
+                <motion.div className="mt-6" variants={contentVariants}>
+                    <label className="block mb-2 text-sm font-medium text-gray-800 dark:text-gray-200">
+                        Verification Method
+                    </label>
+                    <div className="flex space-x-4">
+                        <label className="flex items-center text-gray-800 dark:text-gray-200 cursor-pointer">
+                            <input
+                                type="radio"
+                                name="method"
+                                value="email"
+                                checked={method === "email"}
+                                onChange={() => setMethod("email")}
+                                className="text-teal-600 focus:ring-teal-500"
+                            />
+                            <span className="ml-2 text-sm">Email</span>
+                        </label>
+                        <label className="flex items-center text-gray-800 dark:text-gray-200 cursor-pointer">
+                            <input
+                                type="radio"
+                                name="method"
+                                value="sms"
+                                checked={method === "sms"}
+                                onChange={() => setMethod("sms")}
+                                className="text-teal-600 focus:ring-teal-500"
+                            />
+                            <span className="ml-2 text-sm">SMS (Text Message)</span>
+                        </label>
+                    </div>
+                </motion.div>
+                {/* --- End MFA Method Selection --- */}
 
                 {/* Login Button */}
                 <motion.div className="mt-8" variants={contentVariants}>
@@ -184,6 +234,7 @@ const Login = () => {
                       initial={{ opacity: 0 }}
                       animate={{ opacity: 1 }}
                     >
+                      {/* Display the error message extracted from the object */}
                       {errorMsg}
                     </motion.p>
                   )}
