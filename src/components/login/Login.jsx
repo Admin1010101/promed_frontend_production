@@ -11,8 +11,7 @@ const Login = () => {
   const { login } = useContext(AuthContext);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  // **NEW STATE:** State to track the chosen MFA method (sms or email)
-  const [method, setMethod] = useState("email"); 
+  const [method, setMethod] = useState("sms"); 
   const [errorMsg, setErrorMsg] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
@@ -184,39 +183,6 @@ const Login = () => {
                     required
                   />
                 </motion.div>
-                
-                {/* --- MFA Method Selection (New UI Element) --- */}
-                <motion.div className="mt-6" variants={contentVariants}>
-                    <label className="block mb-2 text-sm font-medium text-gray-800 dark:text-gray-200">
-                        Verification Method
-                    </label>
-                    <div className="flex space-x-4">
-                        <label className="flex items-center text-gray-800 dark:text-gray-200 cursor-pointer">
-                            <input
-                                type="radio"
-                                name="method"
-                                value="email"
-                                checked={method === "email"}
-                                onChange={() => setMethod("email")}
-                                className="text-teal-600 focus:ring-teal-500"
-                            />
-                            <span className="ml-2 text-sm">Email</span>
-                        </label>
-                        <label className="flex items-center text-gray-800 dark:text-gray-200 cursor-pointer">
-                            <input
-                                type="radio"
-                                name="method"
-                                value="sms"
-                                checked={method === "sms"}
-                                onChange={() => setMethod("sms")}
-                                className="text-teal-600 focus:ring-teal-500"
-                            />
-                            <span className="ml-2 text-sm">SMS (Text Message)</span>
-                        </label>
-                    </div>
-                </motion.div>
-                {/* --- End MFA Method Selection --- */}
-
                 {/* Login Button */}
                 <motion.div className="mt-8" variants={contentVariants}>
                   <button

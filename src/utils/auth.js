@@ -83,12 +83,15 @@ export const AuthProvider = ({ children }) => {
   };
 
   const login = async (email, password, method = "sms") => {
+
     try {
       const response = await axios.post(`${API_BASE_URL}/provider/token/`, {
         email,
         password,
         method,
       });
+      console.log('response from login: ', login)
+      
       const { access, refresh, user: userData } = response.data;
       const decodedToken = jwtDecode(access);
       const userWithRole = { ...userData, role: decodedToken.role };
