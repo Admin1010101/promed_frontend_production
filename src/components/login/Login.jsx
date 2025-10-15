@@ -49,8 +49,6 @@ const Login = () => {
     setIsLoading(false);
   };
 
-  // --- Framer Motion Variants (Unchanged, but included for completeness) ---
-
   const imagePanelVariants = {
     hidden: { x: "-100vw" },
     visible: {

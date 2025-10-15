@@ -84,67 +84,105 @@ export const AuthProvider = ({ children }) => {
   };
 
   const login = async (email, password, method = "sms") => {
-    try {
-      console.log("=== LOGIN DEBUG ===");
-      console.log("Attempting login to:", `${API_BASE_URL}/provider/token/`);
-      console.log("Email:", email);
-      console.log("Method:", method);
-      
-      const response = await axios.post(
-        `${API_BASE_URL}/provider/token/`,
-        {
-          email,
-          password,
-          method,
+  try {
+    console.log("=== LOGIN DEBUG ===");
+    console.log("API URL:", `${API_BASE_URL}/provider/token/`);
+    console.log("Email:", email);
+    console.log("Password length:", password?.length);
+    console.log("Method:", method);
+    
+    const response = await axios.post(
+      `${API_BASE_URL}/provider/token/`,
+      {
+        email: email.trim(),  // Remove any whitespace
+        password: password,
+        method: method,
+      },
+      {
+        headers: {
+          "Content-Type": "application/json",
         },
-        {
-          headers: {
-            "Content-Type": "application/json",
-          },
-        }
-      );
-
-      console.log("Login response:", response);
-
-      const { access, refresh, user: userData } = response.data;
-      const decodedToken = jwtDecode(access);
-      const userWithRole = { ...userData, role: decodedToken.role };
-
-      if (response.data.mfa_required) {
-        localStorage.setItem("accessToken", access);
-        localStorage.setItem("refreshToken", refresh);
-        localStorage.setItem("session_id", response.data.session_id);
-        localStorage.setItem("user", JSON.stringify(userWithRole));
-        setUser(userWithRole);
-        return {
-          mfa_required: true,
-          session_id: response.data.session_id,
-          detail: response.data.detail,
-        };
       }
+    );
 
-      localStorage.setItem("accessToken", access);
-      localStorage.setItem("refreshToken", refresh);
-      localStorage.setItem("user", JSON.stringify(userWithRole));
-      setUser(userWithRole);
-      return { success: true };
-    } catch (error) {
-      console.error("Login error details:", {
-        status: error.response?.status,
-        data: error.response?.data,
-        headers: error.response?.headers,
-        url: error.config?.url,
-      });
+    console.log("Login response received:", response.status);
+    console.log("Response data:", response.data);
 
+    const { access, refresh, user: userData } = response.data;
+    
+    if (!access || !refresh) {
+      console.error("Missing tokens in response:", response.data);
       return {
         success: false,
-        error:
-          error.response?.data?.detail ||
-          error.response?.data ||
-          "Login failed",
+        error: "Invalid response from server - missing tokens",
       };
     }
-  };
+
+    const decodedToken = jwtDecode(access);
+    const userWithRole = { ...userData, role: decodedToken.role };
+
+    if (response.data.mfa_required) {
+      localStorage.setItem("accessToken", access);
+      localStorage.setItem("refreshToken", refresh);
+      localStorage.setItem("session_id", response.data.session_id);
+      localStorage.setItem("user", JSON.stringify(userWithRole));
+      setUser(userWithRole);
+      console.log("MFA required, redirecting to MFA page");
+      return {
+        mfa_required: true,
+        session_id: response.data.session_id,
+        detail: response.data.detail,
+      };
+    }
+
+    localStorage.setItem("accessToken", access);
+    localStorage.setItem("refreshToken", refresh);
+    localStorage.setItem("user", JSON.stringify(userWithRole));
+    setUser(userWithRole);
+    console.log("Login successful without MFA");
+    return { success: true };
+  } catch (error) {
+    console.error("Login error:", error);
+    console.error("Error details:", {
+      status: error.response?.status,
+      statusText: error.response?.statusText,
+      data: error.response?.data,
+      headers: error.response?.headers,
+      url: error.config?.url,
+      requestData: error.config?.data,
+    });
+
+    // Handle different error formats
+    let errorMessage = "Login failed";
+    
+    if (error.response?.data) {
+      const errorData = error.response.data;
+      
+      // Check for detail field
+      if (errorData.detail) {
+        errorMessage = errorData.detail;
+      }
+      // Check for other error formats
+      else if (typeof errorData === 'object') {
+        const firstKey = Object.keys(errorData)[0];
+        if (firstKey && Array.isArray(errorData[firstKey])) {
+          errorMessage = errorData[firstKey][0];
+        } else if (firstKey) {
+          errorMessage = errorData[firstKey];
+        }
+      }
+      // If it's a string
+      else if (typeof errorData === 'string') {
+        errorMessage = errorData;
+      }
+    }
+
+    return {
+      success: false,
+      error: errorMessage,
+    };
+  }
+};
 
   const verifyCode = async (code, method = "sms") => {
     try {
