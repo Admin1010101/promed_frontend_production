@@ -72,7 +72,7 @@ export const AuthProvider = ({ children }) => {
   const register = async (formData) => {
     try {
       const response = await axios.post(
-        `${API_BASE_URL}/provider/register/`,
+        `${API_BASE_URL}/provider/register`,
         formData
       );
       return { success: true, data: response.data };
@@ -88,7 +88,7 @@ export const AuthProvider = ({ children }) => {
   const login = async (email, password, method = "sms") => {
     try {
       const response = await axios.post(
-        `${API_BASE_URL}/provider/token/`,
+        `${API_BASE_URL}/provider/token`,
         {
           email,
           password,
@@ -147,7 +147,7 @@ export const AuthProvider = ({ children }) => {
       const accessToken = localStorage.getItem("accessToken");
       const session_id = localStorage.getItem("session_id");
       const response = await axios.post(
-        `${API_BASE_URL}/verify-code/`,
+        `${API_BASE_URL}/verify-code`,
         { code, session_id, method },
         {
           headers: {
@@ -177,7 +177,7 @@ export const AuthProvider = ({ children }) => {
   const getPatients = async () => {
     try {
       const axiosInstance = axiosAuth();
-      const res = await axiosInstance.get(`${API_BASE_URL}/patient/patients/`);
+      const res = await axiosInstance.get(`${API_BASE_URL}/patient/patients`);
       return { success: true, data: res.data };
     } catch (error) {
       console.error("Failed to fetch patients:", error);
@@ -188,7 +188,7 @@ export const AuthProvider = ({ children }) => {
     try {
       const axiosInstance = axiosAuth();
       const res = await axiosInstance.post(
-        `${API_BASE_URL}/patient/patients/`,
+        `${API_BASE_URL}/patient/patients`,
         patientData
       );
       return { success: true, data: res.data };
@@ -208,7 +208,7 @@ export const AuthProvider = ({ children }) => {
     try {
       const axiosInstance = axiosAuth();
       const res = await axiosInstance.put(
-        `${API_BASE_URL}/patient/patients/${id}/`,
+        `${API_BASE_URL}/patient/patients/${id}`,
         patientData
       );
       return { success: true, data: res.data };
@@ -228,7 +228,7 @@ export const AuthProvider = ({ children }) => {
     try {
       const axiosInstance = axiosAuth();
       const res = await axiosInstance.delete(
-        `${API_BASE_URL}/patient/patients/${patientId}/`
+        `${API_BASE_URL}/patient/patients/${patientId}`
       );
       return { success: true, data: res.data };
     } catch (error) {
@@ -244,7 +244,7 @@ export const AuthProvider = ({ children }) => {
     try {
       const axiosInstance = axiosAuth();
       const response = await axiosInstance.get(
-        `${API_BASE_URL}/sales-rep/dashboard/`
+        `${API_BASE_URL}/sales-rep/dashboard`
       );
       return { success: true, data: response.data };
     } catch (error) {
@@ -273,7 +273,7 @@ export const AuthProvider = ({ children }) => {
       });
 
       const res = await axiosInstance.post(
-        `${API_BASE_URL}/onboarding/documents/upload/`,
+        `${API_BASE_URL}/onboarding/documents/upload`,
         formData,
         {
           headers: {
@@ -294,7 +294,7 @@ export const AuthProvider = ({ children }) => {
   const getProviderForms = async () => {
     try {
       const axiosInstance = axiosAuth();
-      const res = await axiosInstance.get(`${API_BASE_URL}/onboarding/forms/`);
+      const res = await axiosInstance.get(`${API_BASE_URL}/onboarding/forms`);
       return { success: true, data: res.data };
     } catch (error) {
       console.error("Failed to fetch provider forms:", error);
