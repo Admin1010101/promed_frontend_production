@@ -24,7 +24,6 @@ export const AuthProvider = ({ children }) => {
       try {
         const decodedToken = jwtDecode(accessToken);
         const parsedUser = JSON.parse(storedUser);
-        // Combine the stored user data with the role from the decoded token
         const userWithRole = { ...parsedUser, role: decodedToken.role };
         setUser(userWithRole);
         localStorage.setItem("user", JSON.stringify(userWithRole));
@@ -33,7 +32,7 @@ export const AuthProvider = ({ children }) => {
         logout();
       }
     }
-    setLoading(false); // Mark loading as complete after the checks
+    setLoading(false);
   }, []);
 
   const verifyToken = async (token) => {
@@ -68,11 +67,10 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  // Adjusted `register` function to accept a single object as an argument.
   const register = async (formData) => {
     try {
       const response = await axios.post(
-        `${API_BASE_URL}/provider/register`,
+        `${API_BASE_URL}/provider/register/`,
         formData
       );
       return { success: true, data: response.data };
@@ -87,6 +85,11 @@ export const AuthProvider = ({ children }) => {
 
   const login = async (email, password, method = "sms") => {
     try {
+      console.log("=== LOGIN DEBUG ===");
+      console.log("Attempting login to:", `${API_BASE_URL}/provider/token/`);
+      console.log("Email:", email);
+      console.log("Method:", method);
+      
       const response = await axios.post(
         `${API_BASE_URL}/provider/token`,
         {
@@ -101,7 +104,7 @@ export const AuthProvider = ({ children }) => {
         }
       );
 
-      console.log("response from login: ", response);
+      console.log("Login response:", response);
 
       const { access, refresh, user: userData } = response.data;
       const decodedToken = jwtDecode(access);
@@ -130,6 +133,7 @@ export const AuthProvider = ({ children }) => {
         status: error.response?.status,
         data: error.response?.data,
         headers: error.response?.headers,
+        url: error.config?.url,
       });
 
       return {
@@ -147,7 +151,7 @@ export const AuthProvider = ({ children }) => {
       const accessToken = localStorage.getItem("accessToken");
       const session_id = localStorage.getItem("session_id");
       const response = await axios.post(
-        `${API_BASE_URL}/verify-code`,
+        `${API_BASE_URL}/verify-code/`,
         { code, session_id, method },
         {
           headers: {
@@ -173,7 +177,6 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  // All other functions remain the same...
   const getPatients = async () => {
     try {
       const axiosInstance = axiosAuth();
@@ -184,11 +187,12 @@ export const AuthProvider = ({ children }) => {
       return { success: false, error: error.response?.data || error };
     }
   };
+
   const postPatient = async (patientData) => {
     try {
       const axiosInstance = axiosAuth();
       const res = await axiosInstance.post(
-        `${API_BASE_URL}/patient/patients`,
+        `${API_BASE_URL}/patient/patients/`,
         patientData
       );
       return { success: true, data: res.data };
@@ -204,6 +208,7 @@ export const AuthProvider = ({ children }) => {
       };
     }
   };
+
   const updatePatient = async (id, patientData) => {
     try {
       const axiosInstance = axiosAuth();
@@ -224,6 +229,7 @@ export const AuthProvider = ({ children }) => {
       };
     }
   };
+
   const deletePatient = async (patientId) => {
     try {
       const axiosInstance = axiosAuth();
@@ -240,11 +246,12 @@ export const AuthProvider = ({ children }) => {
       };
     }
   };
+
   const getSalesRepDashboardData = async () => {
     try {
       const axiosInstance = axiosAuth();
       const response = await axiosInstance.get(
-        `${API_BASE_URL}/sales-rep/dashboard`
+        `${API_BASE_URL}/sales-rep/dashboard/`
       );
       return { success: true, data: response.data };
     } catch (error) {
@@ -267,13 +274,12 @@ export const AuthProvider = ({ children }) => {
       formData.append("document_type", documentType);
       formData.append("recipient_email", recipientEmail);
 
-      // Append each file to the FormData object
       files.forEach((file) => {
-        formData.append("files", file); // Use 'files' as the field name
+        formData.append("files", file);
       });
 
       const res = await axiosInstance.post(
-        `${API_BASE_URL}/onboarding/documents/upload`,
+        `${API_BASE_URL}/onboarding/documents/upload/`,
         formData,
         {
           headers: {

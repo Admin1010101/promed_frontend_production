@@ -3,6 +3,7 @@ import { AuthContext } from "../../utils/auth";
 import { useNavigate, Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { IoArrowBack } from "react-icons/io5";
+import toast from "react-hot-toast";
 
 // Assuming this image path is correct
 import login_bg_img_2 from "../../assets/images/login_bg.jpg"; 
@@ -40,9 +41,10 @@ const Login = () => {
               : JSON.stringify(result.error);
       } else if (typeof result.error === 'string') {
           displayError = result.error;
+          toast.error(displayError)
       }
-      
       setErrorMsg(displayError);
+      toast
     }
 
     setIsLoading(false);
@@ -200,7 +202,6 @@ const Login = () => {
                       animate={{ opacity: 1 }}
                     >
                       {/* Display the error message extracted from the object */}
-                      {errorMsg}
                     </motion.p>
                   )}
                 </motion.div>
