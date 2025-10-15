@@ -75,7 +75,8 @@ const Register = () => {
 
     if (result.success) {
       toast.success(
-        "Account created! Please check your email to verify your account."
+        "Account created! Please check your email to verify your account.",
+        {duration: 5000}
       );
       // Reset form fields
       setFullName("");
