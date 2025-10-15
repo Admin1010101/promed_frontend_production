@@ -15,7 +15,7 @@ const VerifyEmail = () => {
     const verifyToken = async () => {
       try {
         // Make the GET request to your backend's verification endpoint
-        await axios.get(`${API_BASE_URL}/provider/verify-email/${token}/`);
+        await axios.get(`${API_BASE_URL}/provider/verify-email/${token}`);
         setVerificationStatus("success");
       } catch (error) {
         setVerificationStatus("error");
