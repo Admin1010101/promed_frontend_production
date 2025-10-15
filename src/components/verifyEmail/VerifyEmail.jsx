@@ -15,7 +15,7 @@ const VerifyEmail = () => {
     const verifyToken = async () => {
       try {
         // Make the GET request to your backend's verification endpoint
-        await axios.get(`${API_BASE_URL}/provider/verify-email/${token}`);
+        await axios.get(`${API_BASE_URL}/provider/verify-email/${token}/`);
         setVerificationStatus("success");
       } catch (error) {
         setVerificationStatus("error");
@@ -71,7 +71,7 @@ const VerifyEmail = () => {
   };
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-teal-100">
+    <div className="flex items-center justify-center min-h-screen bg-teal-50">
       <div className="bg-white p-8 rounded-lg shadow-md max-w-sm w-full">
         {renderContent()}
       </div>
