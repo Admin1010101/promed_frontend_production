@@ -2,26 +2,20 @@ import React, { useEffect, useState, useContext } from "react";
 import axios from "axios";
 import { API_BASE_URL } from "../../../utils/constants";
 import axiosAuth from "../../../utils/axios";
-import { AuthContext } from "../../../utils/auth"; // <-- Import AuthContext
+import { AuthContext } from "../../../utils/auth";
 
 const OrderHistory = ({ activationFilter }) => {
-  const { user } = useContext(AuthContext); // <-- Get the user object
+  const { user } = useContext(AuthContext); // Get the user object
   const [history, setHistory] = useState([]);
   const [expandedPatients, setExpandedPatients] = useState({});
-  const [loading, setLoading] = useState(true); // <-- Add loading state
+  const [loading, setLoading] = useState(true); // START in loading state
 
   const fetchHistory = async () => {
-    // CRITICAL CHECK: Ensure user is present before making the authenticated API call
-    if (!user) {
-      setLoading(false);
-      return; 
-    }
-    
     setLoading(true);
     try {
       const axiosInstance = axiosAuth();
       // Ensure your backend URL is correct. Assuming it's `/provider/order-history/`
-      const res = await axiosInstance.get(`/provider/order-history/`); 
+      const res = await axiosInstance.get(`/provider/order-history/`);
       setHistory(res.data);
       console.log("Order history response:", res.data);
     } catch (err) {
@@ -32,15 +26,20 @@ const OrderHistory = ({ activationFilter }) => {
   };
 
   useEffect(() => {
-    // Run fetchHistory only when the user object is confirmed to be available.
+    // 💥 CRITICAL FIX: Only run fetchHistory if user is present (logged in).
     if (user) {
       fetchHistory();
+    } 
+    // If 'user' is explicitly null (logged out or fully initialized to null), 
+    // stop loading to render the final empty state without fetching.
+    else if (user === null) { 
+      setLoading(false);
     }
-    // Dependency array now includes 'user' to ensure it runs *after* user is set
+    // Dependency array ensures this hook runs only when 'user' changes.
   }, [user]); 
 
   // ----------------------------------------------------------------
-  // Helper Functions (No changes needed, included for completeness)
+  // Helper Functions (Unchanged)
   // ----------------------------------------------------------------
   const orderStatus = (status) => {
     const lowerStatus = String(status).toLowerCase();
@@ -91,7 +90,7 @@ const OrderHistory = ({ activationFilter }) => {
       setExpandedPatients((prev) => ({ ...prev, [patientId]: false }));
     } else {
       try {
-        // NOTE: While you are using plain axios here, using axiosAuth is safer
+        // Use the authenticated instance here as well
         const axiosInstance = axiosAuth(); 
         const res = await axiosInstance.get(`/provider/order-history/`, {
           params: { all: true },
@@ -111,8 +110,8 @@ const OrderHistory = ({ activationFilter }) => {
   // Render Logic
   // ----------------------------------------------------------------
 
+  // 💥 NEW LOGIC: Only show loader if actively loading or user is still undefined (initial state).
   if (loading) {
-    // Show a small loader while fetching data
     return (
       <div className="flex justify-center items-center h-24">
         <p className="text-gray-500 dark:text-gray-400">Loading orders...</p>
@@ -120,6 +119,7 @@ const OrderHistory = ({ activationFilter }) => {
     );
   }
   
+  // No need to check for user again here, as 'loading' is false only when user is set or explicitly null.
   const filteredHistory = history.filter(patient => patient.activate_Account === activationFilter);
   
   if (filteredHistory.length === 0) {
@@ -132,7 +132,6 @@ const OrderHistory = ({ activationFilter }) => {
 
   return (
     <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-6 mb-8 bg-gray-50 dark:bg-gray-800">
-      {/* ... (rest of your map logic) ... */}
       {filteredHistory.map((patient) => (
         <div key={patient.id} className="bg-gray-50 dark:bg-gray-700 p-4 rounded shadow mb-4">
           <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-2">
