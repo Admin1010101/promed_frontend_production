@@ -1,9 +1,9 @@
 // src/components/dashboard/patients/Patients.js (Main Component)
 
-import React, { useState, useContext, useEffect, useCallback } from "react"; // 💥 Added useCallback
+import React, { useState, useContext, useEffect, useCallback } from "react"; 
 import { AuthContext } from "../../../utils/auth";
 import { Box, Modal } from "@mui/material";
-import CircularProgress from "@mui/material/CircularProgress"; // 💥 New Import
+import CircularProgress from "@mui/material/CircularProgress";
 import { motion, AnimatePresence } from "framer-motion";
 import { format } from "date-fns";
 import { FaSearch, FaSlidersH, FaPlus } from "react-icons/fa";
@@ -13,7 +13,8 @@ import toast from "react-hot-toast";
 import { states } from "../../../utils/data";
 import NewPatientForm from "./NewPatientForm";
 
-// Modal Animation Variants (Kept)
+// ... (Modal Variants, List Variants, Button Tap, IVR Status Badge, Filter Command Center remain unchanged) ...
+
 const modalVariants = {
   hidden: { opacity: 0, scale: 0.95 },
   visible: {
@@ -24,7 +25,6 @@ const modalVariants = {
   exit: { opacity: 0, scale: 0.9, transition: { duration: 0.25 } },
 };
 
-// List container variants for staggered list entry (Kept)
 const listContainerVariants = {
   visible: {
     transition: {
@@ -33,12 +33,10 @@ const listContainerVariants = {
   },
 };
 
-// Button press animation properties (Kept)
 const buttonTap = {
   scale: 0.95,
 };
 
-// IVR Status Badge (Kept)
 const IVRStatusBadge = ({ status }) => {
   const colors = {
     Approved:
@@ -56,7 +54,6 @@ const IVRStatusBadge = ({ status }) => {
   );
 };
 
-// Filter Command Center (Kept)
 const FilterCommandCenter = ({
   open,
   handleClose,
@@ -233,11 +230,11 @@ const FilterCommandCenter = ({
 // ----------------------------------------------------------------------
 
 const Patients = ({ activationFilter, setActivationFilter }) => {
-  const { user, getPatients, postPatient, updatePatient, deletePatient } = // 💥 CRITICAL: Extract 'user'
+  const { user, getPatients, postPatient, updatePatient, deletePatient } =
     useContext(AuthContext);
     
   const [patients, setPatients] = useState([]);
-  const [loading, setLoading] = useState(true); // 💥 New: Local loading state
+  const [loading, setLoading] = useState(true);
   const [errors, setErrors] = useState({});
   const [open, setOpen] = useState(false);
   const [filterModalOpen, setFilterModalOpen] = useState(false);
@@ -274,7 +271,6 @@ const Patients = ({ activationFilter, setActivationFilter }) => {
     wound_size_width: "",
   });
 
-  // 💥 List container variants for staggered list entry (Kept)
   const listContainerVariants = {
     visible: {
       transition: {
@@ -282,8 +278,6 @@ const Patients = ({ activationFilter, setActivationFilter }) => {
       },
     },
   };
-
-  // ... (All helper functions: formatPhoneNumberToE164, ValidateForm remain unchanged) ...
 
   const formatPhoneNumberToE164 = (phone) => {
     if (!phone) return "";
@@ -317,39 +311,42 @@ const Patients = ({ activationFilter, setActivationFilter }) => {
   };
   
   // ----------------------------------------------------------------------
-  // 💥 CRITICAL FIX: Conditional Patient Fetching Hook
+  // 💥 CORRECTED: Conditional Patient Fetching Hook
   // ----------------------------------------------------------------------
   const fetchPatients = useCallback(async () => {
-    // 1. Critical Check: Only proceed if the user context is ready
     if (!user || !getPatients) {
-      setLoading(true); // Keep loader active until user is confirmed
+      setLoading(true);
       return;
     }
     
-    setLoading(true); // Start loading state
+    setLoading(true);
     try {
       const result = await getPatients();
+      
       if (result.success) {
         setPatients(result.data);
       } else {
-        console.error("Failed to fetch patients:", result.error);
-        toast.error("Failed to load patient data.");
+        // 💥 FIX APPLIED: Only console.error for non-success that didn't throw.
+        // We REMOVE the toast here because this is the code path your API 
+        // seems to take when it finds no data (an unsuccessful request).
+        console.error("Fetch returned a non-success status. Error:", result.error);
       }
+      
     } catch (error) {
+      // KEEP: This handles true errors (network, 401/500 status codes, etc.)
       console.error("Error during patient fetch:", error);
       toast.error("An error occurred while loading patients.");
+      
     } finally {
-      setLoading(false); // Stop loading state regardless of success/failure
+      setLoading(false);
     }
-  }, [user, getPatients]); // 💥 DEPENDENCY ON 'user' is VITAL
+  }, [user, getPatients]);
 
   useEffect(() => {
     fetchPatients();
-  }, [fetchPatients]); // Reruns when the user context changes
+  }, [fetchPatients]);
   
-  // ----------------------------------------------------------------------
-  // ... (Rest of component logic remains the same) ...
-  // ----------------------------------------------------------------------
+  // ... (All other functions remain unchanged) ...
 
   useEffect(() => {
     if (searchTerm || ivrFilter || activationFilter) {
@@ -532,9 +529,6 @@ const Patients = ({ activationFilter, setActivationFilter }) => {
     outline: "none",
   };
 
-  // ----------------------------------------------------------------------
-  // RENDER CHECK: Show loader if user is not ready or data is fetching
-  // ----------------------------------------------------------------------
   if (loading || !user) {
     return (
       <div className="flex justify-center items-center min-h-[400px]">
@@ -543,9 +537,6 @@ const Patients = ({ activationFilter, setActivationFilter }) => {
     );
   }
 
-  // ----------------------------------------------------------------------
-  // MAIN RENDER (Unchanged)
-  // ----------------------------------------------------------------------
   return (
     <div className="max-w-5xl mx-auto mt-10 p-6 bg-white dark:bg-gray-900 shadow-lg rounded-lg transition-colors duration-300">
       <div className="flex flex-col sm:flex-row justify-between sm:items-center mb-6 space-y-3 sm:space-y-0">

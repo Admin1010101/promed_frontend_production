@@ -87,10 +87,6 @@ const Dashboard = () => {
       </div>
     );
   }
-
-  // -----------------------------------------------------
-  // 3. MAIN DASHBOARD CONTENT
-  // -----------------------------------------------------
   return (
     <div className="flex-1 bg-white dark:bg-gray-900 pt-6">
       <div className="px-4 sm:px-6 ml-11 font-bold mb-6">
@@ -120,14 +116,12 @@ const Dashboard = () => {
       >
         <div className="h-full">
           <Patients activationFilter={activationFilter} setActivationFilter={setActivationFilter} />
-          <h1>Patients</h1>
         </div>
         <div className="h-full">
           <Documents />
         </div>
         <div className="h-full">
           <OrderManagement activationFilter={activationFilter}/>
-          <h1>Orders</h1>
         </div>
       </div>
     </div>

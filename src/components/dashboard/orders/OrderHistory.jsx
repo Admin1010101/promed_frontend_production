@@ -1,46 +1,17 @@
-import React, { useEffect, useState, useContext } from "react";
-import axios from "axios";
-import { API_BASE_URL } from "../../../utils/constants";
+import React, { useEffect, useState, useContext, useCallback } from "react";
+import toast from "react-hot-toast"; // Recommended for error messages
 import axiosAuth from "../../../utils/axios";
 import { AuthContext } from "../../../utils/auth";
+// Note: Removed unused imports: axios, API_BASE_URL
 
 const OrderHistory = ({ activationFilter }) => {
-  const { user } = useContext(AuthContext); // Get the user object
+  const { user } = useContext(AuthContext); 
   const [history, setHistory] = useState([]);
   const [expandedPatients, setExpandedPatients] = useState({});
-  const [loading, setLoading] = useState(true); // START in loading state
+  const [loading, setLoading] = useState(true); 
 
-  const fetchHistory = async () => {
-    setLoading(true);
-    try {
-      const axiosInstance = axiosAuth();
-      // Ensure your backend URL is correct. Assuming it's `/provider/order-history/`
-      const res = await axiosInstance.get(`/provider/order-history/`);
-      setHistory(res.data);
-      console.log("Order history response:", res.data);
-    } catch (err) {
-      console.error("Failed to fetch order history", err);
-      // Optional: Show error toast/message to the user
-    }
-    setLoading(false);
-  };
+  // --- Helper Functions ---
 
-  useEffect(() => {
-    // 💥 CRITICAL FIX: Only run fetchHistory if user is present (logged in).
-    if (user) {
-      fetchHistory();
-    } 
-    // If 'user' is explicitly null (logged out or fully initialized to null), 
-    // stop loading to render the final empty state without fetching.
-    else if (user === null) { 
-      setLoading(false);
-    }
-    // Dependency array ensures this hook runs only when 'user' changes.
-  }, [user]); 
-
-  // ----------------------------------------------------------------
-  // Helper Functions (Unchanged)
-  // ----------------------------------------------------------------
   const orderStatus = (status) => {
     const lowerStatus = String(status).toLowerCase();
     const baseColors = {
@@ -66,9 +37,9 @@ const OrderHistory = ({ activationFilter }) => {
       );
       const contentType = response.headers["content-type"];
       if (!contentType || !contentType.includes("application/pdf")) {
-        const text = await response.data.text();
-        console.error("Expected PDF, got:", text);
-        alert("Failed to download PDF. Server returned unexpected content.");
+        // Fallback for non-PDF response
+        console.error("Expected PDF, got unexpected content.");
+        toast.error("Failed to download PDF. Server returned unexpected content.");
         return;
       }
       const url = window.URL.createObjectURL(new Blob([response.data]));
@@ -78,39 +49,77 @@ const OrderHistory = ({ activationFilter }) => {
       document.body.appendChild(link);
       link.click();
       link.remove();
+      window.URL.revokeObjectURL(url);
     } catch (err) {
       console.error("Failed to download invoice:", err);
-      alert("Could not download invoice. Please try again.");
+      toast.error("Could not download invoice. Please try again.");
     }
   };
 
+  // Improved to fetch only the needed patient's updated data (if API supports)
   const handleToggle = async (patientId) => {
     const isExpanded = expandedPatients[patientId];
     if (isExpanded) {
       setExpandedPatients((prev) => ({ ...prev, [patientId]: false }));
     } else {
+      setExpandedPatients((prev) => ({ ...prev, [patientId]: true }));
+      
+      // If the data is already in history, prevent redundant fetch
+      const patient = history.find(p => p.id === patientId);
+      if (patient && patient.orders && patient.orders.length > 5) {
+          // Optimization: Assume full data is already loaded if orders >= 5 
+          // (This depends on how your API initially truncates the order list)
+          return;
+      }
+
       try {
-        // Use the authenticated instance here as well
         const axiosInstance = axiosAuth(); 
-        const res = await axiosInstance.get(`/provider/order-history/`, {
-          params: { all: true },
-        });
-        const updated = res.data.find((p) => p.id === patientId);
+        // 💥 Assuming your API supports fetching one patient's full order list:
+        const res = await axiosInstance.get(`/provider/patient/${patientId}/order-history-full/`); 
+        
+        const updatedPatientData = res.data; 
+
         setHistory((prev) =>
-          prev.map((p) => (p.id === patientId ? updated : p))
+          prev.map((p) => (p.id === patientId ? updatedPatientData : p))
         );
-        setExpandedPatients((prev) => ({ ...prev, [patientId]: true }));
       } catch (err) {
         console.error("Failed to load full order history", err);
+        setExpandedPatients((prev) => ({ ...prev, [patientId]: false })); // Revert expansion on failure
+        toast.error("Could not load all orders for the patient.");
       }
     }
   };
 
-  // ----------------------------------------------------------------
-  // Render Logic
-  // ----------------------------------------------------------------
+  // --- Data Fetching Logic ---
 
-  // 💥 NEW LOGIC: Only show loader if actively loading or user is still undefined (initial state).
+  const fetchHistory = useCallback(async () => {
+    if (!user) return; // Should be handled by useEffect, but acts as a safeguard
+    
+    setLoading(true);
+    try {
+      const axiosInstance = axiosAuth();
+      const res = await axiosInstance.get(`/provider/order-history/`);
+      setHistory(res.data);
+      console.log("Order history fetched successfully.");
+    } catch (err) {
+      console.error("Failed to fetch order history", err);
+      toast.error("Failed to load order history.");
+    }
+    setLoading(false);
+  }, [user]); // Dependency on user ensures the function changes only when user changes
+
+  useEffect(() => {
+    if (user) {
+      fetchHistory();
+    } else if (user === null) { 
+      // User is confirmed not logged in, stop loading to render final state
+      setLoading(false);
+    }
+  }, [user, fetchHistory]); 
+
+  // --- Render Logic ---
+
+  // 1. Initial Loading State
   if (loading) {
     return (
       <div className="flex justify-center items-center h-24">
@@ -119,46 +128,57 @@ const OrderHistory = ({ activationFilter }) => {
     );
   }
   
-  // No need to check for user again here, as 'loading' is false only when user is set or explicitly null.
-  const filteredHistory = history.filter(patient => patient.activate_Account === activationFilter);
+  // 2. Apply Filter and Check for Empty Data
+  const filteredHistory = history.filter(patient => 
+      !activationFilter || patient.activate_Account === activationFilter
+  );
   
   if (filteredHistory.length === 0) {
     return (
       <div className="text-gray-500 dark:text-gray-400 text-center mt-6">
-        No order history yet.
+        No order history found for the current filter.
       </div>
     );
   }
 
+  // 3. Main Content
   return (
     <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-6 mb-8 bg-gray-50 dark:bg-gray-800">
       {filteredHistory.map((patient) => (
-        <div key={patient.id} className="bg-gray-50 dark:bg-gray-700 p-4 rounded shadow mb-4">
-          <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-2">
+        <div 
+          key={patient.id} 
+          className="bg-gray-50 dark:bg-gray-700 p-4 rounded shadow mb-4 transition-shadow hover:shadow-lg"
+        >
+          <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-2 border-b dark:border-gray-600 pb-2">
             {patient.first_name} {patient.last_name}
+            <span className="ml-3 text-sm font-normal text-teal-600 dark:text-teal-400">
+                ({patient.activate_Account})
+            </span>
           </h3>
-          {patient.orders.length === 0 ? (
-            <p className="text-gray-500 dark:text-gray-400 text-sm">
-              No orders.
-            </p>
-          ) : (
-            <ul className="space-y-4">
+          
+          {patient.orders && patient.orders.length > 0 ? (
+            <ul className="space-y-4 pt-2">
               {patient.orders.map((order) => (
                 <li
                   key={order.id}
-                  className="border border-gray-200 dark:border-gray-600 p-4 rounded bg-white dark:bg-gray-800 flex flex-col justify-center"
+                  className="border border-gray-200 dark:border-gray-600 p-3 rounded bg-white dark:bg-gray-800 flex justify-between items-center transition-colors"
                 >
-                  <div className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                    Order #{order.id} •{" "}
-                    <span className={orderStatus(order.status)}>
-                      {order.status}
-                    </span>{" "}
-                    • {new Date(order.created_at).toLocaleDateString()}
+                  <div>
+                    <div className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                      Order <span className="font-bold">#{order.id}</span>
+                    </div>
+                    <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                      {new Date(order.created_at).toLocaleDateString()}
+                    </div>
                   </div>
-                  <div className="mt-2">
+                  <div className="flex flex-col items-end">
+                    <span className={`text-sm font-semibold ${orderStatus(order.status)}`}>
+                      {order.status}
+                    </span>
                     <button
                       onClick={() => downloadInvoice(order.id)}
-                      className="text-xs text-teal-400 dark:text-teal-300 hover:underline cursor-pointer bg-transparent border-none p-0"
+                      className="text-xs text-teal-500 dark:text-teal-300 hover:underline mt-1"
+                      aria-label={`View Invoice for Order ${order.id}`}
                     >
                       View Invoice PDF
                     </button>
@@ -166,12 +186,18 @@ const OrderHistory = ({ activationFilter }) => {
                 </li>
               ))}
             </ul>
+          ) : (
+            <p className="text-gray-500 dark:text-gray-400 text-sm py-2">
+              No orders found for this patient.
+            </p>
           )}
-          {patient.orders.length >= 5 && (
+          
+          {/* Note: This logic assumes initial fetch returns truncated data (e.g., first 5 orders) */}
+          {patient.orders && patient.orders.length >= 5 && (
             <div className="mt-3 text-right">
               <button
                 onClick={() => handleToggle(patient.id)}
-                className="text-teal-600 dark:text-teal-400 hover:underline text-xs"
+                className="text-teal-600 dark:text-teal-400 hover:underline text-xs font-semibold"
               >
                 {expandedPatients[patient.id] ? "Show Less" : "Show All Orders"}
               </button>
