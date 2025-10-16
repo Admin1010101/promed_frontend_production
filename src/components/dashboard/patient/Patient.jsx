@@ -1,7 +1,7 @@
-// src/components/dashboard/patients/Patients.js (Main Component)
-
-import React, { useState, useContext, useEffect, useCallback } from "react"; 
+import React, { useState, useContext, useEffect, useCallback } from "react";
 import { AuthContext } from "../../../utils/auth";
+// 💥 NEW: Import the FilterContext
+import { FilterContext } from "../../../contexts/FilterContext"; 
 import { Box, Modal } from "@mui/material";
 import CircularProgress from "@mui/material/CircularProgress";
 import { motion, AnimatePresence } from "framer-motion";
@@ -13,7 +13,7 @@ import toast from "react-hot-toast";
 import { states } from "../../../utils/data";
 import NewPatientForm from "./NewPatientForm";
 
-// ... (Modal Variants, List Variants, Button Tap, IVR Status Badge, Filter Command Center remain unchanged) ...
+// --- (Unchanged Component/Config Blocks) ---
 
 const modalVariants = {
   hidden: { opacity: 0, scale: 0.95 },
@@ -54,16 +54,19 @@ const IVRStatusBadge = ({ status }) => {
   );
 };
 
+// 💥 FilterCommandCenter - Only needs props for its *local* state (ivrFilter, patientsPerPage)
+// It will consume activationFilter from context internally.
 const FilterCommandCenter = ({
   open,
   handleClose,
   ivrFilter,
   setIvrFilter,
-  activationFilter,
-  setActivationFilter,
   patientsPerPage,
   setPatientsPerPage,
 }) => {
+    // 💥 CONTEXT: Consume activationFilter and setActivationFilter
+    const { activationFilter, setActivationFilter } = useContext(FilterContext);
+
   const filterModalStyle = {
     position: "absolute",
     top: "50%",
@@ -229,9 +232,13 @@ const FilterCommandCenter = ({
 };
 // ----------------------------------------------------------------------
 
-const Patients = ({ activationFilter, setActivationFilter }) => {
+// 💥 Patients component no longer accepts activationFilter as a prop
+const Patients = () => {
   const { user, getPatients, postPatient, updatePatient, deletePatient } =
     useContext(AuthContext);
+  
+  // 💥 CONTEXT: Consume activationFilter from the global state
+  const { activationFilter } = useContext(FilterContext); 
     
   const [patients, setPatients] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -311,7 +318,7 @@ const Patients = ({ activationFilter, setActivationFilter }) => {
   };
   
   // ----------------------------------------------------------------------
-  // 💥 CORRECTED: Conditional Patient Fetching Hook
+  // Patient Fetching Hook (Unchanged)
   // ----------------------------------------------------------------------
   const fetchPatients = useCallback(async () => {
     if (!user || !getPatients) {
@@ -326,14 +333,10 @@ const Patients = ({ activationFilter, setActivationFilter }) => {
       if (result.success) {
         setPatients(result.data);
       } else {
-        // 💥 FIX APPLIED: Only console.error for non-success that didn't throw.
-        // We REMOVE the toast here because this is the code path your API 
-        // seems to take when it finds no data (an unsuccessful request).
         console.error("Fetch returned a non-success status. Error:", result.error);
       }
       
     } catch (error) {
-      // KEEP: This handles true errors (network, 401/500 status codes, etc.)
       console.error("Error during patient fetch:", error);
       toast.error("An error occurred while loading patients.");
       
@@ -346,16 +349,20 @@ const Patients = ({ activationFilter, setActivationFilter }) => {
     fetchPatients();
   }, [fetchPatients]);
   
-  // ... (All other functions remain unchanged) ...
-
+  // ----------------------------------------------------------------------
+  // Pagination/Filter Effect (NOW DEPENDS ON CONTEXT VALUE)
+  // ----------------------------------------------------------------------
   useEffect(() => {
+    // This effect runs whenever a filtering criteria changes
     if (searchTerm || ivrFilter || activationFilter) {
       setSavePage(currentPage);
       setCurrentPage(1);
     } else {
       setCurrentPage(savePage);
     }
-  }, [searchTerm, ivrFilter, activationFilter, patientsPerPage]);
+  }, [searchTerm, ivrFilter, activationFilter, patientsPerPage]); // activationFilter is now reactive
+  
+  // ... (All other functions remain unchanged) ...
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -483,14 +490,20 @@ const Patients = ({ activationFilter, setActivationFilter }) => {
       }
     }
   };
-
+  
+  // ----------------------------------------------------------------------
+  // Patient Filtering Logic (Unchanged)
+  // ----------------------------------------------------------------------
   const filteredPatients = patients.filter((patient) => {
     const fullName =
       `${patient.first_name} ${patient.last_name} ${patient.middle_initial}`.toLowerCase();
     const medRecord = patient.medical_record_number?.toLowerCase() || "";
     const matchesIvrFilter = ivrFilter ? patient.ivrStatus === ivrFilter : true;
+    
+    // activationFilter is now consumed from context
     const activationMatch =
-      !activationFilter || patient.activate_Account === activationFilter;
+      !activationFilter || patient.activate_Account === activationFilter; 
+      
     return (
       (fullName.includes(searchTerm.toLowerCase()) ||
         medRecord.includes(searchTerm.toLowerCase())) &&
@@ -498,6 +511,7 @@ const Patients = ({ activationFilter, setActivationFilter }) => {
       activationMatch
     );
   });
+  // ... (Pagination and PDF functions remain unchanged) ...
 
   const sortedPatients = [...filteredPatients].sort((a, b) => {
     const active = (status) => ["Approved", "Pending"].includes(status);
@@ -537,6 +551,9 @@ const Patients = ({ activationFilter, setActivationFilter }) => {
     );
   }
 
+  // ----------------------------------------------------------------------
+  // Render
+  // ----------------------------------------------------------------------
   return (
     <div className="max-w-5xl mx-auto mt-10 p-6 bg-white dark:bg-gray-900 shadow-lg rounded-lg transition-colors duration-300">
       <div className="flex flex-col sm:flex-row justify-between sm:items-center mb-6 space-y-3 sm:space-y-0">
@@ -572,7 +589,7 @@ const Patients = ({ activationFilter, setActivationFilter }) => {
           </div>
         </div>
 
-        {/* Filter/Command Center Button 💥 ADD MOTION */}
+        {/* Filter/Command Center Button */}
         <motion.button
           onClick={() => setFilterModalOpen(true)}
           className="flex items-center gap-2 px-4 py-1 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 bg-gray-50 dark:bg-gray-700 rounded-full text-sm font-medium hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors duration-300 w-full sm:w-auto"
@@ -588,7 +605,7 @@ const Patients = ({ activationFilter, setActivationFilter }) => {
         </motion.button>
       </div>
 
-      {/* Patient Cards List 💥 ADD MOTION & ANIMATEPRESENCE */}
+      {/* Patient Cards List */}
       <motion.div
         className="space-y-6"
         variants={listContainerVariants}
@@ -667,7 +684,7 @@ const Patients = ({ activationFilter, setActivationFilter }) => {
         </motion.button>
       </div>
 
-      {/* MODAL 2: Filter Command Center 💥 Wrap with AnimatePresence */}
+      {/* MODAL 2: Filter Command Center */}
       <AnimatePresence>
         {filterModalOpen && (
           <FilterCommandCenter
@@ -675,10 +692,9 @@ const Patients = ({ activationFilter, setActivationFilter }) => {
             handleClose={() => setFilterModalOpen(false)}
             ivrFilter={ivrFilter}
             setIvrFilter={setIvrFilter}
-            activationFilter={activationFilter}
-            setActivationFilter={setActivationFilter}
             patientsPerPage={patientsPerPage}
             setPatientsPerPage={setPatientsPerPage}
+            // 💥 activationFilter and setActivationFilter are now handled by Context!
           />
         )}
       </AnimatePresence>

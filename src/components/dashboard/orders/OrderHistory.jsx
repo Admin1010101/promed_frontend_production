@@ -1,18 +1,20 @@
 import React, { useEffect, useState, useContext, useCallback } from "react";
-import toast from "react-hot-toast"; // Recommended for error messages
+import toast from "react-hot-toast"; 
 import axiosAuth from "../../../utils/axios";
 import { AuthContext } from "../../../utils/auth";
-// Note: Removed unused imports: axios, API_BASE_URL
+import { FilterContext } from "../../../contexts/FilterContext"; // Adjust path as needed
 
-const OrderHistory = ({ activationFilter }) => {
+const OrderHistory = () => {
   const { user } = useContext(AuthContext); 
+
+  const { activationFilter } = useContext(FilterContext); 
+  
   const [history, setHistory] = useState([]);
   const [expandedPatients, setExpandedPatients] = useState({});
   const [loading, setLoading] = useState(true); 
 
-  // --- Helper Functions ---
-
   const orderStatus = (status) => {
+    // ... (logic unchanged) ...
     const lowerStatus = String(status).toLowerCase();
     const baseColors = {
       accepted: "text-green-500", pending: "text-yellow-500",
@@ -37,7 +39,6 @@ const OrderHistory = ({ activationFilter }) => {
       );
       const contentType = response.headers["content-type"];
       if (!contentType || !contentType.includes("application/pdf")) {
-        // Fallback for non-PDF response
         console.error("Expected PDF, got unexpected content.");
         toast.error("Failed to download PDF. Server returned unexpected content.");
         return;
@@ -56,7 +57,6 @@ const OrderHistory = ({ activationFilter }) => {
     }
   };
 
-  // Improved to fetch only the needed patient's updated data (if API supports)
   const handleToggle = async (patientId) => {
     const isExpanded = expandedPatients[patientId];
     if (isExpanded) {
@@ -64,17 +64,13 @@ const OrderHistory = ({ activationFilter }) => {
     } else {
       setExpandedPatients((prev) => ({ ...prev, [patientId]: true }));
       
-      // If the data is already in history, prevent redundant fetch
       const patient = history.find(p => p.id === patientId);
       if (patient && patient.orders && patient.orders.length > 5) {
-          // Optimization: Assume full data is already loaded if orders >= 5 
-          // (This depends on how your API initially truncates the order list)
           return;
       }
 
       try {
         const axiosInstance = axiosAuth(); 
-        // 💥 Assuming your API supports fetching one patient's full order list:
         const res = await axiosInstance.get(`/provider/patient/${patientId}/order-history-full/`); 
         
         const updatedPatientData = res.data; 
@@ -84,16 +80,14 @@ const OrderHistory = ({ activationFilter }) => {
         );
       } catch (err) {
         console.error("Failed to load full order history", err);
-        setExpandedPatients((prev) => ({ ...prev, [patientId]: false })); // Revert expansion on failure
+        setExpandedPatients((prev) => ({ ...prev, [patientId]: false })); 
         toast.error("Could not load all orders for the patient.");
       }
     }
   };
 
-  // --- Data Fetching Logic ---
-
   const fetchHistory = useCallback(async () => {
-    if (!user) return; // Should be handled by useEffect, but acts as a safeguard
+    if (!user) return; 
     
     setLoading(true);
     try {
@@ -106,20 +100,16 @@ const OrderHistory = ({ activationFilter }) => {
       toast.error("Failed to load order history.");
     }
     setLoading(false);
-  }, [user]); // Dependency on user ensures the function changes only when user changes
+  }, [user]);
 
   useEffect(() => {
     if (user) {
       fetchHistory();
     } else if (user === null) { 
-      // User is confirmed not logged in, stop loading to render final state
       setLoading(false);
     }
   }, [user, fetchHistory]); 
 
-  // --- Render Logic ---
-
-  // 1. Initial Loading State
   if (loading) {
     return (
       <div className="flex justify-center items-center h-24">
@@ -127,8 +117,7 @@ const OrderHistory = ({ activationFilter }) => {
       </div>
     );
   }
-  
-  // 2. Apply Filter and Check for Empty Data
+
   const filteredHistory = history.filter(patient => 
       !activationFilter || patient.activate_Account === activationFilter
   );
@@ -141,7 +130,6 @@ const OrderHistory = ({ activationFilter }) => {
     );
   }
 
-  // 3. Main Content
   return (
     <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-6 mb-8 bg-gray-50 dark:bg-gray-800">
       {filteredHistory.map((patient) => (
@@ -192,7 +180,6 @@ const OrderHistory = ({ activationFilter }) => {
             </p>
           )}
           
-          {/* Note: This logic assumes initial fetch returns truncated data (e.g., first 5 orders) */}
           {patient.orders && patient.orders.length >= 5 && (
             <div className="mt-3 text-right">
               <button
