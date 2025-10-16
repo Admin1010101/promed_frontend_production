@@ -1,67 +1,75 @@
-import React, { useState, useEffect, useMemo } from "react";
-import { PropagateLoader } from 'react-spinners'; // Imported for a clean animation
+import React, { useState, useEffect, useContext } from "react";
+import { PropagateLoader } from 'react-spinners';
 import OrderManagement from "./orders/OrderManagement";
 import Documents from "./documemts/Documents";
 import Patients from "./patient/Patient";
 import { IoChatbubblesOutline } from "react-icons/io5";
 import ContactModal from "../contact/contactModal/ContactModal";
+import { AuthContext } from "../../utils/auth"; // Import AuthContext
 
 // --- Configuration Constants ---
-const MIN_DURATION = 4000; // 4 seconds
-const MAX_DURATION = 10000; // 10 seconds
-const FADE_OUT_TIME = 500; // 0.5 seconds (matches the CSS transition duration)
+const SPLASH_DURATION = 1000; // 1.0 second fixed duration
+const FADE_OUT_TIME = 500;    // 0.5 seconds (matches the CSS transition duration)
 
 const Dashboard = () => {
-  // --- State Hooks ---
+  // --- Context & State Hooks ---
+  const { user } = useContext(AuthContext); // Get user for safety check
   const [openModal, setOpenModal] = useState(false);
   const [activationFilter, setActivationFilter] = useState("Activated");
   const [showSplash, setShowSplash] = useState(true);
   const [fadeOut, setFadeOut] = useState(false);
-
-  // --- Memoized Random Duration ---
-  // Calculates a stable random duration only once when the component mounts.
-  const randomDuration = useMemo(() => {
-    return Math.floor(Math.random() * (MAX_DURATION - MIN_DURATION + 1)) + MIN_DURATION;
-  }, []);
 
   // --- Effect for Splash Screen Timer and Fade-out ---
   useEffect(() => {
     // 1. Timer to start the fade-out animation
     const fadeTimer = setTimeout(() => {
       setFadeOut(true);
-    }, randomDuration);
+    }, SPLASH_DURATION);
 
     // 2. Timer to fully unmount the splash screen after the CSS transition completes
     const hideTimer = setTimeout(() => {
       setShowSplash(false);
-    }, randomDuration + FADE_OUT_TIME); 
+    }, SPLASH_DURATION + FADE_OUT_TIME); 
 
-    // Cleanup: Clear timers on unmount to prevent memory leaks or state updates on unmounted component
+    // Cleanup
     return () => {
       clearTimeout(fadeTimer);
       clearTimeout(hideTimer);
     };
-  }, [randomDuration]); // Depend on randomDuration to ensure timers are set correctly
+  }, []); // Run only once on mount
 
   // -----------------------------------------------------
-  // 1. CONDITIONAL RENDER: LOADING OVERLAY
+  // 1. CONDITIONAL RENDER: SAFETY/MFA CHECK
+  // -----------------------------------------------------
+  // If the user context is somehow null after passing PrivateRoute, show a safe loader
+  // instead of crashing. This is a critical safety net against a white screen.
+  if (!user) {
+    return (
+        <div className="flex justify-center items-center min-h-screen bg-gray-100 dark:bg-gray-900">
+            <PropagateLoader color={"#10B981"} loading={true} size={15} />
+        </div>
+    );
+  }
+
+  // -----------------------------------------------------
+  // 2. CONDITIONAL RENDER: LOADING OVERLAY (Splash Screen)
   // -----------------------------------------------------
   if (showSplash) {
     return (
       <div 
         className={`
           fixed inset-0 
-          bg-teal-200 dark:bg-teal-300
+          bg-teal-200 dark:bg-teal-700 /* Updated dark background color for better contrast */
           z-50 
           flex flex-col items-center justify-center 
-          transition-opacity duration-500 ease-in-out /* Fade-out CSS */
+          transition-opacity duration-500 ease-in-out
           ${fadeOut ? 'opacity-0' : 'opacity-100'}
         `}
       >
         <div className="text-white text-3xl font-extrabold flex flex-col items-center">
           
           {/* ProMed Health Plus Branding */}
-          <h1 className="text-5xl font-bold mb-8 drop-shadow-lg">ProMed Health <span className="text-teal-500">Plus</span></h1>
+          <h1 className="text-5xl font-bold mb-8 drop-shadow-lg text-white">ProMed Health <span className="text-teal-500">Plus</span></h1>
           
           {/* react-spinners Loader */}
           <div className="mb-10">
@@ -74,27 +82,27 @@ const Dashboard = () => {
             />
           </div>
           
-          <span className="tracking-wider text-xl">Building Your Dashboard...</span>
+          <span className="tracking-wider text-xl text-white">Building Your Dashboard...</span>
         </div>
       </div>
     );
   }
 
   // -----------------------------------------------------
-  // 2. MAIN DASHBOARD CONTENT
+  // 3. MAIN DASHBOARD CONTENT
   // -----------------------------------------------------
   return (
-    <div className="flex-1 bg-white dark:bg-gray-900">
-      <div className="px-4 sm:px-6 ml-11 font-bold">
+    <div className="flex-1 bg-white dark:bg-gray-900 pt-6">
+      <div className="px-4 sm:px-6 ml-11 font-bold mb-6">
         <button
           onClick={() => setOpenModal(true)}
           className="
             bg-red-500 text-white 
             py-1.5 px-3 md:py-2 md:px-4 lg:py-3 lg:px-6 
             rounded-full shadow-lg 
-            hover:bg-red-400 
+            hover:bg-red-600 /* Adjusted hover color */
             transition duration-300 
-            flex items-center text-xs
+            flex items-center text-sm /* Adjusted text size */
             font-semibold'
           "
         >

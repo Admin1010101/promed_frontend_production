@@ -178,34 +178,44 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const verifyCode = async (code, method = "sms") => {
+  // src/utils/auth.js (in AuthProvider)
+
+const verifyCode = async (code, method = "sms") => {
     try {
       const accessToken = localStorage.getItem("accessToken");
       const session_id = localStorage.getItem("session_id");
+      
+      // The headers here should probably include the access token, as it was saved during login
       const response = await axios.post(
-        `${API_BASE_URL}/verify-code/`,  // Already has trailing slash ✓
-        { code, session_id, method },
+        `${API_BASE_URL}/verify-code/`,
+        { code, session_id },
         {
           headers: {
-            Authorization: `Bearer ${accessToken}`,
+            Authorization: `Bearer ${accessToken}`, // Use the temporary token for verification
           },
         }
       );
+      
+      // 1. Get user data saved during login
       const userData = JSON.parse(localStorage.getItem("user"));
       const decodedToken = jwtDecode(accessToken);
+      
+      // 2. Build the final stable user object
       const userWithRole = {
         ...userData,
-        verified: true,
+        // Assuming your backend sets a flag or you know they are verified now
+        verified: true, 
         role: decodedToken.role,
       };
+      
+      // 3. Set Final State & Clean Up Temp Data
       localStorage.setItem("user", JSON.stringify(userWithRole));
-      setUser(userWithRole);
+      localStorage.removeItem("session_id"); // <-- CRITICAL: Clean up temp data
+      setUser(userWithRole); // <-- This triggers the AppWrapper to render Dashboard
+
       return { success: true };
     } catch (error) {
-      return {
-        success: false,
-        error: error.response?.data?.error || "Verification failed",
-      };
+      // ... (error handling)
     }
   };
 
