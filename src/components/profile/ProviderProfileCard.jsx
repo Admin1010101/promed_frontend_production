@@ -1,7 +1,6 @@
-import React, { useContext, useEffect, useState } from "react";
+import React, { useContext, useState } from "react";
 import { AuthContext } from "../../utils/context/auth";
 import { FaRegEdit } from "react-icons/fa";
-import { formatPhoneNumber } from "react-phone-number-input";
 import axiosAuth from "../../utils/axios";
 import ProviderProfileEdit from "./ProviderProfileEdit";
 import { Modal, Box } from "@mui/material";
@@ -21,26 +20,14 @@ const style = {
 };
 
 const ProviderProfileCard = () => {
-  const { verifyToken } = useContext(AuthContext);
-  const [profile, setProfile] = useState(null);
-  const [loading, setLoading] = useState(true);
+  // ✅ FIX: Removed verifyToken, get user directly from context
+  const { user } = useContext(AuthContext);
+  const [profile, setProfile] = useState(user); // Initialize with user data from context
   const [isEditing, setIsEditing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
 
-  const fetchProfile = async () => {
-    const { success, data } = await verifyToken(
-      localStorage.getItem("accessToken")
-    );
-    if (success) {
-      setProfile(data);
-    }
-    setLoading(false);
-  };
-
-  useEffect(() => {
-    fetchProfile();
-  }, [verifyToken]);
+  // ✅ FIX: Removed fetchProfile function and useEffect
 
   const handleEdit = () => {
     setIsEditing(true);
@@ -68,17 +55,20 @@ const ProviderProfileCard = () => {
     }
   };
 
-  // Date formatting and other derived state should be done here
-  if (loading)
+  // ✅ FIX: Show loading only if user is not available
+  if (!user) {
     return (
       <div className="text-center mt-20 text-gray-600 dark:text-gray-400 text-lg">Loading...</div>
     );
-  if (!profile)
+  }
+
+  if (!profile) {
     return (
       <div className="text-center mt-20 text-red-500 text-lg">
         Profile not found.
       </div>
     );
+  }
   
   const fullDateTime = profile.date_created;
   const profileCreatedDate = fullDateTime ? fullDateTime.split("T")[0] : "N/A";
@@ -158,10 +148,10 @@ const ProviderProfileCard = () => {
       <Modal open={isEditing} onClose={handleCancelEdit}>
         <Box sx={{
           ...style,
-          bgcolor: 'background.paper', // Or a custom dark mode color
+          bgcolor: 'background.paper',
           '@media (prefers-color-scheme: dark)': {
-            bgcolor: '#1f2937', // dark:bg-gray-800
-            color: '#d1d5db',   // dark:text-gray-300
+            bgcolor: '#1f2937',
+            color: '#d1d5db',
           },
         }}>
           <ProviderProfileEdit

@@ -331,7 +331,7 @@ const Products = () => {
               {[
                 { icon: Phone, title: "Phone", info: "1-800-PROMED-1", sub: "Mon-Fri 8am-6pm EST" },
                 { icon: Mail, title: "Email", info: "info@promedhealthplus.com", sub: "Response within 24 hours" },
-                { icon: MapPin, title: "Location", info: "123 Medical Center Drive", sub: "Chicago, IL 60601" }
+                { icon: MapPin, title: "Location", info: "30839 Thousand Oaks Blvd", sub: "Westlake Village, CA 91362" }
               ].map((item, index) => (
                 <motion.div 
                   key={index}

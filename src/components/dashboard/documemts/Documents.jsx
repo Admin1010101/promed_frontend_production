@@ -1,5 +1,4 @@
-import React, { useRef, useState, useContext, useEffect, useCallback } from "react";
-// Removed unused API_BASE_URL import as it's not used directly here
+import React, { useRef, useState, useContext, useEffect } from "react";
 import {
   FaUpload,
   FaFilePdf,
@@ -11,7 +10,6 @@ import {
 } from "react-icons/fa";
 import { AuthContext } from "../../../utils/context/auth";
 import CircularProgress from '@mui/material/CircularProgress';
-// Removed style-jsx as it's better to keep components clean, but left the implementation inside return for compliance
 
 const FileIcon = ({ filename }) => {
   const ext = filename.split(".").pop().toLowerCase();
@@ -32,9 +30,9 @@ const FileIcon = ({ filename }) => {
 };
 
 const Documents = () => {
-  const { user, verifyToken, uploadDocumentAndEmail } = useContext(AuthContext);
-  const [profile, setProfile] = useState(null);
-  const [loading, setLoading] = useState(true);
+  // ✅ FIX: Removed verifyToken from destructuring
+  const { user, uploadDocumentAndEmail } = useContext(AuthContext);
+  const [loading, setLoading] = useState(false);
   const [showModal, setShowModal] = useState(false);
   const [jotformStatus, setJotformStatus] = useState("incomplete");
   const [documentType, setDocumentType] = useState("MISCELLANEOUS");
@@ -43,35 +41,15 @@ const Documents = () => {
   const [uploadStatus, setUploadStatus] = useState("");
   const fileInputRef = useRef(null);
 
-  // Use useCallback to memoize the fetch function and avoid unnecessary re-runs
-  const fetchProfile = useCallback(async () => {
-      // CRITICAL CHECK: ONLY FETCH IF USER IS AUTHENTICATED AND STABLE
-      if (!user) {
-          setLoading(true); // Keep loading true until we know for sure
-          return;
-      }
-      
-      setLoading(true);
-      const { success, data } = await verifyToken();
-      if (success) {
-        setProfile(data);
-      } else {
-        // If profile fetch fails, it might be due to an expired token. Log and continue.
-        console.error("Failed to fetch profile. Token may be expired.");
-        setProfile({}); // Set to an empty object to avoid crashes on profile access
-      }
-      setLoading(false);
-  }, [user, verifyToken]); // DEPENDENCY ON USER
-
-  useEffect(() => {
-    fetchProfile();
-  }, [fetchProfile]); // Run when fetchProfile dependency changes
+  // ✅ FIX: Removed fetchProfile function since we get data directly from user context
+  
+  // ✅ FIX: Get profile data directly from user context
+  const profile = user;
 
   // ----------------------------------------------------------------------
   // DERIVED STATE: Ensure providerInfo is calculated using safe optional chaining
   // ----------------------------------------------------------------------
   const providerInfo = {
-    // Both user and profile are checked using optional chaining
     providerName: user?.full_name || "",
     contactEmail: user?.email || "",
     contactPhone: user?.phone_number || "",
@@ -84,7 +62,7 @@ const Documents = () => {
   const jotformUrl = `https://form.jotform.com/252644214142044?providerName=${encodeURIComponent(providerInfo.providerName)}&contactEmail=${encodeURIComponent(providerInfo.contactEmail)}&practiceName=${encodeURIComponent(providerInfo.practiceName)}&city=${encodeURIComponent(providerInfo.city)}&state=${encodeURIComponent(providerInfo.state)}&zipCode=${encodeURIComponent(providerInfo.zipCode)}`;
 
   // ----------------------------------------------------------------------
-  // HANDLERS (No changes needed, but included for completeness)
+  // HANDLERS
   // ----------------------------------------------------------------------
   const handleFileChange = (e) => {
     setSelectedFiles(Array.from(e.target.files));
@@ -99,7 +77,6 @@ const Documents = () => {
     setIsUploading(true);
     setUploadStatus("Uploading and emailing...");
 
-    // uploadDocumentAndEmail function implicitly uses the user's token
     const result = await uploadDocumentAndEmail(documentType, selectedFiles);
 
     if (result.success) {
@@ -122,10 +99,10 @@ const Documents = () => {
   };
 
   // ----------------------------------------------------------------------
-  // RENDER CHECKS (Must ensure loading spinner is only shown when truly fetching)
+  // RENDER CHECKS
   // ----------------------------------------------------------------------
-  // Show a loading spinner if we are explicitly loading OR the user object is null
-  if (loading || !user) {
+  // ✅ FIX: Show loading only if user data is not available yet
+  if (!user) {
     return (
       <div className="flex justify-center items-center h-full min-h-[400px]">
         <CircularProgress />
@@ -134,7 +111,7 @@ const Documents = () => {
   }
 
   // ----------------------------------------------------------------------
-  // MAIN RENDER (No functional changes, just cleanup)
+  // MAIN RENDER
   // ----------------------------------------------------------------------
   return (
     <div className="max-w-3xl mx-auto mt-10 p-6 bg-white dark:bg-gray-900 rounded-lg shadow-md">

@@ -1,5 +1,5 @@
 import React, { useEffect, useContext, useRef, useState } from "react";
-import { HashRouter, Routes, Route, useLocation } from "react-router-dom";
+import { HashRouter, Routes, Route, useLocation, Navigate } from "react-router-dom"; // Added Navigate
 import { Toaster, toast } from "react-hot-toast";
 import { PropagateLoader } from 'react-spinners';
 
@@ -21,14 +21,29 @@ import ForgotPassword from "./components/login/ForgotPassword";
 import ResetPassword from "./components/login/ResetPassword";
 
 // Utility Imports
-import PrivateRoute from "./utils/privateRoutes";
-import { AuthContext } from "./utils/context/auth"; 
+import { AuthContext, AuthProvider } from "./utils/context/auth"; // Added AuthProvider for wrapper
 
 import "./App.css";
 
+// Helper function for route classification
+const isPublicRoute = (path) => 
+    path === '/' ||
+    path === '/register' ||
+    path === '/about' ||
+    path === '/products' ||
+    path === '/contact' ||
+    path.startsWith('/verify-email') ||
+    path.startsWith('/reset-password') ||
+    path === '/forgot-password';
+
+const isAuthRoute = (path) => path === '/login' || path === '/mfa';
+const isSecuredRoute = (path) => path === '/dashboard' || path === '/sales-rep/dashboard' || path === '/profile';
+
+
 function AppWrapper() {
   const location = useLocation();
-  const { logout, user, loading: authLoading } = useContext(AuthContext);
+  // Destructure isMfaPending from context
+  const { logout, user, loading: authLoading, isMfaPending } = useContext(AuthContext); 
   const warningTimeoutRef = useRef(null);
   const logoutTimeoutRef = useRef(null);
   const [isDarkMode, setIsDarkMode] = useState(false);
@@ -45,7 +60,7 @@ function AppWrapper() {
     location.pathname.startsWith(path)
   );
 
-  // 1. Dark Mode Initialization
+  // 1. Dark Mode Initialization (remains the same)
   useEffect(() => {
     const savedMode = localStorage.getItem("darkMode");
     const isDark = savedMode === "true";
@@ -58,13 +73,13 @@ function AppWrapper() {
     }
   }, []);
 
-  // 2. Session Timeout Logic (HIPAA Compliance)
+  // 2. Session Timeout Logic (remains the same)
   useEffect(() => {
     if (!user) return; 
-
+    
     const HIPAA_IDLE_TIMEOUT_MINUTES = 15;
     const WARNING_BEFORE_LOGOUT_SECONDS = 60;
-
+    // ... (rest of timeout logic)
     const warningDuration =
       1000 * 60 * HIPAA_IDLE_TIMEOUT_MINUTES -
       1000 * WARNING_BEFORE_LOGOUT_SECONDS;
@@ -73,9 +88,9 @@ function AppWrapper() {
     const logoutAndRedirect = () => {
       logout();
       toast.error("Logged out due to inactivity.", { id: 'logout-toast' });
-      // Redirect after logout: Use setTimeout to ensure redirection runs outside of the event listener
       setTimeout(() => {
-        window.location.href = "/login";
+        // Use replace for clean history
+        window.location.replace("/login"); 
       }, 0); 
     };
 
@@ -90,7 +105,6 @@ function AppWrapper() {
     const resetTimers = () => {
       clearTimeout(warningTimeoutRef.current);
       clearTimeout(logoutTimeoutRef.current);
-      // Dismiss any existing warning toast
       toast.dismiss('logout-toast'); 
 
       warningTimeoutRef.current = setTimeout(showWarning, warningDuration);
@@ -126,6 +140,28 @@ function AppWrapper() {
     );
   }
 
+  // 🔑 4. CRITICAL ROUTING GUARD LOGIC
+  
+  // Rule A: Pending MFA must be on the MFA screen.
+  if (isMfaPending && location.pathname !== '/mfa') {
+      return <Navigate to="/mfa" replace />;
+  }
+
+  // Rule B: Logged-in users are redirected away from auth/public routes to the dashboard.
+  if (user) {
+      if (isAuthRoute(location.pathname) || isPublicRoute(location.pathname)) {
+          return <Navigate to="/dashboard" replace />;
+      }
+  } 
+  
+  // Rule C: Unauthenticated users are blocked from secured routes.
+  // Note: We check !user AND !isMfaPending because MFA pending users have temporary session data.
+  if (!user && !isMfaPending) {
+      if (isSecuredRoute(location.pathname)) {
+          return <Navigate to="/login" replace />;
+      }
+  }
+
 
   return (
     <>
@@ -151,31 +187,10 @@ function AppWrapper() {
             <Route path="/products" element={<Products />} />
             <Route path="/contact" element={<Contact />} />
             
-            {/* Private Routes (Secured) */}
-            <Route
-              path="/dashboard"
-              element={
-                <PrivateRoute>
-                  <Dashboard />
-                </PrivateRoute>
-              }
-            />
-            <Route
-              path="/sales-rep/dashboard"
-              element={
-                <PrivateRoute>
-                  <SalesRepDashboard />
-                </PrivateRoute>
-              }
-            />
-            <Route
-              path="/profile"
-              element={
-                <PrivateRoute>
-                  <ProviderProfileCard />
-                </PrivateRoute>
-              }
-            />
+            {/* Private Routes (Secured) - No wrapper needed due to Guard logic */}
+            <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/sales-rep/dashboard" element={<SalesRepDashboard />} />
+            <Route path="/profile" element={<ProviderProfileCard />} />
           </Routes>
         </main>
 
@@ -190,7 +205,10 @@ function App() {
 
   return (
     <HashRouter>
-      <AppWrapper />
+      {/* 🔑 The AuthProvider must wrap the router and the AppWrapper */}
+      <AuthProvider> 
+        <AppWrapper />
+      </AuthProvider>
     </HashRouter>
   );
 }

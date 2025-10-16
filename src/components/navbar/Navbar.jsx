@@ -44,15 +44,13 @@ const Navbar = ({ isDarkMode, setIsDarkMode }) => {
   const [notifications, setNotifications] = useState([]);
   const [showModal, setShowModal] = useState(false);
   const [selectedNotification, setSelectedNotification] = useState(null);
-  const [test, setTest] = useState('')
 
   const [showDropdown, setShowDropdown] = useState(false);
-  const [profile, setProfile] = useState(null);
-  const [loadingProfile, setLoadingProfile] = useState(true);
   const notificationRef = useRef(null);
 
-  const { user, logout, verifyToken } = useContext(AuthContext);
-  const isAuthenticated = !!user && user.verified;
+  // ✅ FIX: Removed verifyToken from destructuring
+  const { user, logout } = useContext(AuthContext);
+  const isAuthenticated = !!user;
 
   const [showProfileDropdown, setShowProfileDropdown] = useState(false);
   const profileRef = useRef(null);
@@ -107,20 +105,7 @@ const Navbar = ({ isDarkMode, setIsDarkMode }) => {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  useEffect(() => {
-    const fetchProfile = async () => {
-      const { success, data } = await verifyToken(
-        localStorage.getItem("accessToken")
-      );
-      if (success) {
-        setProfile(data);
-      }
-      setLoadingProfile(false);
-    };
-    if (isAuthenticated) {
-      fetchProfile();
-    }
-  }, [isAuthenticated, verifyToken]);
+  // ✅ FIX: Removed the verifyToken useEffect - user data comes from context
 
   useEffect(() => {
     const fetchNotifications = async () => {
@@ -158,16 +143,13 @@ const Navbar = ({ isDarkMode, setIsDarkMode }) => {
     setShowModal(true);
     markAsRead(notification.id);
     setShowDropdown(false);
-    // This is the fix: ensures the mobile menu panel is hidden before the modal appears
     closeMobileMenu();
   };
 
   const markAsRead = async (id) => {
     try {
       const axiosInstance = axiosAuth();
-      // Ensure the endpoint path is correct for a patch request, assuming /provider/notifications/{id}/mark-read/
-      // Updated the template literal based on common REST structure
-      await axiosInstance.patch(`/provider/notifications/${id}/mark-read/`); 
+      await axiosInstance.patch(`/provider/notifications/${id}/mark-read/`);
       setNotificationCount((prev) => Math.max(prev - 1, 0));
       setNotifications((prev) =>
         prev.map((n) => (n.id === id ? { ...n, is_read: true } : n))
@@ -180,7 +162,6 @@ const Navbar = ({ isDarkMode, setIsDarkMode }) => {
   const deleteNotification = async (id) => {
     try {
       const axiosInstance = axiosAuth();
-      // Updated the template literal for clarity and REST compliance
       await axiosInstance.delete(`/provider/notifications/${id}/delete-notification/`);
       setNotifications((prev) => prev.filter((n) => n.id !== id));
       setShowModal(false);
@@ -203,6 +184,9 @@ const Navbar = ({ isDarkMode, setIsDarkMode }) => {
     if (diffDays < 30) return "3 weeks ago";
     return "More than 30 days ago";
   }
+
+  // ✅ FIX: Get profile data directly from user context
+  const profile = user;
 
   return (
     <div className="bg-white dark:bg-gray-900 px-6 sm:px-8 mt-2 mb-10 transition-colors duration-500">
@@ -351,9 +335,7 @@ const Navbar = ({ isDarkMode, setIsDarkMode }) => {
               >
                 <div className="flex items-center space-x-2 cursor-pointer">
                   <h6 className="text-xs font-semibold text-gray-800 dark:text-gray-200 whitespace-nowrap">
-                    {profile?.full_name ||
-                      profile?.user?.full_name ||
-                      "Dr. Kara Johnson"}
+                    {profile?.full_name || profile?.email || "User"}
                   </h6>
                   <img
                     src={
@@ -373,17 +355,21 @@ const Navbar = ({ isDarkMode, setIsDarkMode }) => {
                     <Link
                       to="/profile"
                       className="flex items-center px-4 py-2 text-[10px] text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer uppercase font-semibold"
+                      onClick={() => setShowProfileDropdown(false)}
                     >
                       <IoEyeOutline className="mr-1" />
                       View Profile
                     </Link>
-                    <Link
-                      onClick={logout}
-                      className="flex items-center px-4 py-2 text-[10px] text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer uppercase font-semibold"
+                    <button
+                      onClick={() => {
+                        logout();
+                        setShowProfileDropdown(false);
+                      }}
+                      className="w-full text-left flex items-center px-4 py-2 text-[10px] text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer uppercase font-semibold"
                     >
                       <IoMdLogOut className="mr-1" />
                       Logout
-                    </Link>
+                    </button>
                   </div>
                 )}
               </div>
@@ -510,9 +496,6 @@ const Navbar = ({ isDarkMode, setIsDarkMode }) => {
             </li>
           </ul>
           
-          {/* ****** FIX APPLIED HERE ******
-            Only show the user image/name in the mobile menu if the user is authenticated.
-          */}
           {isAuthenticated && (
             <div className="flex items-center space-x-4 mt-4">
               <img
@@ -527,13 +510,10 @@ const Navbar = ({ isDarkMode, setIsDarkMode }) => {
                 className="w-10 h-10 rounded-full object-cover object-top border border-gray-300 shadow-sm"
               />
               <h6 className="text-[12px] font-semibold text-gray-800 dark:text-gray-200">
-                {profile?.full_name ||
-                  profile?.user?.full_name ||
-                  "Dr. Kara Johnson"}
+                {profile?.full_name || profile?.email || "User"}
               </h6>
             </div>
           )}
-          {/* ***************************** */}
 
           <div className="mt-auto pt-6 flex flex-col">
             {isAuthenticated ? (
@@ -561,7 +541,6 @@ const Navbar = ({ isDarkMode, setIsDarkMode }) => {
                           notifications.map((notif) => (
                             <li
                               key={notif.id}
-                              // The list item call remains the same, but the function it calls is now updated.
                               onClick={() => handleNotificationClick(notif)}
                               className={`px-4 py-2 text-xs flex flex-col ${
                                 notif.is_read
