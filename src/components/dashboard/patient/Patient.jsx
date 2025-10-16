@@ -1,18 +1,19 @@
 // src/components/dashboard/patients/Patients.js (Main Component)
 
-import React, { useState, useContext, useEffect } from "react";
+import React, { useState, useContext, useEffect, useCallback } from "react"; // 💥 Added useCallback
 import { AuthContext } from "../../../utils/auth";
 import { Box, Modal } from "@mui/material";
-import { motion, AnimatePresence } from "framer-motion"; // 💥 Import AnimatePresence
+import CircularProgress from "@mui/material/CircularProgress"; // 💥 New Import
+import { motion, AnimatePresence } from "framer-motion";
 import { format } from "date-fns";
-import { FaEye, FaSearch, FaSlidersH, FaPlus } from "react-icons/fa"; // Added FaPlus
+import { FaSearch, FaSlidersH, FaPlus } from "react-icons/fa";
 import FillablePdf from "../documemts/FillablePdf";
 import PatientCard from "./PatientCard";
 import toast from "react-hot-toast";
 import { states } from "../../../utils/data";
 import NewPatientForm from "./NewPatientForm";
 
-// Modal Animation Variants (Kept from previous suggestion)
+// Modal Animation Variants (Kept)
 const modalVariants = {
   hidden: { opacity: 0, scale: 0.95 },
   visible: {
@@ -23,21 +24,21 @@ const modalVariants = {
   exit: { opacity: 0, scale: 0.9, transition: { duration: 0.25 } },
 };
 
-// 💥 NEW: List container variants for staggered list entry
+// List container variants for staggered list entry (Kept)
 const listContainerVariants = {
   visible: {
     transition: {
-      staggerChildren: 0.05, // Stagger cards by 50ms
+      staggerChildren: 0.05,
     },
   },
 };
 
-// 💥 NEW: Button press animation properties
+// Button press animation properties (Kept)
 const buttonTap = {
   scale: 0.95,
 };
 
-// IVR Status Badge (Modified to accept props and use the provided colors)
+// IVR Status Badge (Kept)
 const IVRStatusBadge = ({ status }) => {
   const colors = {
     Approved:
@@ -55,7 +56,7 @@ const IVRStatusBadge = ({ status }) => {
   );
 };
 
-// Filter Command Center (Wrapper updated to use AnimatePresence)
+// Filter Command Center (Kept)
 const FilterCommandCenter = ({
   open,
   handleClose,
@@ -82,8 +83,7 @@ const FilterCommandCenter = ({
   const handlePatientsPerPageChange = (e) => {
     setPatientsPerPage(Number(e.target.value));
   };
-  // We wrap the content in motion.div because the Modal wrapper handles the open/close state
-  // and we use AnimatePresence outside in the main Patients component.
+ 
   return (
     <Modal
       open={open}
@@ -124,7 +124,6 @@ const FilterCommandCenter = ({
             Patient Filters
           </h3>
 
-          {/* ... (Filter controls remain unchanged) ... */}
           <div className="mb-6">
             <label
               htmlFor="ivr-filter"
@@ -234,9 +233,11 @@ const FilterCommandCenter = ({
 // ----------------------------------------------------------------------
 
 const Patients = ({ activationFilter, setActivationFilter }) => {
-  const { getPatients, postPatient, updatePatient, deletePatient } =
+  const { user, getPatients, postPatient, updatePatient, deletePatient } = // 💥 CRITICAL: Extract 'user'
     useContext(AuthContext);
+    
   const [patients, setPatients] = useState([]);
+  const [loading, setLoading] = useState(true); // 💥 New: Local loading state
   const [errors, setErrors] = useState({});
   const [open, setOpen] = useState(false);
   const [filterModalOpen, setFilterModalOpen] = useState(false);
@@ -271,19 +272,18 @@ const Patients = ({ activationFilter, setActivationFilter }) => {
     date_updated: "",
     wound_size_length: "",
     wound_size_width: "",
-    // ... (rest of formData fields)
   });
 
-  // 💥 NEW: List container variants for staggered list entry
+  // 💥 List container variants for staggered list entry (Kept)
   const listContainerVariants = {
     visible: {
       transition: {
-        staggerChildren: 0.08, // Stagger cards slightly more
+        staggerChildren: 0.08,
       },
     },
   };
 
-  // ... (All helper functions: formatPhoneNumberToE164, ValidateForm, useEffects, handleInputChange, resetForm, handleSavePatient, handleEditPatient, handleDeletePatient, filtering/sorting/pagination logic remain the same) ...
+  // ... (All helper functions: formatPhoneNumberToE164, ValidateForm remain unchanged) ...
 
   const formatPhoneNumberToE164 = (phone) => {
     if (!phone) return "";
@@ -315,20 +315,41 @@ const Patients = ({ activationFilter, setActivationFilter }) => {
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
+  
+  // ----------------------------------------------------------------------
+  // 💥 CRITICAL FIX: Conditional Patient Fetching Hook
+  // ----------------------------------------------------------------------
+  const fetchPatients = useCallback(async () => {
+    // 1. Critical Check: Only proceed if the user context is ready
+    if (!user || !getPatients) {
+      setLoading(true); // Keep loader active until user is confirmed
+      return;
+    }
+    
+    setLoading(true); // Start loading state
+    try {
+      const result = await getPatients();
+      if (result.success) {
+        setPatients(result.data);
+      } else {
+        console.error("Failed to fetch patients:", result.error);
+        toast.error("Failed to load patient data.");
+      }
+    } catch (error) {
+      console.error("Error during patient fetch:", error);
+      toast.error("An error occurred while loading patients.");
+    } finally {
+      setLoading(false); // Stop loading state regardless of success/failure
+    }
+  }, [user, getPatients]); // 💥 DEPENDENCY ON 'user' is VITAL
 
   useEffect(() => {
-    const fetchPatients = async () => {
-      if (getPatients) {
-        const result = await getPatients();
-        if (result.success) {
-          setPatients(result.data);
-        } else {
-          console.error("Failed to fetch patients:", result.error);
-        }
-      }
-    };
     fetchPatients();
-  }, [getPatients]);
+  }, [fetchPatients]); // Reruns when the user context changes
+  
+  // ----------------------------------------------------------------------
+  // ... (Rest of component logic remains the same) ...
+  // ----------------------------------------------------------------------
 
   useEffect(() => {
     if (searchTerm || ivrFilter || activationFilter) {
@@ -394,17 +415,21 @@ const Patients = ({ activationFilter, setActivationFilter }) => {
           toast.success("Patient profile updated successfully!");
         } else {
           console.error("Failed to update patient:", res.error);
+          toast.error("Failed to update patient.");
         }
       } else {
         const res = await postPatient(newPatientData);
         if (res.success) {
           setPatients((prev) => [res.data, ...prev]);
+          toast.success("New patient added successfully!");
         } else {
           console.error("Failed to add patient:", res.error);
+          toast.error("Failed to add new patient.");
         }
       }
     } catch (error) {
       console.log("Error saving patient:", error);
+      toast.error("Error saving patient data.");
     }
     resetForm();
   };
@@ -436,6 +461,7 @@ const Patients = ({ activationFilter, setActivationFilter }) => {
       setOpen(true);
     } catch (error) {
       console.error("Error in handleEditPatient:", error);
+      toast.error("Could not load patient for editing.");
     }
   };
 
@@ -449,11 +475,14 @@ const Patients = ({ activationFilter, setActivationFilter }) => {
         const res = await deletePatient(patientId);
         if (res.success) {
           setPatients((prev) => prev.filter((p) => p.id !== patientId));
+          toast.success("Patient deleted successfully!");
         } else {
           console.error("Failed to delete patient:", res.error);
+          toast.error("Failed to delete patient.");
         }
       } catch (error) {
         console.error("Error deleting patient:", error);
+        toast.error("Error deleting patient.");
       }
     }
   };
@@ -503,6 +532,20 @@ const Patients = ({ activationFilter, setActivationFilter }) => {
     outline: "none",
   };
 
+  // ----------------------------------------------------------------------
+  // RENDER CHECK: Show loader if user is not ready or data is fetching
+  // ----------------------------------------------------------------------
+  if (loading || !user) {
+    return (
+      <div className="flex justify-center items-center min-h-[400px]">
+        <CircularProgress color="success" />
+      </div>
+    );
+  }
+
+  // ----------------------------------------------------------------------
+  // MAIN RENDER (Unchanged)
+  // ----------------------------------------------------------------------
   return (
     <div className="max-w-5xl mx-auto mt-10 p-6 bg-white dark:bg-gray-900 shadow-lg rounded-lg transition-colors duration-300">
       <div className="flex flex-col sm:flex-row justify-between sm:items-center mb-6 space-y-3 sm:space-y-0">

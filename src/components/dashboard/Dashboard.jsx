@@ -119,14 +119,15 @@ const Dashboard = () => {
                 grid-cols-1 md:grid-cols-2 lg:grid-cols-3"
       >
         <div className="h-full">
-          {/* <Patients activationFilter={activationFilter} setActivationFilter={setActivationFilter} /> */}
+          <Patients activationFilter={activationFilter} setActivationFilter={setActivationFilter} />
           <h1>Patients</h1>
         </div>
         <div className="h-full">
           <Documents />
         </div>
         <div className="h-full">
-          <OrderManagement activationFilter={activationFilter}/>
+          {/* <OrderManagement activationFilter={activationFilter}/> */}
+          <h1>Orders</h1>
         </div>
       </div>
     </div>
