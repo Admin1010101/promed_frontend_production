@@ -126,8 +126,7 @@ const Dashboard = () => {
           <Documents />
         </div>
         <div className="h-full">
-          {/* <OrderManagement activationFilter={activationFilter}/> */}
-          <h1>Orders</h1>
+          <OrderManagement activationFilter={activationFilter}/>
         </div>
       </div>
     </div>

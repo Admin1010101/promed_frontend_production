@@ -1,46 +1,58 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useContext } from "react";
 import axios from "axios";
 import { API_BASE_URL } from "../../../utils/constants";
 import axiosAuth from "../../../utils/axios";
+import { AuthContext } from "../../../utils/auth"; // <-- Import AuthContext
 
 const OrderHistory = ({ activationFilter }) => {
+  const { user } = useContext(AuthContext); // <-- Get the user object
   const [history, setHistory] = useState([]);
   const [expandedPatients, setExpandedPatients] = useState({});
-
-  useEffect(() => {
-    fetchHistory();
-  }, []);
+  const [loading, setLoading] = useState(true); // <-- Add loading state
 
   const fetchHistory = async () => {
+    // CRITICAL CHECK: Ensure user is present before making the authenticated API call
+    if (!user) {
+      setLoading(false);
+      return; 
+    }
+    
+    setLoading(true);
     try {
       const axiosInstance = axiosAuth();
-      const res = await axiosInstance.get(`/provider/order-history/`);
+      // Ensure your backend URL is correct. Assuming it's `/provider/order-history/`
+      const res = await axiosInstance.get(`/provider/order-history/`); 
       setHistory(res.data);
       console.log("Order history response:", res.data);
     } catch (err) {
       console.error("Failed to fetch order history", err);
+      // Optional: Show error toast/message to the user
     }
+    setLoading(false);
   };
 
+  useEffect(() => {
+    // Run fetchHistory only when the user object is confirmed to be available.
+    if (user) {
+      fetchHistory();
+    }
+    // Dependency array now includes 'user' to ensure it runs *after* user is set
+  }, [user]); 
+
+  // ----------------------------------------------------------------
+  // Helper Functions (No changes needed, included for completeness)
+  // ----------------------------------------------------------------
   const orderStatus = (status) => {
     const lowerStatus = String(status).toLowerCase();
     const baseColors = {
-      accepted: "text-green-500",
-      pending: "text-yellow-500",
-      delivered: "text-green-500",
-      cancelled: "text-red-500",
-      refunded: "text-orange-500",
-      failed: "text-red-500",
-      default: "text-gray-500",
+      accepted: "text-green-500", pending: "text-yellow-500",
+      delivered: "text-green-500", cancelled: "text-red-500",
+      refunded: "text-orange-500", failed: "text-red-500", default: "text-gray-500",
     };
     const darkColors = {
-      accepted: "dark:text-green-400",
-      pending: "dark:text-yellow-400",
-      delivered: "dark:text-green-400",
-      cancelled: "dark:text-red-400",
-      refunded: "dark:text-orange-400",
-      failed: "dark:text-red-400",
-      default: "dark:text-gray-400",
+      accepted: "dark:text-green-400", pending: "dark:text-yellow-400",
+      delivered: "dark:text-green-400", cancelled: "dark:text-red-400",
+      refunded: "dark:text-orange-400", failed: "dark:text-red-400", default: "dark:text-gray-400",
     };
     const colorKey = baseColors[lowerStatus] ? lowerStatus : "default";
     return `${baseColors[colorKey]} ${darkColors[colorKey]}`;
@@ -51,9 +63,7 @@ const OrderHistory = ({ activationFilter }) => {
       const axiosInstance = axiosAuth();
       const response = await axiosInstance.get(
         `/provider/invoice/${orderId}/`,
-        {
-          responseType: "blob",
-        }
+        { responseType: "blob" }
       );
       const contentType = response.headers["content-type"];
       if (!contentType || !contentType.includes("application/pdf")) {
@@ -81,11 +91,9 @@ const OrderHistory = ({ activationFilter }) => {
       setExpandedPatients((prev) => ({ ...prev, [patientId]: false }));
     } else {
       try {
-        const token = localStorage.getItem("accessToken");
-        const res = await axios.get(`${API_BASE_URL}/provider/order-history/`, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
+        // NOTE: While you are using plain axios here, using axiosAuth is safer
+        const axiosInstance = axiosAuth(); 
+        const res = await axiosInstance.get(`/provider/order-history/`, {
           params: { all: true },
         });
         const updated = res.data.find((p) => p.id === patientId);
@@ -99,7 +107,21 @@ const OrderHistory = ({ activationFilter }) => {
     }
   };
 
+  // ----------------------------------------------------------------
+  // Render Logic
+  // ----------------------------------------------------------------
+
+  if (loading) {
+    // Show a small loader while fetching data
+    return (
+      <div className="flex justify-center items-center h-24">
+        <p className="text-gray-500 dark:text-gray-400">Loading orders...</p>
+      </div>
+    );
+  }
+  
   const filteredHistory = history.filter(patient => patient.activate_Account === activationFilter);
+  
   if (filteredHistory.length === 0) {
     return (
       <div className="text-gray-500 dark:text-gray-400 text-center mt-6">
@@ -110,8 +132,9 @@ const OrderHistory = ({ activationFilter }) => {
 
   return (
     <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-6 mb-8 bg-gray-50 dark:bg-gray-800">
+      {/* ... (rest of your map logic) ... */}
       {filteredHistory.map((patient) => (
-        <div key={patient.id} className="bg-gray-50 dark:bg-gray-700 p-4 rounded shadow">
+        <div key={patient.id} className="bg-gray-50 dark:bg-gray-700 p-4 rounded shadow mb-4">
           <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-2">
             {patient.first_name} {patient.last_name}
           </h3>
@@ -124,7 +147,7 @@ const OrderHistory = ({ activationFilter }) => {
               {patient.orders.map((order) => (
                 <li
                   key={order.id}
-                  className="border border-gray-200 dark:border-gray-600 p-4 rounded bg-white dark:bg-gray-800 flex-1 justify-center"
+                  className="border border-gray-200 dark:border-gray-600 p-4 rounded bg-white dark:bg-gray-800 flex flex-col justify-center"
                 >
                   <div className="text-sm font-medium text-gray-700 dark:text-gray-300">
                     Order #{order.id} •{" "}
