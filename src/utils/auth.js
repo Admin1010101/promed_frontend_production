@@ -39,7 +39,7 @@ export const AuthProvider = ({ children }) => {
     const axiosInstance = axiosAuth();
     try {
       const response = await axiosInstance.get(
-        `${API_BASE_URL}/provider/profile/`
+        `${API_BASE_URL}/provider/profile/`  // Already has trailing slash ✓
       );
       return { success: true, data: response.data };
     } catch (error) {
@@ -70,7 +70,7 @@ export const AuthProvider = ({ children }) => {
   const register = async (formData) => {
     try {
       const response = await axios.post(
-        `${API_BASE_URL}/provider/register/`,
+        `${API_BASE_URL}/provider/register/`,  // Already has trailing slash ✓
         formData
       );
       return { success: true, data: response.data };
@@ -84,112 +84,106 @@ export const AuthProvider = ({ children }) => {
   };
 
   const login = async (email, password, method = "sms") => {
-  try {
-    console.log("=== LOGIN DEBUG ===");
-    console.log("API URL:", `${API_BASE_URL}/provider/token/`);
-    console.log("Email:", email);
-    console.log("Password length:", password?.length);
-    console.log("Method:", method);
-    
-    const response = await axios.post(
-      `${API_BASE_URL}/provider/token/`,
-      {
-        email: email.trim(),  // Remove any whitespace
-        password: password,
-        method: method,
-      },
-      {
-        headers: {
-          "Content-Type": "application/json",
+    try {
+      console.log("=== LOGIN DEBUG ===");
+      console.log("API URL:", `${API_BASE_URL}/provider/token/`);
+      console.log("Email:", email);
+      console.log("Password length:", password?.length);
+      console.log("Method:", method);
+      
+      const response = await axios.post(
+        `${API_BASE_URL}/provider/token/`,  // Already has trailing slash ✓
+        {
+          email: email.trim(),
+          password: password,
+          method: method,
         },
+        {
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      console.log("Login response received:", response.status);
+      console.log("Response data:", response.data);
+
+      const { access, refresh, user: userData } = response.data;
+      
+      if (!access || !refresh) {
+        console.error("Missing tokens in response:", response.data);
+        return {
+          success: false,
+          error: "Invalid response from server - missing tokens",
+        };
       }
-    );
 
-    console.log("Login response received:", response.status);
-    console.log("Response data:", response.data);
+      const decodedToken = jwtDecode(access);
+      const userWithRole = { ...userData, role: decodedToken.role };
 
-    const { access, refresh, user: userData } = response.data;
-    
-    if (!access || !refresh) {
-      console.error("Missing tokens in response:", response.data);
-      return {
-        success: false,
-        error: "Invalid response from server - missing tokens",
-      };
-    }
+      if (response.data.mfa_required) {
+        localStorage.setItem("accessToken", access);
+        localStorage.setItem("refreshToken", refresh);
+        localStorage.setItem("session_id", response.data.session_id);
+        localStorage.setItem("user", JSON.stringify(userWithRole));
+        setUser(userWithRole);
+        console.log("MFA required, redirecting to MFA page");
+        return {
+          mfa_required: true,
+          session_id: response.data.session_id,
+          detail: response.data.detail,
+        };
+      }
 
-    const decodedToken = jwtDecode(access);
-    const userWithRole = { ...userData, role: decodedToken.role };
-
-    if (response.data.mfa_required) {
       localStorage.setItem("accessToken", access);
       localStorage.setItem("refreshToken", refresh);
-      localStorage.setItem("session_id", response.data.session_id);
       localStorage.setItem("user", JSON.stringify(userWithRole));
       setUser(userWithRole);
-      console.log("MFA required, redirecting to MFA page");
-      return {
-        mfa_required: true,
-        session_id: response.data.session_id,
-        detail: response.data.detail,
-      };
-    }
+      console.log("Login successful without MFA");
+      return { success: true };
+    } catch (error) {
+      console.error("Login error:", error);
+      console.error("Error details:", {
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        data: error.response?.data,
+        headers: error.response?.headers,
+        url: error.config?.url,
+        requestData: error.config?.data,
+      });
 
-    localStorage.setItem("accessToken", access);
-    localStorage.setItem("refreshToken", refresh);
-    localStorage.setItem("user", JSON.stringify(userWithRole));
-    setUser(userWithRole);
-    console.log("Login successful without MFA");
-    return { success: true };
-  } catch (error) {
-    console.error("Login error:", error);
-    console.error("Error details:", {
-      status: error.response?.status,
-      statusText: error.response?.statusText,
-      data: error.response?.data,
-      headers: error.response?.headers,
-      url: error.config?.url,
-      requestData: error.config?.data,
-    });
-
-    // Handle different error formats
-    let errorMessage = "Login failed";
-    
-    if (error.response?.data) {
-      const errorData = error.response.data;
+      let errorMessage = "Login failed";
       
-      // Check for detail field
-      if (errorData.detail) {
-        errorMessage = errorData.detail;
-      }
-      // Check for other error formats
-      else if (typeof errorData === 'object') {
-        const firstKey = Object.keys(errorData)[0];
-        if (firstKey && Array.isArray(errorData[firstKey])) {
-          errorMessage = errorData[firstKey][0];
-        } else if (firstKey) {
-          errorMessage = errorData[firstKey];
+      if (error.response?.data) {
+        const errorData = error.response.data;
+        
+        if (errorData.detail) {
+          errorMessage = errorData.detail;
+        } else if (typeof errorData === 'object') {
+          const firstKey = Object.keys(errorData)[0];
+          if (firstKey && Array.isArray(errorData[firstKey])) {
+            errorMessage = errorData[firstKey][0];
+          } else if (firstKey) {
+            errorMessage = errorData[firstKey];
+          }
+        } else if (typeof errorData === 'string') {
+          errorMessage = errorData;
         }
       }
-      // If it's a string
-      else if (typeof errorData === 'string') {
-        errorMessage = errorData;
-      }
-    }
 
-    return {
-      success: false,
-      error: errorMessage,
-    };
-  }
-};
+      return {
+        success: false,
+        error: errorMessage,
+      };
+    }
+  };
 
   const verifyCode = async (code, method = "sms") => {
     try {
       const accessToken = localStorage.getItem("accessToken");
       const session_id = localStorage.getItem("session_id");
       const response = await axios.post(
-        `${API_BASE_URL}/verify-code/`,
+        `${API_BASE_URL}/verify-code/`,  // Already has trailing slash ✓
         { code, session_id, method },
         {
           headers: {
@@ -218,7 +212,7 @@ export const AuthProvider = ({ children }) => {
   const getPatients = async () => {
     try {
       const axiosInstance = axiosAuth();
-      const res = await axiosInstance.get(`${API_BASE_URL}/patient/patients`);
+      const res = await axiosInstance.get(`${API_BASE_URL}/patient/patients/`);  // ADDED SLASH
       return { success: true, data: res.data };
     } catch (error) {
       console.error("Failed to fetch patients:", error);
@@ -230,7 +224,7 @@ export const AuthProvider = ({ children }) => {
     try {
       const axiosInstance = axiosAuth();
       const res = await axiosInstance.post(
-        `${API_BASE_URL}/patient/patients/`,
+        `${API_BASE_URL}/patient/patients/`,  // Already has trailing slash ✓
         patientData
       );
       return { success: true, data: res.data };
@@ -251,7 +245,7 @@ export const AuthProvider = ({ children }) => {
     try {
       const axiosInstance = axiosAuth();
       const res = await axiosInstance.put(
-        `${API_BASE_URL}/patient/patients/${id}`,
+        `${API_BASE_URL}/patient/patients/${id}/`,  // ADDED SLASH
         patientData
       );
       return { success: true, data: res.data };
@@ -272,7 +266,7 @@ export const AuthProvider = ({ children }) => {
     try {
       const axiosInstance = axiosAuth();
       const res = await axiosInstance.delete(
-        `${API_BASE_URL}/patient/patients/${patientId}`
+        `${API_BASE_URL}/patient/patients/${patientId}/`  // ADDED SLASH
       );
       return { success: true, data: res.data };
     } catch (error) {
@@ -289,7 +283,7 @@ export const AuthProvider = ({ children }) => {
     try {
       const axiosInstance = axiosAuth();
       const response = await axiosInstance.get(
-        `${API_BASE_URL}/sales-rep/dashboard/`
+        `${API_BASE_URL}/sales-rep/dashboard/`  // Already has trailing slash ✓
       );
       return { success: true, data: response.data };
     } catch (error) {
@@ -317,7 +311,7 @@ export const AuthProvider = ({ children }) => {
       });
 
       const res = await axiosInstance.post(
-        `${API_BASE_URL}/onboarding/documents/upload/`,
+        `${API_BASE_URL}/onboarding/documents/upload/`,  // Already has trailing slash ✓
         formData,
         {
           headers: {
@@ -338,7 +332,7 @@ export const AuthProvider = ({ children }) => {
   const getProviderForms = async () => {
     try {
       const axiosInstance = axiosAuth();
-      const res = await axiosInstance.get(`${API_BASE_URL}/onboarding/forms`);
+      const res = await axiosInstance.get(`${API_BASE_URL}/onboarding/forms/`);  // ADDED SLASH
       return { success: true, data: res.data };
     } catch (error) {
       console.error("Failed to fetch provider forms:", error);

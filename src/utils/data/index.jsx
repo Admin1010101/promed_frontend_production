@@ -126,24 +126,7 @@ export const products = [
     disciption: ';ladj',
     link: 'a;dmf'
   },
-  {id: 2,
-    name: 'alkdjal;fkj',
-    image: 'a[ldjfjak',
-    disciption: 'a;ldja',
-    link: ''
-  },
-  {
-    id: 3,
-    name: 'laksdlkf',
-    image: 'a;lskjfd',
-    disciption: 'a;ljdkjfas',
-    link: 'a;sdkjlfj'
-  },
-  {
-    id: 4,
-    name: 'a;lkdfjkl',
-    image: 'a;ldjfaj',
-    disciption: 'aldf',
-    link: 'a,;dksfl'
-  },
+ 
 ]
+
+
