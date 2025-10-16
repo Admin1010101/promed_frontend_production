@@ -72,7 +72,7 @@ const OrderHistory = () => {
 
       try {
         const axiosInstance = axiosAuth(); 
-        const res = await axiosInstance.get(`/provider/patient/${patientId}/order-history-full/`); 
+        const res = await axiosInstance.get(`/provider/patient/${patientId}/order-history/`); 
         
         const updatedPatientData = res.data; 
 

@@ -55,6 +55,19 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  const register = async (formData) => {
+    try {
+      const response = await axios.post(`${API_BASE_URL}/provider/register/`, formData);
+      return { success: true, data: response.data };
+    } catch (error) {
+      console.error("Registration error:", error.response);
+      return {
+        success: false,
+        error: error.response?.data || "Registration failed",
+      };
+    }
+  };
+
   const logout = () => {
     localStorage.removeItem("accessToken");
     localStorage.removeItem("refreshToken");
@@ -280,6 +293,7 @@ const getPatients = async () => {
         user,
         loading,
         isMfaPending,
+        register,
         logout,
         login,
         verifyCode,
