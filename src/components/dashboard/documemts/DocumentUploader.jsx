@@ -1,7 +1,7 @@
 // DocumentUploader.js
 
 import React, { useState, useContext } from 'react';
-import { AuthContext } from './AuthContext';
+import { AuthContext } from '../../../utils/context/auth';
 
 const DocumentUploader = () => {
     const { uploadDocumentAndEmail } = useContext(AuthContext);

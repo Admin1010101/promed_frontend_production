@@ -8,7 +8,7 @@ import {
   MdPictureAsPdf,
   MdLocalHospital,
 } from "react-icons/md";
-import { AuthContext } from "../../utils/auth";
+import { AuthContext } from "../../utils/context/auth";
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
 import { motion, AnimatePresence } from "framer-motion"; // <-- Framer Motion Import

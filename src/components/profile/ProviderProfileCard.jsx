@@ -1,5 +1,5 @@
 import React, { useContext, useEffect, useState } from "react";
-import { AuthContext } from "../../utils/auth";
+import { AuthContext } from "../../utils/context/auth";
 import { FaRegEdit } from "react-icons/fa";
 import { formatPhoneNumber } from "react-phone-number-input";
 import axiosAuth from "../../utils/axios";

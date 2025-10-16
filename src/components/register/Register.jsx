@@ -1,5 +1,5 @@
 import React, { useState, useContext } from "react";
-import { AuthContext } from "../../utils/auth";
+import { AuthContext } from "../../utils/context/auth";
 import { useNavigate, Link } from "react-router-dom";
 // 1. Import motion
 import { motion } from "framer-motion"; 

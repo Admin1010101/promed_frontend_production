@@ -1,5 +1,5 @@
 import React, { useState, useContext } from "react";
-import { AuthContext } from "../../utils/auth";
+import { AuthContext } from "../../utils/context/auth";
 import { useNavigate, Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { IoArrowBack } from "react-icons/io5";

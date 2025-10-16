@@ -3,7 +3,7 @@ import { Modal, Box } from "@mui/material";
 import authRequest from "../../../utils/axios";
 import { AuthContext } from "../../../utils/context/auth";
 import toast from "react-hot-toast";
-import { motion } from "framer-motion"; // 💥 Import motion
+import { motion } from "framer-motion";
 import { IoCloseOutline, IoCallOutline } from "react-icons/io5";
 import { AiOutlineMail } from "react-icons/ai";
 

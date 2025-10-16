@@ -5,7 +5,7 @@ import { IoEyeOutline } from "react-icons/io5";
 import { IoMdLogOut } from "react-icons/io";
 import { MdDarkMode, MdLightMode } from "react-icons/md";
 import { Link } from "react-router-dom";
-import { AuthContext } from "../../utils/auth";
+import { AuthContext } from "../../utils/context/auth";
 import NotificationModal from "./NotificationModal";
 import axiosAuth from "../../utils/axios";
 import logo from "../../assets/images/logo.png";

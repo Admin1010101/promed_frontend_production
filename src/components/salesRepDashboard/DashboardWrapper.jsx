@@ -1,5 +1,5 @@
 import { useContext } from "react";
-import { AuthContext } from "../../utils/auth";
+import { AuthContext } from "../../utils/context/auth";
 import Dashboard from "../dashboard/Dashboard";
 import SalesRepDashboard from "../salesRepDashboard/SalesRepDashboard";
 import { Navigate } from "react-router-dom";
