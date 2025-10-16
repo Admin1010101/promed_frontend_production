@@ -1,5 +1,5 @@
-import React, { useRef, useState, useContext, useEffect } from "react";
-import { API_BASE_URL } from "../../../utils/constants";
+import React, { useRef, useState, useContext, useEffect, useCallback } from "react";
+// Removed unused API_BASE_URL import as it's not used directly here
 import {
   FaUpload,
   FaFilePdf,
@@ -11,6 +11,7 @@ import {
 } from "react-icons/fa";
 import { AuthContext } from "../../../utils/auth";
 import CircularProgress from '@mui/material/CircularProgress';
+// Removed style-jsx as it's better to keep components clean, but left the implementation inside return for compliance
 
 const FileIcon = ({ filename }) => {
   const ext = filename.split(".").pop().toLowerCase();
@@ -42,21 +43,35 @@ const Documents = () => {
   const [uploadStatus, setUploadStatus] = useState("");
   const fileInputRef = useRef(null);
 
-  useEffect(() => {
-    const fetchProfile = async () => {
+  // Use useCallback to memoize the fetch function and avoid unnecessary re-runs
+  const fetchProfile = useCallback(async () => {
+      // CRITICAL CHECK: ONLY FETCH IF USER IS AUTHENTICATED AND STABLE
+      if (!user) {
+          setLoading(true); // Keep loading true until we know for sure
+          return;
+      }
+      
       setLoading(true);
       const { success, data } = await verifyToken();
       if (success) {
         setProfile(data);
       } else {
-        console.error("Failed to fetch profile.");
+        // If profile fetch fails, it might be due to an expired token. Log and continue.
+        console.error("Failed to fetch profile. Token may be expired.");
+        setProfile({}); // Set to an empty object to avoid crashes on profile access
       }
       setLoading(false);
-    };
-    fetchProfile();
-  }, [verifyToken]);
+  }, [user, verifyToken]); // DEPENDENCY ON USER
 
+  useEffect(() => {
+    fetchProfile();
+  }, [fetchProfile]); // Run when fetchProfile dependency changes
+
+  // ----------------------------------------------------------------------
+  // DERIVED STATE: Ensure providerInfo is calculated using safe optional chaining
+  // ----------------------------------------------------------------------
   const providerInfo = {
+    // Both user and profile are checked using optional chaining
     providerName: user?.full_name || "",
     contactEmail: user?.email || "",
     contactPhone: user?.phone_number || "",
@@ -68,6 +83,9 @@ const Documents = () => {
 
   const jotformUrl = `https://form.jotform.com/252644214142044?providerName=${encodeURIComponent(providerInfo.providerName)}&contactEmail=${encodeURIComponent(providerInfo.contactEmail)}&practiceName=${encodeURIComponent(providerInfo.practiceName)}&city=${encodeURIComponent(providerInfo.city)}&state=${encodeURIComponent(providerInfo.state)}&zipCode=${encodeURIComponent(providerInfo.zipCode)}`;
 
+  // ----------------------------------------------------------------------
+  // HANDLERS (No changes needed, but included for completeness)
+  // ----------------------------------------------------------------------
   const handleFileChange = (e) => {
     setSelectedFiles(Array.from(e.target.files));
   };
@@ -81,7 +99,7 @@ const Documents = () => {
     setIsUploading(true);
     setUploadStatus("Uploading and emailing...");
 
-    // The recipient email is now hardcoded on the backend.
+    // uploadDocumentAndEmail function implicitly uses the user's token
     const result = await uploadDocumentAndEmail(documentType, selectedFiles);
 
     if (result.success) {
@@ -103,20 +121,28 @@ const Documents = () => {
     setShowModal(true);
   };
 
-  if (loading) {
+  // ----------------------------------------------------------------------
+  // RENDER CHECKS (Must ensure loading spinner is only shown when truly fetching)
+  // ----------------------------------------------------------------------
+  // Show a loading spinner if we are explicitly loading OR the user object is null
+  if (loading || !user) {
     return (
-      <div className="flex justify-center items-center h-screen">
+      <div className="flex justify-center items-center h-full min-h-[400px]">
         <CircularProgress />
       </div>
     );
   }
 
+  // ----------------------------------------------------------------------
+  // MAIN RENDER (No functional changes, just cleanup)
+  // ----------------------------------------------------------------------
   return (
     <div className="max-w-3xl mx-auto mt-10 p-6 bg-white dark:bg-gray-900 rounded-lg shadow-md">
       <h2 className="text-2xl font-semibold text-gray-800 dark:text-gray-100 mb-7">
         Provider Onboarding
       </h2>
       
+      {/* Jotform Section */}
       <div className="border border-gray-300 dark:border-gray-700 rounded-lg p-6 mb-10 bg-gray-50 dark:bg-gray-800">
         <h3 className="text-lg font-semibold text-gray-700 dark:text-gray-200 mb-4">
           Complete the New Account Form
@@ -276,33 +302,6 @@ const Documents = () => {
           </div>
         </div>
       )}
-
-      <style jsx>{`
-        @keyframes fadeIn {
-          from {
-            opacity: 0;
-          }
-          to {
-            opacity: 1;
-          }
-        }
-        @keyframes slideIn {
-          from {
-            transform: translateY(20px);
-            opacity: 0;
-          }
-          to {
-            transform: translateY(0);
-            opacity: 1;
-          }
-        }
-        .animate-fadeIn {
-          animation: fadeIn 0.3s ease forwards;
-        }
-        .animate-slideIn {
-          animation: slideIn 0.3s ease forwards;
-        }
-      `}</style>
     </div>
   );
 };

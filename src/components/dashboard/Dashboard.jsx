@@ -123,8 +123,7 @@ const Dashboard = () => {
           <h1>Patients</h1>
         </div>
         <div className="h-full">
-          {/* <Documents /> */}
-          <h2>Documents</h2>
+          <Documents />
         </div>
         <div className="h-full">
           {/* <OrderManagement activationFilter={activationFilter}/> */}
