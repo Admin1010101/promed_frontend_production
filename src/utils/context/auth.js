@@ -198,16 +198,48 @@ export const AuthProvider = ({ children }) => {
 
 
   // --- Patient Management Functions ---
-  const getPatients = async () => {
-    try {
-      const axiosInstance = axiosAuth();
-      const response = await axiosInstance.get(`${API_BASE_URL}/provider/patients/`);
-      return { success: true, data: response.data };
-    } catch (error) {
-      console.error("Failed to fetch patients:", error);
-      return { success: false, error: error.response?.data || error.message };
+const getPatients = async () => {
+  console.log("=== getPatients API Call ===");
+  console.log("User:", user);
+  console.log("Access Token exists:", !!localStorage.getItem("accessToken"));
+  
+  try {
+    const axiosInstance = axiosAuth();
+    console.log("Sending GET request to:", `${API_BASE_URL}/provider/patients/`);
+    
+    const response = await axiosInstance.get(`${API_BASE_URL}/provider/patients/`);
+    
+    console.log("✅ Response Status:", response.status);
+    console.log("✅ Response Data:", response.data);
+    console.log("✅ Is Array:", Array.isArray(response.data));
+    console.log("✅ Data Length:", response.data?.length);
+    
+    // Validate response
+    if (!Array.isArray(response.data)) {
+      console.error("❌ Response data is not an array");
+      return { 
+        success: false, 
+        error: "Invalid response format from server" 
+      };
     }
-  };
+    
+    return { success: true, data: response.data };
+    
+  } catch (error) {
+    console.error("=== getPatients ERROR ===");
+    console.error("Full Error:", error);
+    console.error("Response Status:", error.response?.status);
+    console.error("Response Data:", error.response?.data);
+    console.error("Response Headers:", error.response?.headers);
+    console.error("Request Config:", error.config);
+    
+    return { 
+      success: false, 
+      error: error.response?.data || error.message,
+      status: error.response?.status 
+    };
+  }
+};
 
   const postPatient = async (patientData) => {
     try {
