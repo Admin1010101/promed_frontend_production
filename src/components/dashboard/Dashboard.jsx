@@ -1,7 +1,5 @@
 import React, { useState, useEffect, useContext } from "react";
 import { PropagateLoader } from 'react-spinners';
-// 💥 NEW: Import FilterProvider
-import { FilterProvider } from "../../contexts/FilterContext"; 
 import OrderManagement from "./orders/OrderManagement";
 import Documents from "./documemts/Documents";
 import Patients from "./patient/Patient";
