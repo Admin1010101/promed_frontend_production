@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useContext, useCallback } from "react";
 import toast from "react-hot-toast"; 
 import axiosAuth from "../../../utils/axios";
-import { AuthContext } from "../../../utils/auth";
+import { AuthContext } from "../../../utils/context/auth";
 import { FilterContext } from "../../../contexts/FilterContext"; // Adjust path as needed
 
 const OrderHistory = () => {

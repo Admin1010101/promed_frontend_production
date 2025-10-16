@@ -8,7 +8,7 @@ import {
   Select,
   MenuItem,
 } from "@mui/material";
-import { AuthContext } from "../../utils/auth";
+import { AuthContext } from "../../utils/context/auth";
 import OrderItem from "./OrderItem";
 import OrderSummary from "./OrderSummary";
 import toast from "react-hot-toast";

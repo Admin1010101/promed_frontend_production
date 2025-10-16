@@ -9,7 +9,7 @@ import {
   FaCheckCircle,
   FaExclamationCircle,
 } from "react-icons/fa";
-import { AuthContext } from "../../../utils/auth";
+import { AuthContext } from "../../../utils/context/auth";
 import CircularProgress from '@mui/material/CircularProgress';
 // Removed style-jsx as it's better to keep components clean, but left the implementation inside return for compliance
 

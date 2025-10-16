@@ -1,7 +1,7 @@
 import React, { useState, useContext, useEffect } from "react";
 import { Modal, Box } from "@mui/material";
 import authRequest from "../../../utils/axios";
-import { AuthContext } from "../../../utils/auth";
+import { AuthContext } from "../../../utils/context/auth";
 import toast from "react-hot-toast";
 import { motion } from "framer-motion"; // 💥 Import motion
 import { IoCloseOutline, IoCallOutline } from "react-icons/io5";

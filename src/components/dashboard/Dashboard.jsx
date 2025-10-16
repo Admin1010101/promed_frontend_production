@@ -7,7 +7,8 @@ import Documents from "./documemts/Documents";
 import Patients from "./patient/Patient";
 import { IoChatbubblesOutline } from "react-icons/io5";
 import ContactModal from "../contact/contactModal/ContactModal";
-import { AuthContext } from "../../utils/auth"; 
+import { AuthContext } from "../../utils/context/auth"; 
+import { FilterProvider } from '../../utils/context/FilterContext';
 
 const SPLASH_DURATION = 1000; 
 const FADE_OUT_TIME = 500;    

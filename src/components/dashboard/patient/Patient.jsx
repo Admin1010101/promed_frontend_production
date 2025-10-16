@@ -1,7 +1,7 @@
 import React, { useState, useContext, useEffect, useCallback } from "react";
-import { AuthContext } from "../../../utils/auth";
+import { AuthContext } from "../../../utils/context/auth";
 // 💥 NEW: Import the FilterContext
-import { FilterContext } from "../../../contexts/FilterContext"; 
+import { FilterContext } from "../../../utils/context/FilterContext"; 
 import { Box, Modal } from "@mui/material";
 import CircularProgress from "@mui/material/CircularProgress";
 import { motion, AnimatePresence } from "framer-motion";
