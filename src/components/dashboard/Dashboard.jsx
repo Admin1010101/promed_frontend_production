@@ -82,7 +82,7 @@ const Dashboard = () => {
             />
           </div>
           
-          <span className="tracking-wider text-xl text-white">Building Your Dashboard...</span>
+          <span className="tracking-wider text-xl text-white">Creating Your Dashboard...</span>
         </div>
       </div>
     );
