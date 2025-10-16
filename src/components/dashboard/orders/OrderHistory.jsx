@@ -2,13 +2,10 @@ import React, { useEffect, useState, useContext, useCallback } from "react";
 import toast from "react-hot-toast"; 
 import axiosAuth from "../../../utils/axios";
 import { AuthContext } from "../../../utils/context/auth";
-// ✅ CRITICAL FIX: Corrected import path to match your assumed file structure
 import { FilterContext } from "../../../utils/context/FilterContext"; 
 
 const OrderHistory = () => {
   const { user } = useContext(AuthContext); 
-  
-  // ✅ Consuming the global activation filter from context
   const { activationFilter } = useContext(FilterContext); 
   
   const [history, setHistory] = useState([]);

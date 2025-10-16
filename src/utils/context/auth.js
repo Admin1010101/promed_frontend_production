@@ -178,8 +178,6 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  // src/utils/auth.js (in AuthProvider)
-
 const verifyCode = async (code, method = "sms") => {
     try {
       const accessToken = localStorage.getItem("accessToken");
