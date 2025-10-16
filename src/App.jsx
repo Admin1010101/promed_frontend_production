@@ -1,7 +1,9 @@
 import React, { useEffect, useContext, useRef, useState } from "react";
 import { HashRouter, Routes, Route, useLocation } from "react-router-dom";
 import { Toaster, toast } from "react-hot-toast";
-import { PropagateLoader } from 'react-spinners'; // Added to show loader when Auth is initializing
+import { PropagateLoader } from 'react-spinners';
+
+// Component Imports
 import Dashboard from "./components/dashboard/Dashboard";
 import SalesRepDashboard from './components/salesRepDashboard/SalesRepDashboard';
 import Register from "./components/register/Register";
@@ -11,26 +13,26 @@ import About from "./components/about/About";
 import Products from "./components/products/Products";
 import Contact from "./components/contact/Contact";
 import MFA from "./components/MFA/MFA";
-import FillablePdf from "./components/dashboard/documemts/FillablePdf";
 import Home from "./components/home/Home";
 import Footer from "./components/footer/Footer";
 import ProviderProfileCard from "./components/profile/ProviderProfileCard";
 import VerifyEmail from "./components/verifyEmail/VerifyEmail";
 import ForgotPassword from "./components/login/ForgotPassword";
 import ResetPassword from "./components/login/ResetPassword";
-import DashboardWrapper from "./components/salesRepDashboard/DashboardWrapper";
+
+// Utility Imports
 import PrivateRoute from "./utils/privateRoutes";
-import { AuthContext } from "./utils/auth";
+import { AuthContext } from "./utils/context/auth"; 
+
 import "./App.css";
 
 function AppWrapper() {
   const location = useLocation();
-  const { logout, user, loading: authLoading } = useContext(AuthContext); // Use 'loading' from context
+  const { logout, user, loading: authLoading } = useContext(AuthContext);
   const warningTimeoutRef = useRef(null);
   const logoutTimeoutRef = useRef(null);
   const [isDarkMode, setIsDarkMode] = useState(false);
 
-  // Define paths that hide the Navbar and Footer
   const hiddenPaths = [
     "/login",
     "/register",
@@ -58,7 +60,7 @@ function AppWrapper() {
 
   // 2. Session Timeout Logic (HIPAA Compliance)
   useEffect(() => {
-    if (!user) return; // Only run if the user is logged in
+    if (!user) return; 
 
     const HIPAA_IDLE_TIMEOUT_MINUTES = 15;
     const WARNING_BEFORE_LOGOUT_SECONDS = 60;
@@ -70,7 +72,8 @@ function AppWrapper() {
 
     const logoutAndRedirect = () => {
       logout();
-      // Ensure redirect happens outside of a React lifecycle event
+      toast.error("Logged out due to inactivity.", { id: 'logout-toast' });
+      // Redirect after logout: Use setTimeout to ensure redirection runs outside of the event listener
       setTimeout(() => {
         window.location.href = "/login";
       }, 0); 
@@ -80,12 +83,15 @@ function AppWrapper() {
       toast("You will be logged out in 1 minute due to inactivity.", {
         icon: "⚠️",
         duration: WARNING_BEFORE_LOGOUT_SECONDS * 1000,
+        id: 'logout-toast' 
       });
     };
 
     const resetTimers = () => {
       clearTimeout(warningTimeoutRef.current);
       clearTimeout(logoutTimeoutRef.current);
+      // Dismiss any existing warning toast
+      toast.dismiss('logout-toast'); 
 
       warningTimeoutRef.current = setTimeout(showWarning, warningDuration);
       logoutTimeoutRef.current = setTimeout(logoutAndRedirect, logoutDuration);
@@ -94,11 +100,7 @@ function AppWrapper() {
     resetTimers();
 
     const activityEvents = [
-      "mousemove",
-      "keydown",
-      "click",
-      "scroll",
-      "touchstart",
+      "mousemove", "keydown", "click", "scroll", "touchstart",
     ];
 
     activityEvents.forEach((event) =>
@@ -115,8 +117,7 @@ function AppWrapper() {
   }, [logout, user]);
 
 
-  // 3. Global Auth Loading Check (Prevents White Screen)
-  // If the AuthContext is still checking for tokens, display a full-screen loader.
+  // 3. Global Auth Loading Check
   if (authLoading) {
     return (
       <div className="flex justify-center items-center min-h-screen bg-gray-100 dark:bg-gray-900">
@@ -138,6 +139,7 @@ function AppWrapper() {
 
         <main className="flex-grow">
           <Routes>
+            {/* Public Routes */}
             <Route path="/" element={<Home />} />
             <Route path="/register" element={<Register />} />
             <Route path="/verify-email/:token" element={<VerifyEmail />} />
@@ -154,7 +156,7 @@ function AppWrapper() {
               path="/dashboard"
               element={
                 <PrivateRoute>
-                  <Dashboard /> {/* Direct Dashboard render now */}
+                  <Dashboard />
                 </PrivateRoute>
               }
             />
@@ -185,6 +187,7 @@ function AppWrapper() {
 }
 
 function App() {
+
   return (
     <HashRouter>
       <AppWrapper />

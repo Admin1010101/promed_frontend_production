@@ -2,19 +2,22 @@ import React, { useEffect, useState, useContext, useCallback } from "react";
 import toast from "react-hot-toast"; 
 import axiosAuth from "../../../utils/axios";
 import { AuthContext } from "../../../utils/context/auth";
-import { FilterContext } from "../../../contexts/FilterContext"; // Adjust path as needed
+// ✅ CRITICAL FIX: Corrected import path to match your assumed file structure
+import { FilterContext } from "../../../utils/context/FilterContext"; 
 
 const OrderHistory = () => {
   const { user } = useContext(AuthContext); 
-
+  
+  // ✅ Consuming the global activation filter from context
   const { activationFilter } = useContext(FilterContext); 
   
   const [history, setHistory] = useState([]);
   const [expandedPatients, setExpandedPatients] = useState({});
   const [loading, setLoading] = useState(true); 
 
+  // --- Utility Functions ---
+
   const orderStatus = (status) => {
-    // ... (logic unchanged) ...
     const lowerStatus = String(status).toLowerCase();
     const baseColors = {
       accepted: "text-green-500", pending: "text-yellow-500",
@@ -65,6 +68,7 @@ const OrderHistory = () => {
       setExpandedPatients((prev) => ({ ...prev, [patientId]: true }));
       
       const patient = history.find(p => p.id === patientId);
+      // Only fetch if the patient is found AND they don't have enough orders already loaded
       if (patient && patient.orders && patient.orders.length > 5) {
           return;
       }
@@ -86,6 +90,9 @@ const OrderHistory = () => {
     }
   };
 
+  // --- Data Fetching and Effects ---
+
+  // Fetches ALL patient order history
   const fetchHistory = useCallback(async () => {
     if (!user) return; 
     
@@ -102,6 +109,7 @@ const OrderHistory = () => {
     setLoading(false);
   }, [user]);
 
+  // Initial data load effect (only depends on user)
   useEffect(() => {
     if (user) {
       fetchHistory();
@@ -109,6 +117,15 @@ const OrderHistory = () => {
       setLoading(false);
     }
   }, [user, fetchHistory]); 
+
+  // --- Filtering Logic ---
+
+  // ✅ Local filtering is performed on every render when activationFilter changes
+  const filteredHistory = history.filter(patient => 
+      !activationFilter || patient.activate_Account === activationFilter
+  );
+  
+  // --- Render ---
 
   if (loading) {
     return (
@@ -118,13 +135,9 @@ const OrderHistory = () => {
     );
   }
 
-  const filteredHistory = history.filter(patient => 
-      !activationFilter || patient.activate_Account === activationFilter
-  );
-  
   if (filteredHistory.length === 0) {
     return (
-      <div className="text-gray-500 dark:text-gray-400 text-center mt-6">
+      <div className="text-gray-500 dark:text-gray-400 text-center mt-6 p-4 border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-800">
         No order history found for the current filter.
       </div>
     );
@@ -135,10 +148,12 @@ const OrderHistory = () => {
       {filteredHistory.map((patient) => (
         <div 
           key={patient.id} 
-          className="bg-gray-50 dark:bg-gray-700 p-4 rounded shadow mb-4 transition-shadow hover:shadow-lg"
+          className="bg-white dark:bg-gray-700 p-4 rounded shadow mb-4 transition-shadow hover:shadow-lg border border-gray-100 dark:border-gray-600"
         >
-          <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-2 border-b dark:border-gray-600 pb-2">
-            {patient.first_name} {patient.last_name}
+          <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-2 border-b dark:border-gray-600 pb-2 flex justify-between items-center">
+            <span>
+                {patient.first_name} {patient.last_name}
+            </span>
             <span className="ml-3 text-sm font-normal text-teal-600 dark:text-teal-400">
                 ({patient.activate_Account})
             </span>
@@ -149,7 +164,7 @@ const OrderHistory = () => {
               {patient.orders.map((order) => (
                 <li
                   key={order.id}
-                  className="border border-gray-200 dark:border-gray-600 p-3 rounded bg-white dark:bg-gray-800 flex justify-between items-center transition-colors"
+                  className="border border-gray-200 dark:border-gray-600 p-3 rounded bg-gray-50 dark:bg-gray-800 flex justify-between items-center transition-colors"
                 >
                   <div>
                     <div className="text-sm font-medium text-gray-700 dark:text-gray-300">
