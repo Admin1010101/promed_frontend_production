@@ -1,5 +1,3 @@
-// src/contexts/FilterContext.js (or similar path)
-
 import React, { createContext, useState, useContext } from 'react';
 
 // Create the context
