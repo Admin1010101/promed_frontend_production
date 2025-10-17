@@ -1,10 +1,13 @@
 import axios from 'axios';
+import { API_BASE_URL } from './constants';
 
 const authRequest = () => {
-  // const baseURL = process.env.REACT_APP_PYTHONANYWHERE_API;
-  const baseURL = process.env.REACT_APP_API_URL;
+  // Use the constant from your constants file instead of env variable
+  // This avoids the quote issue you were experiencing
+  const baseURL = API_BASE_URL;
+  
   if (!baseURL) {
-    throw new Error('Missing Azure server environment variable');
+    throw new Error('Missing API base URL');
   }
 
   const instance = axios.create({
@@ -29,10 +32,10 @@ const authRequest = () => {
     (response) => response,
     async (error) => {
       const originalRequest = error.config;
-
+      
       if (error.response?.status === 401 && !originalRequest.__isRetryRequest) {
         originalRequest.__isRetryRequest = true;
-
+        
         try {
           const refreshToken = localStorage.getItem('refreshToken');
           if (!refreshToken) throw new Error('No refresh token available');
@@ -56,7 +59,7 @@ const authRequest = () => {
           return Promise.reject(refreshError);
         }
       }
-
+      
       return Promise.reject(error);
     }
   );

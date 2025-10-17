@@ -301,7 +301,7 @@ const getPatients = async () => {
       });
 
       const response = await axiosInstance.post(
-        '/onboarding_ops/documents/upload/',
+        '/onboarding/documents/upload/',
         formData,
         {
           headers: {

@@ -10,7 +10,7 @@ import {
   FaSpinner,
 } from "react-icons/fa";
 import { AuthContext } from "../../../utils/context/auth";
-import axiosAuth from "../../../axios";
+import axiosAuth from "../../../utils/axios";
 import CircularProgress from '@mui/material/CircularProgress';
 
 const FileIcon = ({ filename }) => {
@@ -66,7 +66,7 @@ const Documents = () => {
     setCheckingFormStatus(true);
     try {
       const axiosInstance = axiosAuth();
-      const response = await axiosInstance.get('/onboarding_ops/forms/');
+      const response = await axiosInstance.get('/onboarding/forms/');
       
       // Look for completed "New Account Form" submissions
       const newAccountForms = response.data.filter(
