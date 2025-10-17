@@ -286,6 +286,39 @@ const getPatients = async () => {
       return { success: false, error: error.response?.data || error.message };
     }
   };
+   // --- Document Upload Function ---
+  const uploadDocumentAndEmail = async (documentType, files) => {
+    try {
+      const axiosInstance = axiosAuth();
+      
+      // Create FormData to send files
+      const formData = new FormData();
+      formData.append('document_type', documentType);
+      
+      // Append all files
+      files.forEach((file) => {
+        formData.append('files', file);
+      });
+
+      const response = await axiosInstance.post(
+        '/onboarding_ops/documents/upload/',
+        formData,
+        {
+          headers: {
+            'Content-Type': 'multipart/form-data',
+          },
+        }
+      );
+
+      return { success: true, data: response.data };
+    } catch (error) {
+      console.error("Failed to upload documents:", error);
+      return { 
+        success: false, 
+        error: error.response?.data || error.message 
+      };
+    }
+  };
 
   return (
     <AuthContext.Provider
