@@ -34,7 +34,7 @@ const OrderHistory = () => {
     try {
       const axiosInstance = axiosAuth();
       const response = await axiosInstance.get(
-        `/provider/invoice/${orderId}/`,
+        `/invoice/${orderId}/`,
         { responseType: "blob" }
       );
       const contentType = response.headers["content-type"];

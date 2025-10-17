@@ -218,9 +218,9 @@ const getPatients = async () => {
   
   try {
     const axiosInstance = axiosAuth();
-    console.log("Sending GET request to:", `${API_BASE_URL}/provider/patients/`);
+    console.log("Sending GET request to:", `${API_BASE_URL}/patients/`);
     
-    const response = await axiosInstance.get(`${API_BASE_URL}/provider/patients/`);
+    const response = await axiosInstance.get(`${API_BASE_URL}/patients/`);
     
     console.log("✅ Response Status:", response.status);
     console.log("✅ Response Data:", response.data);
@@ -257,7 +257,7 @@ const getPatients = async () => {
   const postPatient = async (patientData) => {
     try {
       const axiosInstance = axiosAuth();
-      const response = await axiosInstance.post(`${API_BASE_URL}/provider/patients/`, patientData);
+      const response = await axiosInstance.post(`${API_BASE_URL}/patients/`, patientData);
       return { success: true, data: response.data };
     } catch (error) {
       console.error("Failed to create patient:", error);
@@ -268,7 +268,7 @@ const getPatients = async () => {
   const updatePatient = async (patientId, patientData) => {
     try {
       const axiosInstance = axiosAuth();
-      const response = await axiosInstance.put(`${API_BASE_URL}/provider/patients/${patientId}/`, patientData);
+      const response = await axiosInstance.put(`${API_BASE_URL}/patients/${patientId}/`, patientData);
       return { success: true, data: response.data };
     } catch (error) {
       console.error("Failed to update patient:", error);
@@ -279,7 +279,7 @@ const getPatients = async () => {
   const deletePatient = async (patientId) => {
     try {
       const axiosInstance = axiosAuth();
-      await axiosInstance.delete(`${API_BASE_URL}/provider/patients/${patientId}/`);
+      await axiosInstance.delete(`${API_BASE_URL}/patients/${patientId}/`);
       return { success: true };
     } catch (error) {
       console.error("Failed to delete patient:", error);

@@ -243,7 +243,7 @@ const NewOrderForm = ({ open, onClose, patient }) => {
       }
 
       const response = await fetch(
-        `${process.env.REACT_APP_API_URL}/provider/orders/`,
+        `${process.env.REACT_APP_API_URL}/orders/`,
         {
           method: "POST",
           headers: {
