@@ -4,7 +4,7 @@ const authRequest = () => {
   // const baseURL = process.env.REACT_APP_PYTHONANYWHERE_API;
   const baseURL = process.env.REACT_APP_API_URL;
   if (!baseURL) {
-    throw new Error('Missing REACT_APP_PYTHONANYWHERE_API environment variable');
+    throw new Error('Missing Azure server environment variable');
   }
 
   const instance = axios.create({

@@ -112,8 +112,8 @@ const Navbar = ({ isDarkMode, setIsDarkMode }) => {
       try {
         const axiosInstance = axiosAuth();
         const [notifRes, countRes] = await Promise.all([
-          axiosInstance.get("/provider/notifications/"),
-          axiosInstance.get("/provider/notifications/unread-count/"),
+          axiosInstance.get("/notifications/"),
+          axiosInstance.get("/notifications/unread-count/"),
         ]);
 
         setNotifications(notifRes.data);
@@ -149,7 +149,7 @@ const Navbar = ({ isDarkMode, setIsDarkMode }) => {
   const markAsRead = async (id) => {
     try {
       const axiosInstance = axiosAuth();
-      await axiosInstance.patch(`/provider/notifications/${id}/mark-read/`);
+      await axiosInstance.patch(`/${id}/mark-read/`);
       setNotificationCount((prev) => Math.max(prev - 1, 0));
       setNotifications((prev) =>
         prev.map((n) => (n.id === id ? { ...n, is_read: true } : n))
@@ -162,7 +162,7 @@ const Navbar = ({ isDarkMode, setIsDarkMode }) => {
   const deleteNotification = async (id) => {
     try {
       const axiosInstance = axiosAuth();
-      await axiosInstance.delete(`/provider/notifications/${id}/delete-notification/`);
+      await axiosInstance.delete(`/${id}/delete-notification/`);
       setNotifications((prev) => prev.filter((n) => n.id !== id));
       setShowModal(false);
     } catch (error) {
