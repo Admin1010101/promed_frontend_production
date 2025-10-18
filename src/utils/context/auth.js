@@ -13,7 +13,6 @@ export const AuthProvider = ({ children }) => {
 
   // --- Helper Functions ---
 
-  // Decodes the token and sets basic user details (used internally)
   const decodeAndSetUser = (token) => {
     try {
       const decodedToken = jwtDecode(token);
@@ -22,9 +21,6 @@ export const AuthProvider = ({ children }) => {
         email: decodedToken.email,
         role: decodedToken.role,
       };
-      // We set partial user details here just to get the role/ID, 
-      // but the full profile is fetched by fetchUserData.
-      // This is safe because fetchUserData is called immediately after a successful action.
       setUser(userDetails);
       return userDetails;
     } catch (error) {
@@ -33,13 +29,13 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  // Fetches detailed user profile data after token verification/login
   const fetchUserData = async (token) => {
     try {
         const decodedToken = jwtDecode(token);
         
         const axiosInstance = axiosAuth(); 
-        const response = await axiosInstance.get(`${API_BASE_URL}/provider/profile/`);
+        // ✅ FIX: Use relative path, not full URL
+        const response = await axiosInstance.get('/provider/profile/');
         
         const userDetails = {
             ...response.data, 
@@ -82,7 +78,6 @@ export const AuthProvider = ({ children }) => {
     const session_id = localStorage.getItem("session_id"); 
     
     if (accessToken && !session_id) {
-        // Only fetch user data if we have an access token and NO pending MFA session
         fetchUserData(accessToken)
             .catch(() => logout())
             .finally(() => setLoading(false));
@@ -111,7 +106,6 @@ export const AuthProvider = ({ children }) => {
       }
 
       if (mfa_required) {
-        // MFA REQUIRED: Store temp access token and session_id
         localStorage.setItem("accessToken", access); 
         localStorage.setItem("session_id", session_id); 
         
@@ -124,7 +118,6 @@ export const AuthProvider = ({ children }) => {
         };
       }
 
-      // SUCCESS (No MFA): Save final state and tokens
       localStorage.setItem("accessToken", access);
       localStorage.setItem("refreshToken", refresh);
       setIsMfaPending(false); 
@@ -178,10 +171,8 @@ export const AuthProvider = ({ children }) => {
         }
       );
       
-      // ✅ FIX: Get both tokens from the response
       const { refresh: finalRefreshToken, access: newAccessToken } = response.data;
 
-      // ✅ FIX: Update both tokens in localStorage
       if (finalRefreshToken) {
         localStorage.setItem("refreshToken", finalRefreshToken);
       }
@@ -190,12 +181,10 @@ export const AuthProvider = ({ children }) => {
         localStorage.setItem("accessToken", newAccessToken);
       }
       
-      // Clean up session_id
       localStorage.removeItem("session_id"); 
       
       setIsMfaPending(false); 
       
-      // ✅ FIX: Fetch user data with the new access token
       await fetchUserData(newAccessToken || localStorage.getItem("accessToken"));
 
       return { success: true };
@@ -209,55 +198,55 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-
   // --- Patient Management Functions ---
-const getPatients = async () => {
-  console.log("=== getPatients API Call ===");
-  console.log("User:", user);
-  console.log("Access Token exists:", !!localStorage.getItem("accessToken"));
-  
-  try {
-    const axiosInstance = axiosAuth();
-    console.log("Sending GET request to:", `${API_BASE_URL}/patients/`);
+  const getPatients = async () => {
+    console.log("=== getPatients API Call ===");
+    console.log("User:", user);
+    console.log("Access Token exists:", !!localStorage.getItem("accessToken"));
     
-    const response = await axiosInstance.get(`${API_BASE_URL}/patients/`);
-    
-    console.log("✅ Response Status:", response.status);
-    console.log("✅ Response Data:", response.data);
-    console.log("✅ Is Array:", Array.isArray(response.data));
-    console.log("✅ Data Length:", response.data?.length);
-    
-    // Validate response
-    if (!Array.isArray(response.data)) {
-      console.error("❌ Response data is not an array");
+    try {
+      const axiosInstance = axiosAuth();
+      // ✅ FIX: Use relative path, not full URL
+      console.log("Sending GET request to: /provider/patients/");
+      
+      const response = await axiosInstance.get('/provider/patients/');
+      
+      console.log("✅ Response Status:", response.status);
+      console.log("✅ Response Data:", response.data);
+      console.log("✅ Is Array:", Array.isArray(response.data));
+      console.log("✅ Data Length:", response.data?.length);
+      
+      if (!Array.isArray(response.data)) {
+        console.error("❌ Response data is not an array");
+        return { 
+          success: false, 
+          error: "Invalid response format from server" 
+        };
+      }
+      
+      return { success: true, data: response.data };
+      
+    } catch (error) {
+      console.error("=== getPatients ERROR ===");
+      console.error("Full Error:", error);
+      console.error("Response Status:", error.response?.status);
+      console.error("Response Data:", error.response?.data);
+      console.error("Response Headers:", error.response?.headers);
+      console.error("Request Config:", error.config);
+      
       return { 
         success: false, 
-        error: "Invalid response format from server" 
+        error: error.response?.data || error.message,
+        status: error.response?.status 
       };
     }
-    
-    return { success: true, data: response.data };
-    
-  } catch (error) {
-    console.error("=== getPatients ERROR ===");
-    console.error("Full Error:", error);
-    console.error("Response Status:", error.response?.status);
-    console.error("Response Data:", error.response?.data);
-    console.error("Response Headers:", error.response?.headers);
-    console.error("Request Config:", error.config);
-    
-    return { 
-      success: false, 
-      error: error.response?.data || error.message,
-      status: error.response?.status 
-    };
-  }
-};
+  };
 
   const postPatient = async (patientData) => {
     try {
       const axiosInstance = axiosAuth();
-      const response = await axiosInstance.post(`${API_BASE_URL}/patients/`, patientData);
+      // ✅ FIX: Use relative path, not full URL
+      const response = await axiosInstance.post('/provider/patients/', patientData);
       return { success: true, data: response.data };
     } catch (error) {
       console.error("Failed to create patient:", error);
@@ -268,7 +257,8 @@ const getPatients = async () => {
   const updatePatient = async (patientId, patientData) => {
     try {
       const axiosInstance = axiosAuth();
-      const response = await axiosInstance.put(`${API_BASE_URL}/patients/${patientId}/`, patientData);
+      // ✅ FIX: Use relative path, not full URL
+      const response = await axiosInstance.put(`/provider/patients/${patientId}/`, patientData);
       return { success: true, data: response.data };
     } catch (error) {
       console.error("Failed to update patient:", error);
@@ -279,14 +269,16 @@ const getPatients = async () => {
   const deletePatient = async (patientId) => {
     try {
       const axiosInstance = axiosAuth();
-      await axiosInstance.delete(`${API_BASE_URL}/patients/${patientId}/`);
+      // ✅ FIX: Use relative path, not full URL
+      await axiosInstance.delete(`/provider/patients/${patientId}/`);
       return { success: true };
     } catch (error) {
       console.error("Failed to delete patient:", error);
       return { success: false, error: error.response?.data || error.message };
     }
   };
-   // --- Document Upload Function ---
+
+  // --- Document Upload Function ---
   const uploadDocumentAndEmail = async (documentType, files) => {
     try {
       const axiosInstance = axiosAuth();
@@ -301,7 +293,8 @@ const getPatients = async () => {
       });
 
       const response = await axiosInstance.post(
-        '/onboarding/documents/upload/',
+        // ✅ FIX: Correct path
+        '/onboarding_ops/documents/upload/',
         formData,
         {
           headers: {
@@ -334,6 +327,7 @@ const getPatients = async () => {
         postPatient,
         updatePatient,
         deletePatient,
+        uploadDocumentAndEmail,
       }}
     >
       {!loading && children}

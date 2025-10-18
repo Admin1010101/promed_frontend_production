@@ -1,7 +1,7 @@
 import React, { useState, useContext, useEffect, useCallback } from "react";
 import { AuthContext } from "../../../utils/context/auth";
 // 💥 NEW: Import the FilterContext
-import { FilterContext } from "../../../utils/context/FilterContext"; 
+import { FilterContext } from "../../../utils/context/FilterContext";
 import { Box, Modal } from "@mui/material";
 import CircularProgress from "@mui/material/CircularProgress";
 import { motion, AnimatePresence } from "framer-motion";
@@ -64,8 +64,8 @@ const FilterCommandCenter = ({
   patientsPerPage,
   setPatientsPerPage,
 }) => {
-    // 💥 CONTEXT: Consume activationFilter and setActivationFilter
-    const { activationFilter, setActivationFilter } = useContext(FilterContext);
+  // 💥 CONTEXT: Consume activationFilter and setActivationFilter
+  const { activationFilter, setActivationFilter } = useContext(FilterContext);
 
   const filterModalStyle = {
     position: "absolute",
@@ -83,7 +83,7 @@ const FilterCommandCenter = ({
   const handlePatientsPerPageChange = (e) => {
     setPatientsPerPage(Number(e.target.value));
   };
- 
+
   return (
     <Modal
       open={open}
@@ -236,10 +236,10 @@ const FilterCommandCenter = ({
 const Patients = () => {
   const { user, getPatients, postPatient, updatePatient, deletePatient } =
     useContext(AuthContext);
-  
+
   // 💥 CONTEXT: Consume activationFilter from the global state
-  const { activationFilter } = useContext(FilterContext); 
-    
+  const { activationFilter } = useContext(FilterContext);
+
   const [patients, setPatients] = useState([]);
   const [loading, setLoading] = useState(true);
   const [errors, setErrors] = useState({});
@@ -316,7 +316,7 @@ const Patients = () => {
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
-  
+
   // ----------------------------------------------------------------------
   // Patient Fetching Hook (Unchanged)
   // ----------------------------------------------------------------------
@@ -325,21 +325,22 @@ const Patients = () => {
       setLoading(true);
       return;
     }
-    
+
     setLoading(true);
     try {
       const result = await getPatients();
-      
+
       if (result.success) {
         setPatients(result.data);
       } else {
-        console.error("Fetch returned a non-success status. Error:", result.error);
+        console.error(
+          "Fetch returned a non-success status. Error:",
+          result.error
+        );
       }
-      
     } catch (error) {
       console.error("Error during patient fetch:", error);
       toast.error("An error occurred while loading patients.");
-      
     } finally {
       setLoading(false);
     }
@@ -348,7 +349,7 @@ const Patients = () => {
   useEffect(() => {
     fetchPatients();
   }, [fetchPatients]);
-  
+
   // ----------------------------------------------------------------------
   // Pagination/Filter Effect (NOW DEPENDS ON CONTEXT VALUE)
   // ----------------------------------------------------------------------
@@ -361,7 +362,7 @@ const Patients = () => {
       setCurrentPage(savePage);
     }
   }, [searchTerm, ivrFilter, activationFilter, patientsPerPage]); // activationFilter is now reactive
-  
+
   // ... (All other functions remain unchanged) ...
 
   const handleInputChange = (e) => {
@@ -423,8 +424,12 @@ const Patients = () => {
         }
       } else {
         const res = await postPatient(newPatientData);
+        console.log("🔍 POST Patient Response:", res);
+        console.log("🔍 Success:", res.success);
+        console.log("🔍 Data:", res.data);
         if (res.success) {
-          setPatients((prev) => [res.data, ...prev]);
+          // ✅ ADD: Force refresh by fetching all patients again
+          await fetchPatients();
           toast.success("New patient added successfully!");
         } else {
           console.error("Failed to add patient:", res.error);
@@ -490,7 +495,7 @@ const Patients = () => {
       }
     }
   };
-  
+
   // ----------------------------------------------------------------------
   // Patient Filtering Logic (Unchanged)
   // ----------------------------------------------------------------------
@@ -499,11 +504,11 @@ const Patients = () => {
       `${patient.first_name} ${patient.last_name} ${patient.middle_initial}`.toLowerCase();
     const medRecord = patient.medical_record_number?.toLowerCase() || "";
     const matchesIvrFilter = ivrFilter ? patient.ivrStatus === ivrFilter : true;
-    
+
     // activationFilter is now consumed from context
     const activationMatch =
-      !activationFilter || patient.activate_Account === activationFilter; 
-      
+      !activationFilter || patient.activate_Account === activationFilter;
+
     return (
       (fullName.includes(searchTerm.toLowerCase()) ||
         medRecord.includes(searchTerm.toLowerCase())) &&
@@ -723,7 +728,7 @@ const Patients = () => {
             boxShadow: "none",
             outline: "none",
             borderRadius: "16px",
-            overflow: "hidden", 
+            overflow: "hidden",
           }}
         >
           <Box
@@ -732,10 +737,10 @@ const Patients = () => {
               overflowY: "auto",
               bgcolor: "white",
               borderRadius: "16px",
-              msOverflowStyle: 'none',   
-              scrollbarWidth: 'none',   
+              msOverflowStyle: "none",
+              scrollbarWidth: "none",
               "&::-webkit-scrollbar": {
-                display: "none",         
+                display: "none",
               },
             }}
             className="dark:bg-gray-900"
