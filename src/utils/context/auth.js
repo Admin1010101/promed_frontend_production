@@ -34,7 +34,6 @@ export const AuthProvider = ({ children }) => {
         const decodedToken = jwtDecode(token);
         
         const axiosInstance = axiosAuth(); 
-        // ✅ FIX: Use relative path, not full URL
         const response = await axiosInstance.get('/provider/profile/');
         
         const userDetails = {
@@ -65,6 +64,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   const logout = () => {
+    console.log("🚪 Logging out - clearing all tokens");
     localStorage.removeItem("accessToken");
     localStorage.removeItem("refreshToken");
     localStorage.removeItem("session_id");
@@ -77,15 +77,25 @@ export const AuthProvider = ({ children }) => {
     const accessToken = localStorage.getItem("accessToken");
     const session_id = localStorage.getItem("session_id"); 
     
+    console.log("🔍 Initial Load Check:");
+    console.log("  - Access Token exists:", !!accessToken);
+    console.log("  - Session ID exists:", !!session_id);
+    
     if (accessToken && !session_id) {
+        console.log("✅ Valid session found, fetching user data");
         fetchUserData(accessToken)
-            .catch(() => logout())
+            .catch((error) => {
+                console.error("❌ Failed to fetch user data on load:", error);
+                logout();
+            })
             .finally(() => setLoading(false));
             
     } else if (session_id) {
+        console.log("⏳ MFA session detected, waiting for code verification");
         setIsMfaPending(true); 
         setLoading(false);
     } else {
+        console.log("ℹ️ No active session found");
         setLoading(false);
     }
   }, []);
@@ -94,6 +104,8 @@ export const AuthProvider = ({ children }) => {
 
   const login = async (email, password, method = "sms") => {
     try {
+      console.log("🔐 Login attempt for:", email);
+      
       const response = await axios.post(
         `${API_BASE_URL}/provider/token/`,
         { email: email.trim(), password, method }
@@ -102,10 +114,12 @@ export const AuthProvider = ({ children }) => {
       const { access, refresh, mfa_required, session_id } = response.data;
 
       if (!access || !refresh) {
+        console.error("❌ Invalid response: missing tokens");
         return { success: false, error: "Invalid response: missing tokens." };
       }
 
       if (mfa_required) {
+        console.log("🔒 MFA required, storing temporary tokens");
         localStorage.setItem("accessToken", access); 
         localStorage.setItem("session_id", session_id); 
         
@@ -118,6 +132,7 @@ export const AuthProvider = ({ children }) => {
         };
       }
 
+      console.log("✅ Login successful, storing tokens");
       localStorage.setItem("accessToken", access);
       localStorage.setItem("refreshToken", refresh);
       setIsMfaPending(false); 
@@ -125,6 +140,8 @@ export const AuthProvider = ({ children }) => {
 
       return { success: true };
     } catch (error) {
+      console.error("❌ Login error:", error.response?.data || error.message);
+      
       let errorMessage = "Login failed. Please check your credentials and try again.";
       
       if (error.response?.data) {
@@ -152,11 +169,17 @@ export const AuthProvider = ({ children }) => {
       const session_id = localStorage.getItem("session_id");
       const accessToken = localStorage.getItem("accessToken");
       
+      console.log("🔍 MFA Verification:");
+      console.log("  - Session ID exists:", !!session_id);
+      console.log("  - Access Token exists:", !!accessToken);
+      
       if (!session_id) {
+        console.error("❌ No active MFA session found");
         return { success: false, error: "No active MFA session found" };
       }
       
       if (!accessToken) {
+        console.error("❌ No access token found");
         return { success: false, error: "No access token found" };
       }
       
@@ -175,13 +198,16 @@ export const AuthProvider = ({ children }) => {
 
       if (finalRefreshToken) {
         localStorage.setItem("refreshToken", finalRefreshToken);
+        console.log("✅ Refresh token saved");
       }
       
       if (newAccessToken) {
         localStorage.setItem("accessToken", newAccessToken);
+        console.log("✅ Access token updated");
       }
       
-      localStorage.removeItem("session_id"); 
+      localStorage.removeItem("session_id");
+      console.log("✅ Session ID removed");
       
       setIsMfaPending(false); 
       
@@ -189,7 +215,7 @@ export const AuthProvider = ({ children }) => {
 
       return { success: true };
     } catch (error) {
-      console.error("MFA verification error:", error);
+      console.error("❌ MFA verification error:", error.response?.data || error.message);
       logout(); 
       return { 
         success: false, 
@@ -206,10 +232,9 @@ export const AuthProvider = ({ children }) => {
     
     try {
       const axiosInstance = axiosAuth();
-      // ✅ FIX: Use relative path, not full URL
-      console.log("Sending GET request to: /provider/patients/");
+      console.log("Sending GET request to: /patients/");
       
-      const response = await axiosInstance.get('/provider/patients/');
+      const response = await axiosInstance.get('/patients/');
       
       console.log("✅ Response Status:", response.status);
       console.log("✅ Response Data:", response.data);
@@ -243,43 +268,110 @@ export const AuthProvider = ({ children }) => {
   };
 
   const postPatient = async (patientData) => {
+    console.log("=== postPatient API Call ===");
+    console.log("🔍 Patient Data:", patientData);
+    
+    const accessToken = localStorage.getItem("accessToken");
+    const sessionId = localStorage.getItem("session_id");
+    
+    console.log("🔍 Auth State:");
+    console.log("  - Access Token exists:", !!accessToken);
+    console.log("  - Session ID exists:", !!sessionId);
+    console.log("  - User exists:", !!user);
+    console.log("  - Is MFA Pending:", isMfaPending);
+    
+    // Check if user is in MFA pending state
+    if (sessionId || isMfaPending) {
+      console.error("❌ Cannot create patient: MFA verification pending");
+      return { 
+        success: false, 
+        error: "Please complete MFA verification before creating patients" 
+      };
+    }
+    
+    // Check if access token exists
+    if (!accessToken) {
+      console.error("❌ Cannot create patient: No access token found");
+      return { 
+        success: false, 
+        error: "Authentication required. Please log in again." 
+      };
+    }
+    
     try {
       const axiosInstance = axiosAuth();
-      // ✅ FIX: Use relative path, not full URL
-      const response = await axiosInstance.post('/provider/patients/', patientData);
+      console.log("✅ Axios instance created");
+      console.log("🚀 Sending POST request to: /patients/");
+      
+      const response = await axiosInstance.post('/patients/', patientData);
+      
+      console.log("✅ Patient created successfully!");
+      console.log("✅ Response:", response.data);
+      
       return { success: true, data: response.data };
     } catch (error) {
-      console.error("Failed to create patient:", error);
-      return { success: false, error: error.response?.data || error.message };
+      console.error("=== postPatient ERROR ===");
+      console.error("❌ Full Error:", error);
+      console.error("❌ Response Status:", error.response?.status);
+      console.error("❌ Response Data:", error.response?.data);
+      console.error("❌ Response Headers:", error.response?.headers);
+      console.error("❌ Request Config:", error.config);
+      
+      // If 401, might need to re-login
+      if (error.response?.status === 401) {
+        console.error("🚨 401 Unauthorized - Token might be invalid or expired");
+        console.error("🚨 Consider logging out and logging back in");
+      }
+      
+      return { 
+        success: false, 
+        error: error.response?.data || error.message,
+        status: error.response?.status
+      };
     }
   };
 
   const updatePatient = async (patientId, patientData) => {
+    console.log("=== updatePatient API Call ===");
+    console.log("🔍 Patient ID:", patientId);
+    console.log("🔍 Patient Data:", patientData);
+    
     try {
       const axiosInstance = axiosAuth();
-      // ✅ FIX: Use relative path, not full URL
-      const response = await axiosInstance.put(`/provider/patients/${patientId}/`, patientData);
+      const response = await axiosInstance.put(`/patients/${patientId}/`, patientData);
+      
+      console.log("✅ Patient updated successfully!");
       return { success: true, data: response.data };
     } catch (error) {
-      console.error("Failed to update patient:", error);
+      console.error("❌ Failed to update patient:", error);
+      console.error("❌ Response:", error.response?.data);
       return { success: false, error: error.response?.data || error.message };
     }
   };
 
   const deletePatient = async (patientId) => {
+    console.log("=== deletePatient API Call ===");
+    console.log("🔍 Patient ID:", patientId);
+    
     try {
       const axiosInstance = axiosAuth();
-      // ✅ FIX: Use relative path, not full URL
-      await axiosInstance.delete(`/provider/patients/${patientId}/`);
+      await axiosInstance.delete(`/patients/${patientId}/`);
+      
+      console.log("✅ Patient deleted successfully!");
       return { success: true };
     } catch (error) {
-      console.error("Failed to delete patient:", error);
+      console.error("❌ Failed to delete patient:", error);
+      console.error("❌ Response:", error.response?.data);
       return { success: false, error: error.response?.data || error.message };
     }
   };
 
   // --- Document Upload Function ---
   const uploadDocumentAndEmail = async (documentType, files) => {
+    console.log("=== uploadDocumentAndEmail API Call ===");
+    console.log("🔍 Document Type:", documentType);
+    console.log("🔍 Files Count:", files.length);
+    
     try {
       const axiosInstance = axiosAuth();
       
@@ -293,7 +385,6 @@ export const AuthProvider = ({ children }) => {
       });
 
       const response = await axiosInstance.post(
-        // ✅ FIX: Correct path
         '/onboarding_ops/documents/upload/',
         formData,
         {
@@ -303,9 +394,11 @@ export const AuthProvider = ({ children }) => {
         }
       );
 
+      console.log("✅ Documents uploaded successfully!");
       return { success: true, data: response.data };
     } catch (error) {
-      console.error("Failed to upload documents:", error);
+      console.error("❌ Failed to upload documents:", error);
+      console.error("❌ Response:", error.response?.data);
       return { 
         success: false, 
         error: error.response?.data || error.message 
