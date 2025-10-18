@@ -98,7 +98,7 @@ const NewOrderForm = ({ open, onClose, patient }) => {
       patient?.state || ""
     } ${patient?.zip_code || ""}`,
     patientCountry: patient?.country || "",
-    deliveryDate: "",
+    deliveryDate: null, // ✅ Changed to null instead of empty string
   });
 
   const handleFormChange = (event) => {
@@ -190,7 +190,7 @@ const NewOrderForm = ({ open, onClose, patient }) => {
     0
   );
 
-  // ✅ Calculate wound dimensions and limits
+  // ✅ Calculate wound dimensions and limits with safety checks
   const woundLength = parseFloat(patient?.wound_size_length) || 0;
   const woundWidth = parseFloat(patient?.wound_size_width) || 0;
   const woundArea = woundLength * woundWidth;
@@ -242,6 +242,12 @@ const NewOrderForm = ({ open, onClose, patient }) => {
       });
     });
 
+    // ✅ Format delivery date properly
+    let deliveryDateStr = null;
+    if (formData.deliveryDate instanceof Date && !isNaN(formData.deliveryDate)) {
+      deliveryDateStr = formData.deliveryDate.toISOString().split("T")[0];
+    }
+
     const orderPayload = {
       provider: user.id,
       patient: patient.id,
@@ -253,7 +259,7 @@ const NewOrderForm = ({ open, onClose, patient }) => {
       zip_code: patient.zip_code,
       country: formData.patientCountry,
       items: orderItems,
-      delivery_date: formData.deliveryDate || null,
+      delivery_date: deliveryDateStr,
       order_verified: true,
     };
 
@@ -305,7 +311,7 @@ const NewOrderForm = ({ open, onClose, patient }) => {
           patient?.state || ""
         } ${patient?.zip_code || ""}`,
         patientCountry: patient?.country || "",
-        deliveryDate: "",
+        deliveryDate: null, // ✅ Reset to null
       });
       fetchProducts();
     }
@@ -472,36 +478,38 @@ const NewOrderForm = ({ open, onClose, patient }) => {
               Order Items
             </h3>
             
-            {/* ✅ Global Area Tracker */}
-            <div className="mb-4 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
-              <div className="text-sm text-gray-700 dark:text-gray-300">
-                <div className="flex justify-between mb-1">
-                  <span>Wound Size:</span>
-                  <span className="font-semibold">{woundArea.toFixed(1)} cm²</span>
+            {/* ✅ Global Area Tracker - Only show if wound size exists */}
+            {woundArea > 0 && (
+              <div className="mb-4 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+                <div className="text-sm text-gray-700 dark:text-gray-300">
+                  <div className="flex justify-between mb-1">
+                    <span>Wound Size:</span>
+                    <span className="font-semibold">{woundArea.toFixed(1)} cm²</span>
+                  </div>
+                  <div className="flex justify-between mb-1">
+                    <span>Max Allowed (120%):</span>
+                    <span className="font-semibold">{maxAllowedArea.toFixed(1)} cm²</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Currently Selected:</span>
+                    <span className={`font-semibold ${currentTotalArea > maxAllowedArea ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400'}`}>
+                      {currentTotalArea.toFixed(1)} cm²
+                    </span>
+                  </div>
                 </div>
-                <div className="flex justify-between mb-1">
-                  <span>Max Allowed (120%):</span>
-                  <span className="font-semibold">{maxAllowedArea.toFixed(1)} cm²</span>
+                <div className="mt-2 w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                  <div 
+                    className={`h-2 rounded-full transition-all ${currentTotalArea > maxAllowedArea ? 'bg-red-500' : 'bg-green-500'}`}
+                    style={{ width: `${Math.min((currentTotalArea / maxAllowedArea) * 100, 100)}%` }}
+                  ></div>
                 </div>
-                <div className="flex justify-between">
-                  <span>Currently Selected:</span>
-                  <span className={`font-semibold ${currentTotalArea > maxAllowedArea ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400'}`}>
-                    {currentTotalArea.toFixed(1)} cm²
-                  </span>
-                </div>
+                {currentTotalArea > maxAllowedArea && (
+                  <div className="mt-2 text-xs text-red-600 dark:text-red-400 font-medium">
+                    ⚠️ You have exceeded the maximum allowed area. Please reduce your selection.
+                  </div>
+                )}
               </div>
-              <div className="mt-2 w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-                <div 
-                  className={`h-2 rounded-full transition-all ${currentTotalArea > maxAllowedArea ? 'bg-red-500' : 'bg-green-500'}`}
-                  style={{ width: `${Math.min((currentTotalArea / maxAllowedArea) * 100, 100)}%` }}
-                ></div>
-              </div>
-              {currentTotalArea > maxAllowedArea && (
-                <div className="mt-2 text-xs text-red-600 dark:text-red-400 font-medium">
-                  ⚠️ You have exceeded the maximum allowed area. Please reduce your selection.
-                </div>
-              )}
-            </div>
+            )}
 
             {itemsData.length > 0 ? (
               itemsData.map((item) => (
@@ -526,13 +534,11 @@ const NewOrderForm = ({ open, onClose, patient }) => {
               <LocalizationProvider dateAdapter={AdapterDateFns}>
                 <DatePicker
                   label="Requested Delivery Date"
-                  value={
-                    formData.deliveryDate ? new Date(formData.deliveryDate) : null
-                  }
+                  value={formData.deliveryDate}
                   onChange={(newValue) => {
                     setFormData((prev) => ({
                       ...prev,
-                      deliveryDate: newValue?.toISOString().split("T")[0] || "",
+                      deliveryDate: newValue, // ✅ Store as Date object or null
                     }));
                   }}
                   disablePast
@@ -550,7 +556,7 @@ const NewOrderForm = ({ open, onClose, patient }) => {
             <OrderSummary
               selectedVariants={selectedVariants}
               itemsData={itemsData}
-              orderDate={formData.deliveryDate}
+              orderDate={formData.deliveryDate instanceof Date ? formData.deliveryDate.toISOString().split("T")[0] : ""}
             />
           </div>
         )}
