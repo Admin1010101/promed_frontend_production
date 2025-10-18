@@ -505,7 +505,7 @@ const NewOrderForm = ({ open, onClose, patient }) => {
                 </div>
                 {currentTotalArea > maxAllowedArea && (
                   <div className="mt-2 text-xs text-red-600 dark:text-red-400 font-medium">
-                    ⚠️ You have exceeded the maximum allowed area. Please reduce your selection.
+                    ⚠️ You've exceeded the maximum allowed area. Please reduce your selection.
                   </div>
                 )}
               </div>
