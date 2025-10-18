@@ -1,8 +1,8 @@
+// OrderItem.js
 import { useEffect, useState } from "react";
 import default_item from "../../assets/images/default_item.png";
 
-// Helper to extract area from a size string. 
-// This takes a string like "2 x 2 " and returns 4 for the size.
+// Helper to extract area from a size string like "2 x 2" → returns 4
 function getAreaFromSize(sizeStr) {
   if (!sizeStr) return 0;
   const match = sizeStr.match(/(\d+(?:\.\d+)?)\s*[x×]\s*(\d+(?:\.\d+)?)/i);
@@ -12,8 +12,7 @@ function getAreaFromSize(sizeStr) {
   return length * width;
 }
 
-const OrderItem = ({ item, selectedVariants = [], onVariantChange }) => {
-  console.log("OrderItem Rendered with item:", item, "selectedVariants:", selectedVariants);
+const OrderItem = ({ item, selectedVariants = [], onVariantChange, currentTotalArea, maxAllowedArea }) => {
   const [localSelections, setLocalSelections] = useState(
     selectedVariants.length > 0 ? selectedVariants : [{ variantId: "", quantity: 0 }]
   );
@@ -32,7 +31,7 @@ const OrderItem = ({ item, selectedVariants = [], onVariantChange }) => {
   const handleVariantChange = (index, value) => {
     const updated = [...localSelections];
     updated[index].variantId = value;
-    updated[index].quantity = 0; // Reset quantity if variant changes
+    updated[index].quantity = 0;
     handleLocalChange(updated);
   };
 
@@ -52,21 +51,18 @@ const OrderItem = ({ item, selectedVariants = [], onVariantChange }) => {
     handleLocalChange(updated);
   };
 
-  console.log("Max allowed area calculation for item:", item);
-  // Max size logic of the area allowed
-  const maxAllowed = Math.floor((item.woundSize || 0) * 1.2);
-
-  // Helper to get variant object by id
+  // Get variant object by id
   const getVariantById = (id) => item.variants.find((v) => String(v.id) === String(id));
 
-  // Calculate total selected area
-  const totalSelected = localSelections.reduce((sum, v) => {
+  // Calculate this product's selected area
+  const thisProductArea = localSelections.reduce((sum, v) => {
     const variant = getVariantById(v.variantId);
     const area = getAreaFromSize(variant?.size);
     return sum + (area * (v.quantity || 0));
   }, 0);
 
-  const canAddMore = totalSelected < maxAllowed;
+  // Check if we can add more across ALL products
+  const canAddMore = currentTotalArea < maxAllowedArea;
 
   // For duplicate size prevention
   const selectedVariantIds = localSelections.map((entry) => entry.variantId);
@@ -94,14 +90,16 @@ const OrderItem = ({ item, selectedVariants = [], onVariantChange }) => {
       {localSelections.map((entry, index) => {
         const variant = getVariantById(entry.variantId);
         const thisRowArea = getAreaFromSize(variant?.size) * (entry.quantity || 0);
-        const otherRowsArea = totalSelected - thisRowArea;
-        const maxForThisRowArea = Math.max(0, maxAllowed - otherRowsArea);
+        const otherRowsArea = thisProductArea - thisRowArea;
+        const remainingGlobalArea = maxAllowedArea - (currentTotalArea - thisRowArea);
+        
         const variantArea = getAreaFromSize(variant?.size);
         let maxQty = 0;
         if (variantArea > 0) {
-          maxQty = Math.floor(maxForThisRowArea / variantArea);
+          maxQty = Math.floor(remainingGlobalArea / variantArea);
         }
-        const disableRow = totalSelected >= maxAllowed && thisRowArea === 0;
+        
+        const disableRow = remainingGlobalArea <= 0 && thisRowArea === 0;
 
         // Prevent duplicate variant selection
         const usedIds = selectedVariantIds.filter((id, i) => i !== index);
@@ -158,14 +156,8 @@ const OrderItem = ({ item, selectedVariants = [], onVariantChange }) => {
         + Add Another Selection
       </button>
       <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-        Max allowed area for this product: <span className="font-semibold">{maxAllowed}</span>.&nbsp;
-        Currently selected area: <span className="font-semibold">{totalSelected}</span>
+        This product: <span className="font-semibold">{thisProductArea.toFixed(1)} cm²</span>
       </div>
-      {!canAddMore && (
-        <div className="text-xs text-red-500 dark:text-red-400 mt-1">
-          You have reached the maximum allowed area for this product.
-        </div>
-      )}
     </div>
   );
 };

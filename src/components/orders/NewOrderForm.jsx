@@ -15,7 +15,6 @@ import toast from "react-hot-toast";
 import { LocalizationProvider, DatePicker } from "@mui/x-date-pickers";
 import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
 
-// 💥 NEW COMPONENT: Confirmation Modal
 const ConfirmationModal = ({ open, onClose, onConfirm }) => (
   <Modal open={open} onClose={onClose}>
     <Box
@@ -85,7 +84,6 @@ const NewOrderForm = ({ open, onClose, patient }) => {
   const [selectedVariants, setSelectedVariants] = useState({});
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-
   const [openConfirmModal, setOpenConfirmModal] = useState(false);
 
   const [formData, setFormData] = useState({
@@ -135,17 +133,7 @@ const NewOrderForm = ({ open, onClose, patient }) => {
         throw new Error("Failed to fetch products.");
       }
       const data = await response.json();
-
-      const woundLength = parseFloat(patient?.wound_size_length) || 0;
-      const woundWidth = parseFloat(patient?.wound_size_width) || 0;
-      const woundSize = woundLength * woundWidth;
-
-      const dataWithWoundSize = data.map((product) => ({
-        ...product,
-        woundSize,
-      }));
-
-      setItemsData(dataWithWoundSize);
+      setItemsData(data);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -160,6 +148,32 @@ const NewOrderForm = ({ open, onClose, patient }) => {
     }));
   };
 
+  // ✅ Calculate total area across ALL products
+  const calculateTotalArea = () => {
+    let total = 0;
+    Object.entries(selectedVariants).forEach(([productId, variants]) => {
+      if (!Array.isArray(variants)) return;
+      const item = itemsData.find((i) => i.id === parseInt(productId));
+      if (!item) return;
+      
+      variants.forEach(({ variantId, quantity }) => {
+        const variant = item.variants.find((v) => v.id === parseInt(variantId));
+        if (variant && quantity > 0) {
+          // Parse variant size like "2 x 2" or "4x4"
+          const match = variant.size.match(/(\d+(?:\.\d+)?)\s*[x×]\s*(\d+(?:\.\d+)?)/i);
+          if (match) {
+            const length = parseFloat(match[1]);
+            const width = parseFloat(match[2]);
+            const area = length * width;
+            total += area * quantity;
+          }
+        }
+      });
+    });
+    return total;
+  };
+
+  // Calculate total price
   const total = Object.entries(selectedVariants).reduce(
     (sum, [productId, variants]) => {
       if (!Array.isArray(variants)) return sum;
@@ -175,6 +189,13 @@ const NewOrderForm = ({ open, onClose, patient }) => {
     },
     0
   );
+
+  // ✅ Calculate wound dimensions and limits
+  const woundLength = parseFloat(patient?.wound_size_length) || 0;
+  const woundWidth = parseFloat(patient?.wound_size_width) || 0;
+  const woundArea = woundLength * woundWidth;
+  const maxAllowedArea = woundArea * 1.2; // 20% over
+  const currentTotalArea = calculateTotalArea();
 
   const handlePlaceOrderClick = () => {
     const orderItems = [];
@@ -195,6 +216,12 @@ const NewOrderForm = ({ open, onClose, patient }) => {
       return;
     }
 
+    // ✅ Check if exceeds area limit
+    if (currentTotalArea > maxAllowedArea) {
+      toast.error(`Total area (${currentTotalArea.toFixed(1)} cm²) exceeds maximum allowed (${maxAllowedArea.toFixed(1)} cm²)`);
+      return;
+    }
+
     setOpenConfirmModal(true);
   };
 
@@ -206,17 +233,11 @@ const NewOrderForm = ({ open, onClose, patient }) => {
     Object.entries(selectedVariants).forEach(([productId, variants]) => {
       variants.forEach(({ variantId, quantity }) => {
         if (quantity > 0) {
-          const item = itemsData.find((i) => i.id === parseInt(productId));
-          const variant = item?.variants.find(
-            (v) => v.id === parseInt(variantId)
-          );
-          if (variant) {
-            orderItems.push({
-              product: parseInt(productId),
-              variant: parseInt(variantId),
-              quantity,
-            });
-          }
+          orderItems.push({
+            product: parseInt(productId),
+            variant: parseInt(variantId),
+            quantity,
+          });
         }
       });
     });
@@ -256,7 +277,7 @@ const NewOrderForm = ({ open, onClose, patient }) => {
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.detail || "Failed to place order.");
+        throw new Error(errorData.detail || errorData.error || "Failed to place order.");
       }
 
       toast.success("Order confirmed and submitted successfully!");
@@ -450,6 +471,38 @@ const NewOrderForm = ({ open, onClose, patient }) => {
             <h3 className="text-xl font-semibold text-gray-700 dark:text-gray-200 mb-4">
               Order Items
             </h3>
+            
+            {/* ✅ Global Area Tracker */}
+            <div className="mb-4 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+              <div className="text-sm text-gray-700 dark:text-gray-300">
+                <div className="flex justify-between mb-1">
+                  <span>Wound Size:</span>
+                  <span className="font-semibold">{woundArea.toFixed(1)} cm²</span>
+                </div>
+                <div className="flex justify-between mb-1">
+                  <span>Max Allowed (120%):</span>
+                  <span className="font-semibold">{maxAllowedArea.toFixed(1)} cm²</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Currently Selected:</span>
+                  <span className={`font-semibold ${currentTotalArea > maxAllowedArea ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400'}`}>
+                    {currentTotalArea.toFixed(1)} cm²
+                  </span>
+                </div>
+              </div>
+              <div className="mt-2 w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                <div 
+                  className={`h-2 rounded-full transition-all ${currentTotalArea > maxAllowedArea ? 'bg-red-500' : 'bg-green-500'}`}
+                  style={{ width: `${Math.min((currentTotalArea / maxAllowedArea) * 100, 100)}%` }}
+                ></div>
+              </div>
+              {currentTotalArea > maxAllowedArea && (
+                <div className="mt-2 text-xs text-red-600 dark:text-red-400 font-medium">
+                  ⚠️ You have exceeded the maximum allowed area. Please reduce your selection.
+                </div>
+              )}
+            </div>
+
             {itemsData.length > 0 ? (
               itemsData.map((item) => (
                 <OrderItem
@@ -459,8 +512,8 @@ const NewOrderForm = ({ open, onClose, patient }) => {
                   onVariantChange={(variants) =>
                     handleItemVariantChange(item.id, variants)
                   }
-                  selectSx={commonInputSx}
-                  menuItemSx={commonMenuItemSx}
+                  currentTotalArea={currentTotalArea}
+                  maxAllowedArea={maxAllowedArea}
                 />
               ))
             ) : (
@@ -469,28 +522,30 @@ const NewOrderForm = ({ open, onClose, patient }) => {
               </p>
             )}
 
-            <LocalizationProvider dateAdapter={AdapterDateFns}>
-              <DatePicker
-                label="Requested Delivery Date"
-                value={
-                  formData.deliveryDate ? new Date(formData.deliveryDate) : null
-                }
-                onChange={(newValue) => {
-                  setFormData((prev) => ({
-                    ...prev,
-                    deliveryDate: newValue?.toISOString().split("T")[0] || "",
-                  }));
-                }}
-                disablePast
-                slotProps={{
-                  textField: {
-                    fullWidth: true,
-                    variant: "outlined",
-                    sx: commonInputSx,
-                  },
-                }}
-              />
-            </LocalizationProvider>
+            <div className="mt-4">
+              <LocalizationProvider dateAdapter={AdapterDateFns}>
+                <DatePicker
+                  label="Requested Delivery Date"
+                  value={
+                    formData.deliveryDate ? new Date(formData.deliveryDate) : null
+                  }
+                  onChange={(newValue) => {
+                    setFormData((prev) => ({
+                      ...prev,
+                      deliveryDate: newValue?.toISOString().split("T")[0] || "",
+                    }));
+                  }}
+                  disablePast
+                  slotProps={{
+                    textField: {
+                      fullWidth: true,
+                      variant: "outlined",
+                      sx: commonInputSx,
+                    },
+                  }}
+                />
+              </LocalizationProvider>
+            </div>
 
             <OrderSummary
               selectedVariants={selectedVariants}
@@ -567,7 +622,7 @@ const NewOrderForm = ({ open, onClose, patient }) => {
                     onClick={handlePlaceOrderClick}
                     variant="contained"
                     className="bg-teal-600 text-white font-bold"
-                    disabled={!hasSelectedItems || loading}
+                    disabled={!hasSelectedItems || loading || currentTotalArea > maxAllowedArea}
                     sx={{
                       "&.Mui-disabled": {
                         bgcolor: "grey.500",

@@ -406,6 +406,11 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  console.log("=== AUTH STATE ===");
+  console.log("Access Token:", localStorage.getItem("accessToken"));
+  console.log("Refresh Token:", localStorage.getItem("refreshToken"));
+  console.log("Session ID:", localStorage.getItem("session_id"));
+
   return (
     <AuthContext.Provider
       value={{
