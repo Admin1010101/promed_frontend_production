@@ -563,7 +563,7 @@ const Patients = () => {
     <div className="max-w-5xl mx-auto mt-10 p-6 bg-white dark:bg-gray-900 shadow-lg rounded-lg transition-colors duration-300">
       <div className="flex flex-col sm:flex-row justify-between sm:items-center mb-6 space-y-3 sm:space-y-0">
         <h2 className="text-2xl font-semibold text-gray-800 dark:text-gray-100">
-          Patient Managementssssssss
+          Patient Management
         </h2>
 
         <motion.button

@@ -87,18 +87,16 @@ const NewOrderForm = ({ open, onClose, patient }) => {
   const [openConfirmModal, setOpenConfirmModal] = useState(false);
 
   const [formData, setFormData] = useState({
-    providerName: user?.full_name || "",
-    facilityName: user?.profile?.facility || "",
-    providerPhoneNumber: user?.profile?.phone_number || "",
-    providerAddress: user?.profile?.street || "",
-    patientName: `${patient?.first_name || ""} ${patient?.last_name || ""}`,
-    patientDob: patient?.date_of_birth || "",
-    patientPhoneNumber: patient?.phone_number || "",
-    patientAddress: `${patient?.address || ""}, ${patient?.city || ""}, ${
-      patient?.state || ""
-    } ${patient?.zip_code || ""}`,
-    patientCountry: patient?.country || "",
-    deliveryDate: null, // ✅ Changed to null instead of empty string
+    providerName: "",
+    facilityName: "",
+    providerPhoneNumber: "",
+    providerAddress: "",
+    patientName: "",
+    patientDob: "",
+    patientPhoneNumber: "",
+    patientAddress: "",
+    patientCountry: "United States",
+    deliveryDate: null,
   });
 
   const handleFormChange = (event) => {
@@ -107,6 +105,19 @@ const NewOrderForm = ({ open, onClose, patient }) => {
       ...prevData,
       [name]: value,
     }));
+  };
+
+  // 🔍 Helper to safely format date strings
+  const safeFormatDate = (dateStr) => {
+    if (!dateStr) return "";
+    try {
+      const date = new Date(dateStr);
+      if (isNaN(date.getTime())) return "";
+      return date.toISOString().split("T")[0];
+    } catch (e) {
+      console.error("Date format error:", e, dateStr);
+      return "";
+    }
   };
 
   const fetchProducts = async () => {
@@ -133,8 +144,13 @@ const NewOrderForm = ({ open, onClose, patient }) => {
         throw new Error("Failed to fetch products.");
       }
       const data = await response.json();
+      
+      // 🔍 DEBUG LOG - Remove after troubleshooting
+      console.log("✅ Products loaded:", data?.length || 0, "items");
+      
       setItemsData(data);
     } catch (err) {
+      console.error("❌ Product fetch error:", err);
       setError(err.message);
     } finally {
       setLoading(false);
@@ -148,7 +164,7 @@ const NewOrderForm = ({ open, onClose, patient }) => {
     }));
   };
 
-  // ✅ Calculate total area across ALL products
+  // Calculate total area across ALL products
   const calculateTotalArea = () => {
     let total = 0;
     Object.entries(selectedVariants).forEach(([productId, variants]) => {
@@ -159,7 +175,6 @@ const NewOrderForm = ({ open, onClose, patient }) => {
       variants.forEach(({ variantId, quantity }) => {
         const variant = item.variants.find((v) => v.id === parseInt(variantId));
         if (variant && quantity > 0) {
-          // Parse variant size like "2 x 2" or "4x4"
           const match = variant.size.match(/(\d+(?:\.\d+)?)\s*[x×]\s*(\d+(?:\.\d+)?)/i);
           if (match) {
             const length = parseFloat(match[1]);
@@ -190,11 +205,11 @@ const NewOrderForm = ({ open, onClose, patient }) => {
     0
   );
 
-  // ✅ Calculate wound dimensions and limits with safety checks
+  // Calculate wound dimensions and limits with safety checks
   const woundLength = parseFloat(patient?.wound_size_length) || 0;
   const woundWidth = parseFloat(patient?.wound_size_width) || 0;
   const woundArea = woundLength * woundWidth;
-  const maxAllowedArea = woundArea * 1.2; // 20% over
+  const maxAllowedArea = woundArea * 1.2;
   const currentTotalArea = calculateTotalArea();
 
   const handlePlaceOrderClick = () => {
@@ -216,7 +231,6 @@ const NewOrderForm = ({ open, onClose, patient }) => {
       return;
     }
 
-    // ✅ Check if exceeds area limit
     if (currentTotalArea > maxAllowedArea) {
       toast.error(`Total area (${currentTotalArea.toFixed(1)} cm²) exceeds maximum allowed (${maxAllowedArea.toFixed(1)} cm²)`);
       return;
@@ -242,7 +256,6 @@ const NewOrderForm = ({ open, onClose, patient }) => {
       });
     });
 
-    // ✅ Format delivery date properly
     let deliveryDateStr = null;
     if (formData.deliveryDate instanceof Date && !isNaN(formData.deliveryDate)) {
       deliveryDateStr = formData.deliveryDate.toISOString().split("T")[0];
@@ -299,20 +312,32 @@ const NewOrderForm = ({ open, onClose, patient }) => {
 
   useEffect(() => {
     if (open && user && patient) {
+      // 🔍 DEBUG LOG - Remove after troubleshooting
+      console.log("🔍 Modal opened with patient:", {
+        dob: patient?.date_of_birth,
+        dobType: typeof patient?.date_of_birth,
+        address: patient?.address,
+        city: patient?.city,
+      });
+
       setFormData({
         providerName: user?.full_name || "",
         facilityName: user?.profile?.facility || "",
         providerPhoneNumber: user?.profile?.phone_number || "",
         providerAddress: user?.profile?.street || "",
-        patientName: `${patient?.first_name || ""} ${patient?.last_name || ""}`,
-        patientDob: patient?.date_of_birth || "",
+        patientName: `${patient?.first_name || ""} ${patient?.last_name || ""}`.trim(),
+        patientDob: safeFormatDate(patient?.date_of_birth),
         patientPhoneNumber: patient?.phone_number || "",
-        patientAddress: `${patient?.address || ""}, ${patient?.city || ""}, ${
-          patient?.state || ""
-        } ${patient?.zip_code || ""}`,
-        patientCountry: patient?.country || "",
-        deliveryDate: null, // ✅ Reset to null
+        patientAddress: [
+          patient?.address,
+          patient?.city,
+          patient?.state,
+          patient?.zip_code
+        ].filter(Boolean).join(", "),
+        patientCountry: patient?.country || "United States",
+        deliveryDate: null,
       });
+      
       fetchProducts();
     }
   }, [open, user, patient]);
@@ -434,9 +459,11 @@ const NewOrderForm = ({ open, onClose, patient }) => {
               fullWidth
               label="Date of Birth"
               name="patientDob"
+              type="text"
               value={formData.patientDob}
               onChange={handleFormChange}
               sx={commonInputSx}
+              placeholder="YYYY-MM-DD"
             />
             <TextField
               fullWidth
@@ -457,7 +484,7 @@ const NewOrderForm = ({ open, onClose, patient }) => {
             <Select
               fullWidth
               name="patientCountry"
-              value={formData.patientCountry || "United States"}
+              value={formData.patientCountry}
               onChange={handleFormChange}
               sx={commonInputSx}
               MenuProps={{
@@ -478,7 +505,6 @@ const NewOrderForm = ({ open, onClose, patient }) => {
               Order Items
             </h3>
             
-            {/* ✅ Global Area Tracker - Only show if wound size exists */}
             {woundArea > 0 && (
               <div className="mb-4 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
                 <div className="text-sm text-gray-700 dark:text-gray-300">
@@ -538,7 +564,7 @@ const NewOrderForm = ({ open, onClose, patient }) => {
                   onChange={(newValue) => {
                     setFormData((prev) => ({
                       ...prev,
-                      deliveryDate: newValue, // ✅ Store as Date object or null
+                      deliveryDate: newValue,
                     }));
                   }}
                   disablePast
