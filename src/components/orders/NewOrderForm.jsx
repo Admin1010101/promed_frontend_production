@@ -121,87 +121,96 @@ const NewOrderForm = ({ open, onClose, patient }) => {
   };
 
   const fetchProducts = async () => {
-  try {
-    setLoading(true);
-    setError(null);
-    const accessToken = localStorage.getItem("accessToken");
-    if (!accessToken) throw new Error("Authentication token not found.");
+    try {
+      setLoading(true);
+      setError(null);
+      const accessToken = localStorage.getItem("accessToken");
+      if (!accessToken) throw new Error("Authentication token not found.");
 
-    const apiUrl = `${process.env.REACT_APP_API_URL}/products/`;
-    console.log("🔍 Fetching products from:", apiUrl);
-    console.log("🔍 REACT_APP_API_URL:", process.env.REACT_APP_API_URL);
+      const apiUrl = `${process.env.REACT_APP_API_URL}/products/`;
+      console.log("🔍 Fetching products from:", apiUrl);
+      console.log("🔍 REACT_APP_API_URL:", process.env.REACT_APP_API_URL);
 
-    const response = await fetch(apiUrl, {
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-        'Content-Type': 'application/json',
-      },
-    });
+      const response = await fetch(apiUrl, {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          "Content-Type": "application/json",
+        },
+      });
 
-    console.log("📡 Response status:", response.status);
-    console.log("📡 Response headers:", Object.fromEntries(response.headers.entries()));
-    console.log("📡 Response URL:", response.url);
+      console.log("📡 Response status:", response.status);
+      console.log(
+        "📡 Response headers:",
+        Object.fromEntries(response.headers.entries())
+      );
+      console.log("📡 Response URL:", response.url);
 
-    if (!response.ok) {
-      // Try to get the response text to see what we're actually getting
-      const responseText = await response.text();
-      console.error("❌ Response not OK. Status:", response.status);
-      console.error("❌ Response body preview:", responseText.substring(0, 500));
-      
-      if (response.status === 401) {
-        logout();
-        throw new Error("Session expired. Please log in again.");
+      if (!response.ok) {
+        // Try to get the response text to see what we're actually getting
+        const responseText = await response.text();
+        console.error("❌ Response not OK. Status:", response.status);
+        console.error(
+          "❌ Response body preview:",
+          responseText.substring(0, 500)
+        );
+
+        if (response.status === 401) {
+          logout();
+          throw new Error("Session expired. Please log in again.");
+        }
+
+        if (response.status === 404) {
+          throw new Error(`API endpoint not found: ${apiUrl}`);
+        }
+
+        throw new Error(`Failed to fetch products. Status: ${response.status}`);
       }
-      
-      if (response.status === 404) {
-        throw new Error(`API endpoint not found: ${apiUrl}`);
+
+      // Check content type before parsing
+      const contentType = response.headers.get("content-type");
+      console.log("📄 Content-Type:", contentType);
+
+      if (!contentType || !contentType.includes("application/json")) {
+        const responseText = await response.text();
+        console.error("❌ Not JSON response:", responseText.substring(0, 500));
+        throw new Error(
+          `Expected JSON but got ${contentType}. Check if the API endpoint is correct.`
+        );
       }
-      
-      throw new Error(`Failed to fetch products. Status: ${response.status}`);
-    }
 
-    // Check content type before parsing
-    const contentType = response.headers.get('content-type');
-    console.log("📄 Content-Type:", contentType);
-    
-    if (!contentType || !contentType.includes('application/json')) {
-      const responseText = await response.text();
-      console.error("❌ Not JSON response:", responseText.substring(0, 500));
-      throw new Error(`Expected JSON but got ${contentType}. Check if the API endpoint is correct.`);
-    }
+      const data = await response.json();
 
-    const data = await response.json();
-    
-    console.log("✅ Products fetched successfully");
-    console.log("📦 Total products:", data?.length);
-    
-    if (!Array.isArray(data)) {
-      console.error("❌ Response is not an array:", data);
-      throw new Error("Invalid response format from server");
-    }
-    
-    if (data.length > 0) {
-      console.log("📦 First product:", data[0]);
-    } else {
-      console.warn("⚠️ No products returned from API");
-    }
-    
-    setItemsData(data);
-  } catch (err) {
-    console.error("❌ Product fetch error:", err);
-    console.error("❌ Error stack:", err.stack);
-    
-    // More user-friendly error messages
-    let errorMessage = err.message;
-    if (err.message.includes('<!doctype')) {
-      errorMessage = "API endpoint returning HTML instead of JSON. Please check your API configuration in Azure.";
-    }
-    
-    setError(errorMessage);
-  } finally {
-    setLoading(false);
-  }
+      console.log("✅ Products fetched successfully");
+      console.log("📦 Total products:", data?.length);
 
+      if (!Array.isArray(data)) {
+        console.error("❌ Response is not an array:", data);
+        throw new Error("Invalid response format from server");
+      }
+
+      if (data.length > 0) {
+        console.log("📦 First product:", data[0]);
+      } else {
+        console.warn("⚠️ No products returned from API");
+      }
+
+      setItemsData(data);
+    } catch (err) {
+      console.error("❌ Product fetch error:", err);
+      console.error("❌ Error stack:", err.stack);
+
+      // More user-friendly error messages
+      let errorMessage = err.message;
+      if (err.message.includes("<!doctype")) {
+        errorMessage =
+          "API endpoint returning HTML instead of JSON. Please check your API configuration in Azure.";
+      }
+
+      setError(errorMessage);
+    } finally {
+      setLoading(false);
+    }
+  };
   const handleItemVariantChange = (productId, variantsArray) => {
     setSelectedVariants((prev) => ({
       ...prev,
@@ -216,11 +225,13 @@ const NewOrderForm = ({ open, onClose, patient }) => {
       if (!Array.isArray(variants)) return;
       const item = itemsData.find((i) => i.id === parseInt(productId));
       if (!item) return;
-      
+
       variants.forEach(({ variantId, quantity }) => {
         const variant = item.variants.find((v) => v.id === parseInt(variantId));
         if (variant && quantity > 0) {
-          const match = variant.size.match(/(\d+(?:\.\d+)?)\s*[x×]\s*(\d+(?:\.\d+)?)/i);
+          const match = variant.size.match(
+            /(\d+(?:\.\d+)?)\s*[x×]\s*(\d+(?:\.\d+)?)/i
+          );
           if (match) {
             const length = parseFloat(match[1]);
             const width = parseFloat(match[2]);
@@ -277,7 +288,11 @@ const NewOrderForm = ({ open, onClose, patient }) => {
     }
 
     if (currentTotalArea > maxAllowedArea) {
-      toast.error(`Total area (${currentTotalArea.toFixed(1)} cm²) exceeds maximum allowed (${maxAllowedArea.toFixed(1)} cm²)`);
+      toast.error(
+        `Total area (${currentTotalArea.toFixed(
+          1
+        )} cm²) exceeds maximum allowed (${maxAllowedArea.toFixed(1)} cm²)`
+      );
       return;
     }
 
@@ -302,7 +317,10 @@ const NewOrderForm = ({ open, onClose, patient }) => {
     });
 
     let deliveryDateStr = null;
-    if (formData.deliveryDate instanceof Date && !isNaN(formData.deliveryDate)) {
+    if (
+      formData.deliveryDate instanceof Date &&
+      !isNaN(formData.deliveryDate)
+    ) {
       deliveryDateStr = formData.deliveryDate.toISOString().split("T")[0];
     }
 
@@ -327,21 +345,20 @@ const NewOrderForm = ({ open, onClose, patient }) => {
         throw new Error("Authentication token not found. Please log in again.");
       }
 
-      const response = await fetch(
-        `${process.env.REACT_APP_API_URL}/orders/`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${accessToken}`,
-          },
-          body: JSON.stringify(orderPayload),
-        }
-      );
+      const response = await fetch(`${process.env.REACT_APP_API_URL}/orders/`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify(orderPayload),
+      });
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.detail || errorData.error || "Failed to place order.");
+        throw new Error(
+          errorData.detail || errorData.error || "Failed to place order."
+        );
       }
 
       toast.success("Order confirmed and submitted successfully!");
@@ -370,19 +387,23 @@ const NewOrderForm = ({ open, onClose, patient }) => {
         facilityName: user?.profile?.facility || "",
         providerPhoneNumber: user?.profile?.phone_number || "",
         providerAddress: user?.profile?.street || "",
-        patientName: `${patient?.first_name || ""} ${patient?.last_name || ""}`.trim(),
+        patientName: `${patient?.first_name || ""} ${
+          patient?.last_name || ""
+        }`.trim(),
         patientDob: safeFormatDate(patient?.date_of_birth),
         patientPhoneNumber: patient?.phone_number || "",
         patientAddress: [
           patient?.address,
           patient?.city,
           patient?.state,
-          patient?.zip_code
-        ].filter(Boolean).join(", "),
+          patient?.zip_code,
+        ]
+          .filter(Boolean)
+          .join(", "),
         patientCountry: patient?.country || "United States",
         deliveryDate: null,
       });
-      
+
       fetchProducts();
     }
   }, [open, user, patient]);
@@ -549,34 +570,54 @@ const NewOrderForm = ({ open, onClose, patient }) => {
             <h3 className="text-xl font-semibold text-gray-700 dark:text-gray-200 mb-4">
               Order Items
             </h3>
-            
+
             {woundArea > 0 && (
               <div className="mb-4 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
                 <div className="text-sm text-gray-700 dark:text-gray-300">
                   <div className="flex justify-between mb-1">
                     <span>Wound Size:</span>
-                    <span className="font-semibold">{woundArea.toFixed(1)} cm²</span>
+                    <span className="font-semibold">
+                      {woundArea.toFixed(1)} cm²
+                    </span>
                   </div>
                   <div className="flex justify-between mb-1">
                     <span>Max Allowed (120%):</span>
-                    <span className="font-semibold">{maxAllowedArea.toFixed(1)} cm²</span>
+                    <span className="font-semibold">
+                      {maxAllowedArea.toFixed(1)} cm²
+                    </span>
                   </div>
                   <div className="flex justify-between">
                     <span>Currently Selected:</span>
-                    <span className={`font-semibold ${currentTotalArea > maxAllowedArea ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400'}`}>
+                    <span
+                      className={`font-semibold ${
+                        currentTotalArea > maxAllowedArea
+                          ? "text-red-600 dark:text-red-400"
+                          : "text-green-600 dark:text-green-400"
+                      }`}
+                    >
                       {currentTotalArea.toFixed(1)} cm²
                     </span>
                   </div>
                 </div>
                 <div className="mt-2 w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-                  <div 
-                    className={`h-2 rounded-full transition-all ${currentTotalArea > maxAllowedArea ? 'bg-red-500' : 'bg-green-500'}`}
-                    style={{ width: `${Math.min((currentTotalArea / maxAllowedArea) * 100, 100)}%` }}
+                  <div
+                    className={`h-2 rounded-full transition-all ${
+                      currentTotalArea > maxAllowedArea
+                        ? "bg-red-500"
+                        : "bg-green-500"
+                    }`}
+                    style={{
+                      width: `${Math.min(
+                        (currentTotalArea / maxAllowedArea) * 100,
+                        100
+                      )}%`,
+                    }}
                   ></div>
                 </div>
                 {currentTotalArea > maxAllowedArea && (
                   <div className="mt-2 text-xs text-red-600 dark:text-red-400 font-medium">
-                    ⚠️ You have exceeded the maximum allowed area. Please reduce your selection.
+                    ⚠️ You have exceeded the maximum allowed area. Please reduce
+                    your selection.
                   </div>
                 )}
               </div>
@@ -627,7 +668,11 @@ const NewOrderForm = ({ open, onClose, patient }) => {
             <OrderSummary
               selectedVariants={selectedVariants}
               itemsData={itemsData}
-              orderDate={formData.deliveryDate instanceof Date ? formData.deliveryDate.toISOString().split("T")[0] : ""}
+              orderDate={
+                formData.deliveryDate instanceof Date
+                  ? formData.deliveryDate.toISOString().split("T")[0]
+                  : ""
+              }
             />
           </div>
         )}
@@ -699,7 +744,11 @@ const NewOrderForm = ({ open, onClose, patient }) => {
                     onClick={handlePlaceOrderClick}
                     variant="contained"
                     className="bg-teal-600 text-white font-bold"
-                    disabled={!hasSelectedItems || loading || currentTotalArea > maxAllowedArea}
+                    disabled={
+                      !hasSelectedItems ||
+                      loading ||
+                      currentTotalArea > maxAllowedArea
+                    }
                     sx={{
                       "&.Mui-disabled": {
                         bgcolor: "grey.500",
