@@ -15,6 +15,32 @@ import toast from "react-hot-toast";
 import { LocalizationProvider, DatePicker } from "@mui/x-date-pickers";
 import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
 
+const parseVariantSize = (sizeStr) => {
+  if (!sizeStr) return 0;
+  try {
+    const match = sizeStr.match(
+      /(\d+(?:\.\d+)?)\s*[x×X]\s*(\d+(?:\.\d+)?)\s*(mm|cm)?/i
+    );
+    if (!match) return 0;
+
+    let length = parseFloat(match[1]);
+    let width = parseFloat(match[2]);
+    const unit = match[3]?.toLowerCase() || "cm";
+
+    if (isNaN(length) || isNaN(width)) return 0;
+
+    if (unit === "mm") {
+      length = length / 10;
+      width = width / 10;
+    }
+
+    return length * width;
+  } catch (error) {
+    console.error("Error parsing size:", sizeStr, error);
+    return 0;
+  }
+};
+
 const ConfirmationModal = ({ open, onClose, onConfirm }) => (
   <Modal open={open} onClose={onClose}>
     <Box
@@ -232,15 +258,8 @@ const NewOrderForm = ({ open, onClose, patient }) => {
       variants.forEach(({ variantId, quantity }) => {
         const variant = item.variants.find((v) => v.id === parseInt(variantId));
         if (variant && quantity > 0) {
-          const match = variant.size.match(
-            /(\d+(?:\.\d+)?)\s*[x×]\s*(\d+(?:\.\d+)?)/i
-          );
-          if (match) {
-            const length = parseFloat(match[1]);
-            const width = parseFloat(match[2]);
-            const area = length * width;
-            total += area * quantity;
-          }
+          const area = parseVariantSize(variant.size);
+          total += area * quantity;
         }
       });
     });

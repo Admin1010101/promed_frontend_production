@@ -12,6 +12,7 @@ const ini = [
         children: [{ text: "" }]
     },
 ];
+
 // Convert Slate value to HTML
 const serialize = (value) => {
     return JSON.stringify(value);
@@ -20,8 +21,9 @@ const serialize = (value) => {
 //Convert HTML to Slate value
 const deserialize = (html) => {
     try {
+        if (!html) return ini; // Add this check
         const parse = JSON.parse(html);
-        if (Array.isArray(parse)) return parse;
+        if (Array.isArray(parse) && parse.length > 0) return parse;
         return ini;
     } catch {
         return ini;
@@ -87,7 +89,8 @@ const Notes = ({ patientId }) => {
     const [editorTitle, setEditorTitle] = useState("");
     const [editorValue, setEditorValue] = useState(ini);
     const [file, setFile] = useState(null);
-    const editor = React.useMemo(() => withReact(createEditor()), []);
+    // Create a new editor instance when showEditor changes
+    const [editor] = useState(() => withReact(createEditor()));
     
     //Fetch notes for patient 
     useEffect(() => {
@@ -95,11 +98,12 @@ const Notes = ({ patientId }) => {
         const fetchNotes = async () => {
             try { 
                 const axioInstance = authRequest();
+                
                 axioInstance.get(`${API_BASE_URL}/notes/?patient=${patientId}`)
                 .then((res) => { console.log(res.data); setNotes(res.data)})
                 .catch(() => setNotes([]));
             } catch (error) {
-                console.error("ErSror fetching notes:", error);
+                console.error("Error fetching notes:", error);
             }
         };
         fetchNotes();
@@ -107,12 +111,14 @@ const Notes = ({ patientId }) => {
 
     // Adding a note through editing
     const start = (note = null) => {
+        const newValue = note && note.body ? deserialize(note.body) : ini;
         setEditingNote(note);
         setEditorTitle(note ? note.title : "");
-        setEditorValue(note && note.body ? deserialize(note.body) : ini);
+        setEditorValue(newValue);
         setFile(null);
+        // Reset editor selection to avoid stale state
+        Transforms.select(editor, { path: [0, 0], offset: 0 });
         setShowEditor(true);
-        
     };
 
 
@@ -139,11 +145,7 @@ const Notes = ({ patientId }) => {
             try {
                 const axiosInstance = authRequest();
                 await axiosInstance.post(`${API_BASE_URL}/notes/`, formData, {
-                    // patient: patientId,
-                    // title: editorTitle || "Note",
-                    // body: text,
                     headers: {"Content-Type": "multipart/form-data"}
-
                 });
             } catch (error) {
                 console.error("Error creating note:", error);
@@ -155,7 +157,6 @@ const Notes = ({ patientId }) => {
         setEditorValue(ini);
         
         // Refresh Note
-        
         try {
             const axiosInstance = authRequest();
             const res = await axiosInstance.get(`${API_BASE_URL}/notes/?patient=${patientId}`);
@@ -229,7 +230,7 @@ const Notes = ({ patientId }) => {
             )}
             </div>
         ))}
-        {showEditor && Array.isArray(editorValue) && (
+        {showEditor && (
             <div className="border rounded p-2 mt-2 bg-gray-100">
             <input
                 className="border p-1 w-full mb-2"
@@ -238,10 +239,15 @@ const Notes = ({ patientId }) => {
                 onChange={(e) => setEditorTitle(e.target.value)}
             />
             <Slate
-                key={editingNote ? editingNote.id : `new-${patientId}`}
+                key={editingNote ? `edit-${editingNote.id}` : `new-${Date.now()}`}
                 editor={editor}
-                initialValue={editorValue.length > 0 ? editorValue : ini}
-                onChange={val => setEditorValue(Array.isArray(val) ? val : ini)}
+                initialValue={editorValue}
+                onChange={val => {
+                    // Ensure val is always an array
+                    if (Array.isArray(val) && val.length > 0) {
+                        setEditorValue(val);
+                    }
+                }}
             >
                 <div className='flex items-center mb-2'>
                     <ToolbarButton format="bold" icon={<b>B</b>} />

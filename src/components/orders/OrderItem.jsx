@@ -1,38 +1,45 @@
-// OrderItem.js - with defensive error handling
+// OrderItem.js
 import { useEffect, useState } from "react";
-import default_item from "../../assets/images/default_item.png";
 
-// Helper to extract area from a size string like "2 x 2" → returns 4
+// ✅ Helper function OUTSIDE component
 function getAreaFromSize(sizeStr) {
   if (!sizeStr) return 0;
   try {
-    // ✅ More flexible regex to handle various formats
-    const match = sizeStr.match(/(\d+(?:\.\d+)?)\s*[x×X]\s*(\d+(?:\.\d+)?)/i);
+    // Parse: "2 x 2", "2x2", "2 × 2", "20 x 20 mm", "2 x 2 cm"
+    const match = sizeStr.match(/(\d+(?:\.\d+)?)\s*[x×X]\s*(\d+(?:\.\d+)?)\s*(mm|cm)?/i);
     if (!match) {
       console.warn("⚠️ Could not parse size:", sizeStr);
       return 0;
     }
-    const length = parseFloat(match[1]);
-    const width = parseFloat(match[2]);
+    
+    let length = parseFloat(match[1]);
+    let width = parseFloat(match[2]);
+    const unit = match[3]?.toLowerCase() || 'cm'; // Default to cm
     
     if (isNaN(length) || isNaN(width)) {
       console.warn("⚠️ Invalid numbers in size:", sizeStr);
       return 0;
     }
     
-    return length * width;
+    // Convert mm to cm (1cm = 10mm)
+    if (unit === 'mm') {
+      length = length / 10;
+      width = width / 10;
+    }
+    
+    return length * width; // Return area in cm²
   } catch (error) {
     console.error("❌ Error parsing size:", sizeStr, error);
     return 0;
   }
 }
 
+// ✅ Component starts here - all variables used inside must be parameters or state
 const OrderItem = ({ item, selectedVariants = [], onVariantChange, currentTotalArea, maxAllowedArea }) => {
   const [localSelections, setLocalSelections] = useState(
     selectedVariants.length > 0 ? selectedVariants : [{ variantId: "", quantity: 0 }]
   );
 
-  // ✅ Add error boundary state
   const [hasError, setHasError] = useState(false);
 
   useEffect(() => {
@@ -99,7 +106,6 @@ const OrderItem = ({ item, selectedVariants = [], onVariantChange, currentTotalA
     }
   };
 
-  // Get variant object by id
   const getVariantById = (id) => {
     try {
       if (!item?.variants) return null;
@@ -110,7 +116,6 @@ const OrderItem = ({ item, selectedVariants = [], onVariantChange, currentTotalA
     }
   };
 
-  // ✅ Error boundary UI
   if (hasError) {
     return (
       <div className="mb-6 p-4 rounded-lg border border-red-200 dark:border-red-700 bg-red-50 dark:bg-red-900/20">
@@ -121,7 +126,6 @@ const OrderItem = ({ item, selectedVariants = [], onVariantChange, currentTotalA
     );
   }
 
-  // ✅ Validate item data
   if (!item || !item.variants || !Array.isArray(item.variants)) {
     console.error("❌ Invalid item data:", item);
     return (
@@ -134,7 +138,6 @@ const OrderItem = ({ item, selectedVariants = [], onVariantChange, currentTotalA
   }
 
   try {
-    // Calculate this product's selected area
     const thisProductArea = localSelections.reduce((sum, v) => {
       try {
         const variant = getVariantById(v.variantId);
@@ -146,15 +149,11 @@ const OrderItem = ({ item, selectedVariants = [], onVariantChange, currentTotalA
       }
     }, 0);
 
-    // Check if we can add more across ALL products
     const canAddMore = currentTotalArea < maxAllowedArea;
-
-    // For duplicate size prevention
     const selectedVariantIds = localSelections.map((entry) => entry.variantId);
 
     return (
       <div className="mb-6 p-4 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm hover:shadow-md transition-shadow">
-        {/* Product Header */}
         <div className="flex items-center mb-4 pb-3 border-b border-gray-100 dark:border-gray-700">
           <div className="flex-1">
             <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-1">
@@ -179,7 +178,6 @@ const OrderItem = ({ item, selectedVariants = [], onVariantChange, currentTotalA
           </div>
         </div>
 
-        {/* Variant Selection Rows */}
         <div className="space-y-3">
           {localSelections.map((entry, index) => {
             try {
@@ -194,8 +192,6 @@ const OrderItem = ({ item, selectedVariants = [], onVariantChange, currentTotalA
               }
               
               const disableRow = remainingGlobalArea <= 0 && thisRowArea === 0;
-
-              // Prevent duplicate variant selection
               const usedIds = selectedVariantIds.filter((id, i) => i !== index);
 
               return (
@@ -204,7 +200,6 @@ const OrderItem = ({ item, selectedVariants = [], onVariantChange, currentTotalA
                   className="flex gap-2 items-center p-3 rounded-lg bg-gray-50 dark:bg-gray-900/50 border border-gray-200 dark:border-gray-700"
                 >
                   <div className="flex-1 flex gap-2 items-center">
-                    {/* Size Select */}
                     <select
                       className="flex-1 border rounded-lg px-3 py-2.5 bg-white text-gray-900 border-gray-300 
                         dark:bg-gray-800 dark:text-gray-100 dark:border-gray-600
@@ -225,7 +220,6 @@ const OrderItem = ({ item, selectedVariants = [], onVariantChange, currentTotalA
                         ))}
                     </select>
 
-                    {/* Quantity Select */}
                     <select
                       className="w-24 border rounded-lg px-3 py-2.5 bg-white text-gray-900 border-gray-300 
                         dark:bg-gray-800 dark:text-gray-100 dark:border-gray-600
@@ -243,7 +237,6 @@ const OrderItem = ({ item, selectedVariants = [], onVariantChange, currentTotalA
                       ))}
                     </select>
 
-                    {/* Area Display */}
                     {thisRowArea > 0 && (
                       <span className="text-xs font-medium text-teal-600 dark:text-teal-400 whitespace-nowrap bg-teal-50 dark:bg-teal-900/20 px-2 py-1 rounded">
                         {thisRowArea.toFixed(1)} cm²
@@ -251,7 +244,6 @@ const OrderItem = ({ item, selectedVariants = [], onVariantChange, currentTotalA
                     )}
                   </div>
 
-                  {/* Remove Button */}
                   {localSelections.length > 1 && (
                     <button
                       onClick={() => removeVariantRow(index)}
@@ -276,7 +268,6 @@ const OrderItem = ({ item, selectedVariants = [], onVariantChange, currentTotalA
           })}
         </div>
 
-        {/* Add Another Button */}
         <button
           onClick={addVariantRow}
           disabled={!canAddMore}
