@@ -121,41 +121,86 @@ const NewOrderForm = ({ open, onClose, patient }) => {
   };
 
   const fetchProducts = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      const accessToken = localStorage.getItem("accessToken");
-      if (!accessToken) throw new Error("Authentication token not found.");
+  try {
+    setLoading(true);
+    setError(null);
+    const accessToken = localStorage.getItem("accessToken");
+    if (!accessToken) throw new Error("Authentication token not found.");
 
-      const response = await fetch(
-        `${process.env.REACT_APP_API_URL}/products/`,
-        {
-          headers: {
-            Authorization: `Bearer ${accessToken}`,
-          },
-        }
-      );
+    const apiUrl = `${process.env.REACT_APP_API_URL}/products/`;
+    console.log("🔍 Fetching products from:", apiUrl);
+    console.log("🔍 REACT_APP_API_URL:", process.env.REACT_APP_API_URL);
 
-      if (!response.ok) {
-        if (response.status === 401) {
-          logout();
-          throw new Error("Session expired. Please log in again.");
-        }
-        throw new Error("Failed to fetch products.");
+    const response = await fetch(apiUrl, {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        'Content-Type': 'application/json',
+      },
+    });
+
+    console.log("📡 Response status:", response.status);
+    console.log("📡 Response headers:", Object.fromEntries(response.headers.entries()));
+    console.log("📡 Response URL:", response.url);
+
+    if (!response.ok) {
+      // Try to get the response text to see what we're actually getting
+      const responseText = await response.text();
+      console.error("❌ Response not OK. Status:", response.status);
+      console.error("❌ Response body preview:", responseText.substring(0, 500));
+      
+      if (response.status === 401) {
+        logout();
+        throw new Error("Session expired. Please log in again.");
       }
-      const data = await response.json();
       
-      // 🔍 DEBUG LOG - Remove after troubleshooting
-      console.log("✅ Products loaded:", data?.length || 0, "items");
+      if (response.status === 404) {
+        throw new Error(`API endpoint not found: ${apiUrl}`);
+      }
       
-      setItemsData(data);
-    } catch (err) {
-      console.error("❌ Product fetch error:", err);
-      setError(err.message);
-    } finally {
-      setLoading(false);
+      throw new Error(`Failed to fetch products. Status: ${response.status}`);
     }
-  };
+
+    // Check content type before parsing
+    const contentType = response.headers.get('content-type');
+    console.log("📄 Content-Type:", contentType);
+    
+    if (!contentType || !contentType.includes('application/json')) {
+      const responseText = await response.text();
+      console.error("❌ Not JSON response:", responseText.substring(0, 500));
+      throw new Error(`Expected JSON but got ${contentType}. Check if the API endpoint is correct.`);
+    }
+
+    const data = await response.json();
+    
+    console.log("✅ Products fetched successfully");
+    console.log("📦 Total products:", data?.length);
+    
+    if (!Array.isArray(data)) {
+      console.error("❌ Response is not an array:", data);
+      throw new Error("Invalid response format from server");
+    }
+    
+    if (data.length > 0) {
+      console.log("📦 First product:", data[0]);
+    } else {
+      console.warn("⚠️ No products returned from API");
+    }
+    
+    setItemsData(data);
+  } catch (err) {
+    console.error("❌ Product fetch error:", err);
+    console.error("❌ Error stack:", err.stack);
+    
+    // More user-friendly error messages
+    let errorMessage = err.message;
+    if (err.message.includes('<!doctype')) {
+      errorMessage = "API endpoint returning HTML instead of JSON. Please check your API configuration in Azure.";
+    }
+    
+    setError(errorMessage);
+  } finally {
+    setLoading(false);
+  }
 
   const handleItemVariantChange = (productId, variantsArray) => {
     setSelectedVariants((prev) => ({
