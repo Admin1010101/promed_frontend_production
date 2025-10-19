@@ -216,7 +216,7 @@ const Products = () => {
         </motion.section>
 
         {/* Featured Products Section - Card Style */}
-        <motion.section
+        {/* <motion.section
           className="mb-20 p-6 md:p-12 bg-gray-50 dark:bg-gray-800 rounded-2xl shadow-xl border border-gray-100 dark:border-gray-700 transition-colors duration-500"
           initial="hidden"
           whileInView="visible"
@@ -278,7 +278,7 @@ const Products = () => {
               </motion.div>
             ))}
           </motion.div>
-        </motion.section>
+        </motion.section> */}
 
         {/* Why Choose ProMed Section - Card Style */}
         <motion.section

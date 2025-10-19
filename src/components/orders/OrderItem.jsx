@@ -1,7 +1,7 @@
 // OrderItem.js
 import { useEffect, useState } from "react";
 
-// ✅ Helper function OUTSIDE component
+
 function getAreaFromSize(sizeStr) {
   if (!sizeStr) return 0;
   try {

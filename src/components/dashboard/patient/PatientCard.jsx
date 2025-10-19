@@ -1,13 +1,14 @@
 import React, { useState } from "react";
 import { motion } from "framer-motion";
-import { FaEye, FaEdit, FaTrashAlt } from "react-icons/fa";
+import { FaEdit, FaTrashAlt } from "react-icons/fa";
 import {
   IoInformationCircleOutline,
   IoDocumentsOutline,
 } from "react-icons/io5";
 import { format } from "date-fns";
 import { formatPhoneNumber } from "react-phone-number-input";
-import Notes from "../documemts/Notes";
+import NotesPreview from "../documemts/NotesPreview";
+import NotesModal from "../documemts/NotesModal";
 import NewOrderForm from "../../orders/NewOrderForm";
 
 const IVRStatusBadge = ({ status }) => {
@@ -35,6 +36,9 @@ const listItemVariants = {
 
 const PatientCard = ({ patient, onViewPdf, onEdit, onDelete }) => {
   const [openOrderModal, setOpenOrderModal] = useState(false);
+  const [openNotesModal, setOpenNotesModal] = useState(false);
+  const [notesRefreshTrigger, setNotesRefreshTrigger] = useState(0);
+  
   const formattedDate = patient.date_of_birth
     ? format(new Date(patient.date_of_birth), "M/d/yyyy")
     : "N/A";
@@ -57,190 +61,196 @@ const PatientCard = ({ patient, onViewPdf, onEdit, onDelete }) => {
     return age;
   };
 
+  // This function will be called by NotesModal when notes are updated
+  const handleNotesUpdate = () => {
+    setNotesRefreshTrigger(prev => prev + 1);
+  };
+
   return (
-    <motion.div
-      className="border p-4 rounded-xl border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 shadow-md space-y-2 text-gray-900 dark:text-gray-200"
-      variants={listItemVariants}
-      initial="hidden"
-      animate="visible"
-      exit="exit"
-      whileHover={{
-        scale: 1.005,
-        boxShadow:
-          "0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)",
-      }}
-      transition={{ type: "spring", stiffness: 300, damping: 20 }}
-    >
-      <div className="flex justify-between items-center mb-4">
-        <h3 className="text-lg font-semibold">
-          {patient.first_name} {patient.last_name}
-        </h3>
-        <div className="flex items-center space-x-3">
-          <motion.button
-            onClick={() => onEdit(patient)}
-            className="text-gray-500 dark:text-gray-400 hover:text-teal-500 transition"
-            title="Edit Patient"
-            whileTap={{ scale: 0.85 }}
-          >
-            <FaEdit className="text-base" />
-          </motion.button>
-          <motion.button
-            onClick={() => onDelete(patient.id)}
-            className="text-gray-500 dark:text-gray-400 hover:text-red-500 transition"
-            title="Delete Patient"
-            whileTap={{ scale: 0.85 }}
-          >
-            <FaTrashAlt className="text-base" />
-          </motion.button>
-        </div>
-      </div>
-
-      {/* --- Patient Identification & Contact --- */}
-
-      <div className="flex items-center justify-between w-full">
-        <p className="text-xs mr-2">
-          <strong>Medical Record #:</strong> {patient.medical_record_number}
-        </p>
-        <strong className="text-xs">
-          IVR Status: <IVRStatusBadge status={patient.ivrStatus} />
-        </strong>
-      </div>
-      
-      {/* Container for address/phone/DOB/Age with tight spacing */}
-      <div className="text-xs text-gray-700 dark:text-gray-300 space-y-1 pt-1">
-        <p className="flex">
-          <strong className="mr-1">Address:</strong> {patient.address}{" "}
-          {patient.city}, {patient.state} {patient.zip_code}
-        </p>
-        <p className="flex">
-          <strong className="mr-1">Phone Number:</strong> {formattedPhoneNumber}
-        </p>
-        <p className="flex">
-          <strong className="mr-1">Date of Birth:</strong> {formattedDate}
-        </p>
-        <p className="flex">
-          <strong className="mr-1">Age :</strong>{" "}
-          {calculateAge(patient.date_of_birth)}
-        </p>
-      </div>
-
-      {/* --- Insurance Information --- */}
-
-      <div className="w-full h-[1px] bg-gray-200 dark:bg-gray-700 my-3"></div>
-      
-      <p className="text-sm font-semibold text-center mb-1">Insurance Information</p>
-      
-      {/* Container for insurance details with tight spacing */}
-      <div className="text-xs text-gray-700 dark:text-gray-300 space-y-1">
-        <p className="flex">
-          <strong className="mr-1">Primary Insurance Provider :</strong>{" "}
-          {patient.primary_insurance}
-        </p>
-        <p className="flex">
-          <strong className="mr-1">Primary Insurance Number :</strong>{" "}
-          {patient.primary_insurance_number}
-        </p>
-        <p className="flex">
-          <strong className="mr-1">Secondary Insurance Provider:</strong>{" "}
-          {patient.secondary_insurance ? patient.secondary_insurance : "N/A"}
-        </p>
-        <p className="flex">
-          <strong className="mr-1">Secondary Insurance Number:</strong>{" "}
-          {patient.secondary_insurance_number
-            ? patient.secondary_insurance_number
-            : "N/A"}
-        </p>
-        <p className="flex">
-          <strong className="mr-1">Tertiary Insurance Provider:</strong>{" "}
-          {patient.tertiary_insurance ? patient.tertiary_insurance : "N/A"}
-        </p>
-        <p className="flex">
-          <strong className="mr-1">Tertiary Insurance Number:</strong>{" "}
-          {patient.tertiary_insurance_number
-            ? patient.tertiary_insurance_number
-            : "N/A"}
-        </p>
-      </div>
-
-      {/* --- Patient Documentation --- */}
-      
-      <div className="w-full h-[1px] bg-gray-200 dark:bg-gray-700 my-3"></div>
-      
-      <p className="text-sm font-semibold text-center mb-1">Patient Documentation</p>
-      
-      <div className="text-xs text-gray-700 dark:text-gray-300">
-        <div className="flex items-center justify-between">
-          <p className="flex">
-            <strong>Promed Healthcare Plus IVR</strong>
-          </p>
-          <div className="flex space-x-2">
+    <>
+      <motion.div
+        className="border p-4 rounded-xl border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 shadow-md space-y-2 text-gray-900 dark:text-gray-200"
+        variants={listItemVariants}
+        initial="hidden"
+        animate="visible"
+        exit="exit"
+        whileHover={{
+          scale: 1.005,
+          boxShadow:
+            "0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)",
+        }}
+        transition={{ type: "spring", stiffness: 300, damping: 20 }}
+      >
+        <div className="flex justify-between items-center mb-4">
+          <h3 className="text-lg font-semibold">
+            {patient.first_name} {patient.last_name}
+          </h3>
+          <div className="flex items-center space-x-3">
             <motion.button
-              onClick={() => onViewPdf(patient)}
-              className="p-1 rounded-full text-gray-500 dark:text-gray-400 hover:text-teal-500 transition"
-              whileTap={{ scale: 0.9 }}
-              title="View IVR Form"
+              onClick={() => onEdit(patient)}
+              className="text-gray-500 dark:text-gray-400 hover:text-teal-500 transition"
+              title="Edit Patient"
+              whileTap={{ scale: 0.85 }}
             >
-              <IoDocumentsOutline className="w-5 h-5" />
+              <FaEdit className="text-base" />
+            </motion.button>
+            <motion.button
+              onClick={() => onDelete(patient.id)}
+              className="text-gray-500 dark:text-gray-400 hover:text-red-500 transition"
+              title="Delete Patient"
+              whileTap={{ scale: 0.85 }}
+            >
+              <FaTrashAlt className="text-base" />
             </motion.button>
           </div>
         </div>
-      </div>
 
-      {/* --- Patient Order --- */}
-      
-      <div className="w-full h-[1px] bg-gray-200 dark:bg-gray-700 my-3"></div>
-      
-      <p className="text-sm font-semibold text-center mt-2 mb-2">Patient Order</p>
-
-      {/* FIX: Use flex-wrap to allow elements to stack on small screens */}
-      <div className="flex justify-between items-center flex-wrap gap-2">
-        <p className="text-xs text-gray-700 dark:text-gray-300 font-bold">
-          Place an order for this patient.
-        </p>
-        <div className="relative flex items-center gap-1">
-          {patient.ivrStatus !== "Approved" && (
-            <div className="relative group">
-              <IoInformationCircleOutline className="text-xl text-red-400 font-semibold cursor-pointer dark:text-red-300" />
-              <div
-                className="absolute bottom-full mb-2 left-1/2 transform -translate-x-1/2
-                bg-white border border-gray-200 shadow-lg px-3 py-1 text-xs text-gray-500
-                rounded-xl w-max opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10 font-semibold
-                dark:bg-gray-800 dark:border-gray-700 dark:text-gray-300"
-              >
-                Orders can only be placed for patients with an approved IVR.
-              </div>
-            </div>
-          )}
-          <motion.button
-            className={`text-[10px] px-3 py-1 rounded-full flex items-center gap-1 transition-all
-            ${
-              patient.ivrStatus === "Approved"
-                ? "bg-teal-500 text-white hover:bg-teal-600"
-                : "bg-gray-200 text-gray-500 cursor-not-allowed dark:bg-gray-700 dark:text-gray-400"
-            }`}
-            onClick={() => setOpenOrderModal(true)}
-            disabled={patient.ivrStatus !== "Approved"}
-            title={
-              patient.ivrStatus !== "Approved"
-                ? "Orders can only be placed for patients with an approved IVR."
-                : ""
-            }
-            whileTap={patient.ivrStatus === "Approved" ? { scale: 0.95 } : {}}
-          >
-            + New Order
-          </motion.button>
+        {/* Patient Identification & Contact */}
+        <div className="flex items-center justify-between w-full">
+          <p className="text-xs mr-2">
+            <strong>Medical Record Num:</strong> {patient.medical_record_number}
+          </p>
+          <strong className="text-xs">
+            IVR Status: <IVRStatusBadge status={patient.ivrStatus} />
+          </strong>
         </div>
-      </div>
-      
-      <div className="w-full h-[1px] bg-gray-200 dark:bg-gray-700 my-3"></div>
-      
-      <Notes key={patient.id} patientId={patient.id} />
+        
+        <div className="text-xs text-gray-700 dark:text-gray-300 space-y-1 pt-1">
+          <p className="flex">
+            <strong className="mr-1">Address:</strong> {patient.address}{" "}
+            {patient.city}, {patient.state} {patient.zip_code}
+          </p>
+          <p className="flex">
+            <strong className="mr-1">Phone Number:</strong> {formattedPhoneNumber}
+          </p>
+          <p className="flex">
+            <strong className="mr-1">Date of Birth:</strong> {formattedDate}
+          </p>
+          <p className="flex">
+            <strong className="mr-1">Age:</strong>{" "}
+            {calculateAge(patient.date_of_birth)}
+          </p>
+        </div>
+
+        {/* Insurance Information */}
+        <div className="w-full h-[1px] bg-gray-200 dark:bg-gray-700 my-3"></div>
+        
+        <p className="text-sm font-semibold text-center mb-1">Insurance Information</p>
+        
+        <div className="text-xs text-gray-700 dark:text-gray-300 space-y-1">
+          <p className="flex">
+            <strong className="mr-1">Primary Insurance Provider:</strong>{" "}
+            {patient.primary_insurance}
+          </p>
+          <p className="flex">
+            <strong className="mr-1">Primary Insurance Number:</strong>{" "}
+            {patient.primary_insurance_number}
+          </p>
+          <p className="flex">
+            <strong className="mr-1">Secondary Insurance Provider:</strong>{" "}
+            {patient.secondary_insurance || "N/A"}
+          </p>
+          <p className="flex">
+            <strong className="mr-1">Secondary Insurance Number:</strong>{" "}
+            {patient.secondary_insurance_number || "N/A"}
+          </p>
+          <p className="flex">
+            <strong className="mr-1">Tertiary Insurance Provider:</strong>{" "}
+            {patient.tertiary_insurance || "N/A"}
+          </p>
+          <p className="flex">
+            <strong className="mr-1">Tertiary Insurance Number:</strong>{" "}
+            {patient.tertiary_insurance_number || "N/A"}
+          </p>
+        </div>
+
+        {/* Patient Documentation */}
+        <div className="w-full h-[1px] bg-gray-200 dark:bg-gray-700 my-3"></div>
+        
+        <p className="text-sm font-semibold text-center mb-1">Patient Documentation</p>
+        
+        <div className="text-xs text-gray-700 dark:text-gray-300">
+          <div className="flex items-center justify-between">
+            <p className="flex">
+              <strong>Promed Healthcare Plus IVR</strong>
+            </p>
+            <div className="flex space-x-2">
+              <motion.button
+                onClick={() => onViewPdf(patient)}
+                className="p-1 rounded-full text-gray-500 dark:text-gray-400 hover:text-teal-500 transition"
+                whileTap={{ scale: 0.9 }}
+                title="View IVR Form"
+              >
+                <IoDocumentsOutline className="w-5 h-5" />
+              </motion.button>
+            </div>
+          </div>
+        </div>
+
+        {/* Patient Order */}
+        <div className="w-full h-[1px] bg-gray-200 dark:bg-gray-700 my-3"></div>
+        
+        <p className="text-sm font-semibold text-center mt-2 mb-2">Patient Order</p>
+
+        <div className="flex justify-between items-center flex-wrap gap-2">
+          <p className="text-xs text-gray-700 dark:text-gray-300 font-bold">
+            Place an order for this patient.
+          </p>
+          <div className="relative flex items-center gap-1">
+            {patient.ivrStatus !== "Approved" && (
+              <div className="relative group">
+                <IoInformationCircleOutline className="text-xl text-red-400 font-semibold cursor-pointer dark:text-red-300" />
+                <div
+                  className="absolute bottom-full mb-2 left-1/2 transform -translate-x-1/2
+                  bg-white border border-gray-200 shadow-lg px-3 py-1 text-xs text-gray-500
+                  rounded-xl w-max opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10 font-semibold
+                  dark:bg-gray-800 dark:border-gray-700 dark:text-gray-300"
+                >
+                  Orders can only be placed for patients with an approved IVR.
+                </div>
+              </div>
+            )}
+            <motion.button
+              className={`text-[10px] px-3 py-1 rounded-full flex items-center gap-1 transition-all
+              ${
+                patient.ivrStatus === "Approved"
+                  ? "bg-teal-500 text-white hover:bg-teal-600"
+                  : "bg-gray-200 text-gray-500 cursor-not-allowed dark:bg-gray-700 dark:text-gray-400"
+              }`}
+              onClick={() => setOpenOrderModal(true)}
+              disabled={patient.ivrStatus !== "Approved"}
+              whileTap={patient.ivrStatus === "Approved" ? { scale: 0.95 } : {}}
+            >
+              + New Order
+            </motion.button>
+          </div>
+        </div>
+        
+        {/* Notes Section */}
+        <div className="w-full h-[1px] bg-gray-200 dark:bg-gray-700 my-3"></div>
+        
+        <NotesPreview 
+          patientId={patient.id} 
+          onViewAll={() => setOpenNotesModal(true)}
+          refreshTrigger={notesRefreshTrigger}
+        />
+      </motion.div>
+
+      {/* Modals */}
       <NewOrderForm
         open={openOrderModal}
         onClose={() => setOpenOrderModal(false)}
         patient={patient}
       />
-    </motion.div>
+      
+      <NotesModal
+        open={openNotesModal}
+        onClose={() => setOpenNotesModal(false)}
+        patientId={patient.id}
+        patientName={`${patient.first_name} ${patient.last_name}`}
+        onNotesUpdate={handleNotesUpdate}
+      />
+    </>
   );
 };
 
