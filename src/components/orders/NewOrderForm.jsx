@@ -128,7 +128,8 @@ const NewOrderForm = ({ open, onClose, patient }) => {
       if (!accessToken) throw new Error("Authentication token not found.");
 
       // const apiUrl = `${process.env.REACT_APP_API_URL}/products/`;
-      const apiUrl = 'https://promedhealth-frontdoor-h4c4bkcxfkduezec.z02.azurefd.net/api/v1/products/';
+      const apiUrl =
+        "https://promedhealth-frontdoor-h4c4bkcxfkduezec.z02.azurefd.net/api/v1/products/";
       console.log("🔍 Fetching products from:", apiUrl);
       console.log("🔍 REACT_APP_API_URL:", process.env.REACT_APP_API_URL);
 
@@ -347,35 +348,38 @@ const NewOrderForm = ({ open, onClose, patient }) => {
         throw new Error("Authentication token not found. Please log in again.");
       }
 
-      // const response = await fetch(`${process.env.REACT_APP_API_URL}/orders/`, {
-      //   method: "POST",
-      //   headers: {
-      //     "Content-Type": "application/json",
-      //     Authorization: `Bearer ${accessToken}`,
-      //   },
-      //   body: JSON.stringify(orderPayload),
-      // });
-      const response = await fetch('https://promedhealth-frontdoor-h4c4bkcxfkduezec.z02.azurefd.net/api/v1/products/', {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${accessToken}`,
-        },
-        body: JSON.stringify(orderPayload),
-      });
+      // ✅ FIXED: Changed /products/ to /orders/
+      const response = await fetch(
+        "https://promedhealth-frontdoor-h4c4bkcxfkduezec.z02.azurefd.net/api/v1/orders/",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${accessToken}`,
+          },
+          body: JSON.stringify(orderPayload),
+        }
+      );
+
+      console.log("📡 Order submission response status:", response.status);
 
       if (!response.ok) {
         const errorData = await response.json();
+        console.error("❌ Order submission failed:", errorData);
         throw new Error(
           errorData.detail || errorData.error || "Failed to place order."
         );
       }
+
+      const responseData = await response.json();
+      console.log("✅ Order created successfully:", responseData);
 
       toast.success("Order confirmed and submitted successfully!");
       onClose();
       setStep(1);
       setSelectedVariants({});
     } catch (err) {
+      console.error("❌ Order submission error:", err);
       toast.error(`Error: ${err.message}`);
     } finally {
       setLoading(false);
@@ -797,5 +801,3 @@ const NewOrderForm = ({ open, onClose, patient }) => {
 };
 
 export default NewOrderForm;
-
-
