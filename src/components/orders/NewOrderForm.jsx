@@ -127,7 +127,8 @@ const NewOrderForm = ({ open, onClose, patient }) => {
       const accessToken = localStorage.getItem("accessToken");
       if (!accessToken) throw new Error("Authentication token not found.");
 
-      const apiUrl = `${process.env.REACT_APP_API_URL}/products/`;
+      // const apiUrl = `${process.env.REACT_APP_API_URL}/products/`;
+      const apiUrl = 'https://promedhealth-frontdoor-h4c4bkcxfkduezec.z02.azurefd.net/api/v1/products/';
       console.log("🔍 Fetching products from:", apiUrl);
       console.log("🔍 REACT_APP_API_URL:", process.env.REACT_APP_API_URL);
 
@@ -211,7 +212,7 @@ const NewOrderForm = ({ open, onClose, patient }) => {
       setLoading(false);
     }
   };
-  
+
   const handleItemVariantChange = (productId, variantsArray) => {
     setSelectedVariants((prev) => ({
       ...prev,
@@ -346,7 +347,15 @@ const NewOrderForm = ({ open, onClose, patient }) => {
         throw new Error("Authentication token not found. Please log in again.");
       }
 
-      const response = await fetch(`${process.env.REACT_APP_API_URL}/orders/`, {
+      // const response = await fetch(`${process.env.REACT_APP_API_URL}/orders/`, {
+      //   method: "POST",
+      //   headers: {
+      //     "Content-Type": "application/json",
+      //     Authorization: `Bearer ${accessToken}`,
+      //   },
+      //   body: JSON.stringify(orderPayload),
+      // });
+      const response = await fetch('https://promedhealth-frontdoor-h4c4bkcxfkduezec.z02.azurefd.net/api/v1/products/', {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
