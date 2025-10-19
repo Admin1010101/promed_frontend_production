@@ -211,6 +211,7 @@ const NewOrderForm = ({ open, onClose, patient }) => {
       setLoading(false);
     }
   };
+  
   const handleItemVariantChange = (productId, variantsArray) => {
     setSelectedVariants((prev) => ({
       ...prev,
@@ -787,3 +788,5 @@ const NewOrderForm = ({ open, onClose, patient }) => {
 };
 
 export default NewOrderForm;
+
+
