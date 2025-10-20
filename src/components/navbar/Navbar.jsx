@@ -12,7 +12,7 @@ import logo from "../../assets/images/logo.png";
 
 const MobileMenuIconSVG = () => (
   <svg
-    className="block h-4 w-4 fill-current text-teal-400"
+    className="block h-5 w-5 fill-current text-teal-500 transition-transform duration-300 hover:scale-110"
     viewBox="0 0 20 20"
     xmlns="http://www.w3.org/2000/svg"
   >
@@ -23,7 +23,7 @@ const MobileMenuIconSVG = () => (
 
 const CloseMenuIconSVG = () => (
   <svg
-    className="h-6 w-6 text-gray-400 cursor-pointer hover:text-gray-500"
+    className="h-6 w-6 text-gray-500 dark:text-gray-400 cursor-pointer hover:text-teal-500 dark:hover:text-teal-400 transition-all duration-300 hover:rotate-90"
     xmlns="http://www.w3.org/2000/svg"
     fill="none"
     viewBox="0 0 24 24"
@@ -44,11 +44,10 @@ const Navbar = ({ isDarkMode, setIsDarkMode }) => {
   const [notifications, setNotifications] = useState([]);
   const [showModal, setShowModal] = useState(false);
   const [selectedNotification, setSelectedNotification] = useState(null);
-
   const [showDropdown, setShowDropdown] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
   const notificationRef = useRef(null);
 
-  // ✅ FIX: Removed verifyToken from destructuring
   const { user, logout } = useContext(AuthContext);
   const isAuthenticated = !!user;
 
@@ -72,8 +71,15 @@ const Navbar = ({ isDarkMode, setIsDarkMode }) => {
   };
 
   useEffect(() => {
+    const handleScroll = () => {
+      setScrolled(window.scrollY > 20);
+    };
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
+  useEffect(() => {
     const handleResize = () => {
-      // Close mobile menu when reaching lg breakpoint (1024px)
       if (window.innerWidth >= 1024) {
         closeMobileMenu();
       }
@@ -104,8 +110,6 @@ const Navbar = ({ isDarkMode, setIsDarkMode }) => {
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
-
-  // ✅ FIX: Removed the verifyToken useEffect - user data comes from context
 
   useEffect(() => {
     const fetchNotifications = async () => {
@@ -185,95 +189,87 @@ const Navbar = ({ isDarkMode, setIsDarkMode }) => {
     return "More than 30 days ago";
   }
 
-  // ✅ FIX: Get profile data directly from user context
   const profile = user;
 
   return (
-    <div className="bg-white dark:bg-gray-900 px-6 sm:px-8 mt-2 mb-10 transition-colors duration-500">
-      <nav className="relative px-4 py-4 flex justify-between items-center bg-white dark:bg-gray-900">
-        {/* Logo Section */}
-        <div className="flex items-center justify-center flex-shrink-0">
-          <img src={logo} alt="" width={50} height={50} className="mr-1" />
+    <div className={`fixed top-0 left-0 right-0 z-40 transition-all duration-500 ${
+      scrolled 
+        ? 'bg-white/80 dark:bg-gray-900/80 backdrop-blur-lg shadow-lg' 
+        : 'bg-white dark:bg-gray-900'
+    }`}>
+      {/* KEY CHANGE 1: Use 'justify-between' to space out the three main children:
+        1. Logo/Company Name (far left)
+        2. Desktop Navigation Links (middle)
+        3. Right Side Content/Buttons (far right)
+      */}
+      <nav className="relative px-6 sm:px-8 py-4 flex justify-between items-center w-full mx-auto">
+        {/* Logo Section (Far Left) */}
+        <div className="flex items-center flex-shrink-0 group">
+          <img 
+            src={logo} 
+            alt="" 
+            width={50} 
+            height={50} 
+            className="mr-2 transform transition-transform duration-300 group-hover:scale-110 group-hover:rotate-3" 
+          />
           <Link
-            className="text-xl sm:text-2xl lg:text-3xl font-bold leading-none text-gray-900 dark:text-gray-100 whitespace-nowrap"
+            className="text-xl sm:text-2xl lg:text-3xl font-bold leading-none bg-gradient-to-r from-gray-900 via-teal-600 to-teal-500 dark:from-gray-100 dark:via-teal-400 dark:to-teal-300 bg-clip-text text-transparent whitespace-nowrap transition-all duration-300 hover:tracking-wide"
             to="/"
           >
-            ProMed Health <span className="text-teal-500">Plus</span>
+            ProMed Health <span className="text-teal-500 dark:text-teal-400">Plus</span>
           </Link>
         </div>
 
-        {/* Desktop Navigation Links - Only show on lg+ screens */}
+        {/* Desktop Navigation Links (Middle - uses flex-1 to center) */}
+        {/* KEY CHANGE 2: Added 'flex-1' to this div to make it occupy the space 
+          between the logo and the buttons, and 'justify-center' to center the links.
+        */}
         <div className="hidden lg:flex items-center justify-center flex-1">
-          <ul className="flex items-center space-x-6 xl:space-x-8">
-            <li>
-              <Link
-                className="text-base text-gray-800 dark:text-gray-200 hover:text-teal-400 font-semibold whitespace-nowrap"
-                to="/"
-              >
-                Home
-              </Link>
-            </li>
-            {isAuthenticated && (
-              <li>
+          <ul className="flex items-center space-x-8 xl:space-x-10">
+            {[
+              { to: "/", label: "Home" },
+              ...(isAuthenticated ? [{ to: "/dashboard/", label: "Dashboard" }] : []),
+              { to: "/about/", label: "About Us" },
+              { to: "/products/", label: "Products" },
+              { to: "/contact/", label: "Contact" },
+            ].map((item) => (
+              <li key={item.to} className="relative group">
                 <Link
-                  className="text-base text-gray-800 dark:text-gray-200 hover:text-teal-400 font-semibold whitespace-nowrap"
-                  to="/dashboard/"
+                  className="text-base text-gray-700 dark:text-gray-300 hover:text-teal-500 dark:hover:text-teal-400 font-semibold whitespace-nowrap transition-all duration-300 py-2"
+                  to={item.to}
                 >
-                  Dashboard
+                  {item.label}
+                  <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-gradient-to-r from-teal-500 to-teal-400 transition-all duration-300 group-hover:w-full"></span>
                 </Link>
               </li>
-            )}
-            <li>
-              <Link
-                className="text-base text-gray-800 dark:text-gray-200 hover:text-teal-400 font-semibold whitespace-nowrap"
-                to="/about/"
-              >
-                About Us
-              </Link>
-            </li>
-            <li>
-              <Link
-                className="text-base text-gray-800 dark:text-gray-200 hover:text-teal-400 font-semibold whitespace-nowrap"
-                to="/products/"
-              >
-                Products
-              </Link>
-            </li>
-            <li>
-              <Link
-                className="text-base text-gray-800 dark:text-gray-200 hover:text-teal-400 font-semibold whitespace-nowrap"
-                to="/contact/"
-              >
-                Contact
-              </Link>
-            </li>
+            ))}
           </ul>
         </div>
 
-        {/* Right Side Content */}
-        <div className="flex items-center space-x-2 sm:space-x-4">
-          {/* Mobile menu button - show on lg and below */}
+        {/* Right Side Content/Button Group (Far Right) */}
+        <div className="flex items-center space-x-3 sm:space-x-4">
+          {/* Mobile menu button */}
           <div className="lg:hidden">
             <button
-              className="navbar-burger flex items-center text-teal-600 p-2"
+              className="navbar-burger flex items-center p-2 rounded-lg hover:bg-teal-50 dark:hover:bg-teal-900/30 transition-all duration-300"
               onClick={toggleMobileMenu}
             >
               <MobileMenuIconSVG />
             </button>
           </div>
 
-          {/* Desktop Right Side - Only show on lg+ */}
+          {/* Desktop Right Side - Authenticated */}
           {isAuthenticated ? (
             <div className="hidden lg:flex items-center space-x-4">
               <button
                 onClick={toggleDarkMode}
                 aria-label="Toggle Dark Mode"
-                className="p-1 rounded-full bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 transition flex-shrink-0"
+                className="p-2.5 rounded-xl bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-700 hover:shadow-lg transform hover:scale-110 transition-all duration-300 flex-shrink-0 group"
               >
                 {isDarkMode ? (
-                  <MdLightMode size={20} className="text-yellow-500" />
+                  <MdLightMode size={22} className="text-yellow-500 group-hover:rotate-180 transition-transform duration-500" />
                 ) : (
-                  <MdDarkMode size={20} className="text-teal-500" />
+                  <MdDarkMode size={22} className="text-teal-600 group-hover:-rotate-180 transition-transform duration-500" />
                 )}
               </button>
 
@@ -281,46 +277,48 @@ const Navbar = ({ isDarkMode, setIsDarkMode }) => {
                 className="relative notification-container flex-shrink-0"
                 ref={notificationRef}
               >
-                <IoIosNotificationsOutline
-                  className="text-3xl text-gray-500 dark:text-gray-400 cursor-pointer font-semibold"
-                  onClick={() => setShowDropdown((prev) => !prev)}
-                />
-                {notificationCount > 0 && (
-                  <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-semibold rounded-full h-5 w-5 flex items-center justify-center">
-                    {notificationCount}
-                  </span>
-                )}
+                <button className="p-2.5 rounded-xl bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-700 hover:shadow-lg transform hover:scale-110 transition-all duration-300 relative">
+                  <IoIosNotificationsOutline
+                    className="text-2xl text-gray-600 dark:text-gray-300 cursor-pointer"
+                    onClick={() => setShowDropdown((prev) => !prev)}
+                  />
+                  {notificationCount > 0 && (
+                    <span className="absolute -top-1 -right-1 bg-gradient-to-r from-red-500 to-pink-500 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center animate-pulse shadow-lg">
+                      {notificationCount}
+                    </span>
+                  )}
+                </button>
                 {showDropdown && (
-                  <div className="absolute right-0 mt-2 w-64 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg z-50 transition-all duration-300 ease-in-out">
-                    <div className="p-3 border-b border-gray-200 dark:border-gray-700 text-sm font-semibold text-gray-700 dark:text-gray-300 text-center">
-                      Notifications
+                  <div className="absolute right-0 mt-3 w-80 bg-white dark:bg-gray-800 rounded-2xl shadow-2xl border border-gray-100 dark:border-gray-700 z-50 overflow-hidden animate-slideDown">
+                    <div className="p-4 bg-gradient-to-r from-teal-50 to-teal-100 dark:from-teal-900/30 dark:to-teal-800/30 border-b border-gray-200 dark:border-gray-700">
+                      <h3 className="text-sm font-bold text-gray-800 dark:text-gray-200">Notifications</h3>
                     </div>
-                    <ul className="max-h-60 overflow-y-auto">
+                    <ul className="max-h-96 overflow-y-auto">
                       {notifications.length > 0 ? (
                         notifications.map((notif) => (
                           <li
                             key={notif.id}
                             onClick={() => handleNotificationClick(notif)}
-                            className={`px-4 py-2 text-xs flex flex-col ${
+                            className={`px-4 py-3 flex flex-col border-b border-gray-100 dark:border-gray-700 last:border-b-0 transition-all duration-300 ${
                               notif.is_read
-                                ? "text-gray-400"
-                                : "text-gray-700 dark:text-gray-300"
-                            } hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer`}
+                                ? "bg-gray-50 dark:bg-gray-800/50 text-gray-400"
+                                : "bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-teal-50 dark:hover:bg-teal-900/20"
+                            } cursor-pointer hover:shadow-md`}
                           >
-                            <div className="flex justify-between items-center">
-                              <span>{notif.message}</span>
+                            <div className="flex justify-between items-start">
+                              <span className="text-sm flex-1">{notif.message}</span>
                               {notif.data && (
-                                <IoEyeOutline className="text-gray-400 dark:text-gray-500 text-lg ml-2" />
+                                <IoEyeOutline className="text-teal-500 text-lg ml-2 flex-shrink-0 hover:scale-125 transition-transform duration-300" />
                               )}
                             </div>
-                            <span className="text-[10px] text-gray-400 dark:text-gray-500 mt-1 italic">
+                            <span className="text-xs text-gray-400 dark:text-gray-500 mt-1 italic">
                               {getTimeLabel(notif.date_created)}
                             </span>
                           </li>
                         ))
                       ) : (
-                        <li className="px-4 py-2 text-[10px] text-gray-500 dark:text-gray-400 text-center">
-                          No notifications
+                        <li className="px-4 py-8 text-sm text-gray-500 dark:text-gray-400 text-center">
+                          No notifications yet
                         </li>
                       )}
                     </ul>
@@ -333,31 +331,39 @@ const Navbar = ({ isDarkMode, setIsDarkMode }) => {
                 onClick={() => setShowProfileDropdown(true)}
                 ref={profileRef}
               >
-                <div className="flex items-center space-x-2 cursor-pointer">
-                  <h6 className="text-xs font-semibold text-gray-800 dark:text-gray-200 whitespace-nowrap">
+                <div className="flex items-center space-x-3 cursor-pointer group">
+                  <h6 className="text-sm font-semibold text-gray-800 dark:text-gray-200 whitespace-nowrap hidden xl:block group-hover:text-teal-500 dark:group-hover:text-teal-400 transition-colors duration-300">
                     {profile?.full_name || profile?.email || "User"}
                   </h6>
-                  <img
-                    src={
-                      profile?.image?.startsWith("http")
-                        ? removeDuplicateMedia(profile.image)
-                        : profile?.image
-                        ? `${process.env.REACT_APP_MEDIA_URL}${profile.image}`
-                        : default_user_img
-                    }
-                    alt="User Profile"
-                    className="w-10 h-10 rounded-full object-cover object-top border border-gray-300 shadow-sm"
-                  />
+                  <div className="relative">
+                    <img
+                      src={
+                        profile?.image?.startsWith("http")
+                          ? removeDuplicateMedia(profile.image)
+                          : profile?.image
+                          ? `${process.env.REACT_APP_MEDIA_URL}${profile.image}`
+                          : default_user_img
+                      }
+                      alt="User Profile"
+                      className="w-11 h-11 rounded-full object-cover object-top border-2 border-teal-500/50 dark:border-teal-400/50 shadow-lg group-hover:border-teal-500 dark:group-hover:border-teal-400 group-hover:shadow-xl transform group-hover:scale-110 transition-all duration-300"
+                    />
+                    <span className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-white dark:border-gray-900 animate-pulse"></span>
+                  </div>
                 </div>
 
                 {showProfileDropdown && (
-                  <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg z-50">
+                  <div className="absolute right-0 mt-3 w-56 bg-white dark:bg-gray-800 rounded-2xl shadow-2xl border border-gray-100 dark:border-gray-700 z-50 overflow-hidden animate-slideDown">
+                    <div className="p-3 bg-gradient-to-r from-teal-50 to-teal-100 dark:from-teal-900/30 dark:to-teal-800/30 border-b border-gray-200 dark:border-gray-700">
+                      <p className="text-sm font-bold text-gray-800 dark:text-gray-200 truncate">
+                        {profile?.full_name || profile?.email || "User"}
+                      </p>
+                    </div>
                     <Link
                       to="/profile"
-                      className="flex items-center px-4 py-2 text-[10px] text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer uppercase font-semibold"
+                      className="flex items-center px-4 py-3 text-sm text-gray-700 dark:text-gray-300 hover:bg-teal-50 dark:hover:bg-teal-900/20 cursor-pointer font-medium transition-all duration-300 group"
                       onClick={() => setShowProfileDropdown(false)}
                     >
-                      <IoEyeOutline className="mr-1" />
+                      <IoEyeOutline className="mr-3 text-lg group-hover:scale-125 transition-transform duration-300" />
                       View Profile
                     </Link>
                     <button
@@ -365,9 +371,9 @@ const Navbar = ({ isDarkMode, setIsDarkMode }) => {
                         logout();
                         setShowProfileDropdown(false);
                       }}
-                      className="w-full text-left flex items-center px-4 py-2 text-[10px] text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer uppercase font-semibold"
+                      className="w-full text-left flex items-center px-4 py-3 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 cursor-pointer font-medium transition-all duration-300 group"
                     >
-                      <IoMdLogOut className="mr-1" />
+                      <IoMdLogOut className="mr-3 text-lg group-hover:scale-125 transition-transform duration-300" />
                       Logout
                     </button>
                   </div>
@@ -375,25 +381,26 @@ const Navbar = ({ isDarkMode, setIsDarkMode }) => {
               </div>
             </div>
           ) : (
+            /* Desktop Right Side - Unauthenticated */
             <div className="hidden lg:flex items-center space-x-4">
               <button
                 onClick={toggleDarkMode}
                 aria-label="Toggle Dark Mode"
-                className="p-1 rounded-full bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 transition flex-shrink-0"
+                className="p-2.5 rounded-xl bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-700 hover:shadow-lg transform hover:scale-110 transition-all duration-300 flex-shrink-0 group"
               >
                 {isDarkMode ? (
-                  <MdLightMode size={20} className="text-yellow-500" />
+                  <MdLightMode size={22} className="text-yellow-500 group-hover:rotate-180 transition-transform duration-500" />
                 ) : (
-                  <MdDarkMode size={20} className="text-teal-500" />
+                  <MdDarkMode size={22} className="text-teal-600 group-hover:-rotate-180 transition-transform duration-500" />
                 )}
               </button>
               <Link to="/login">
-                <button className="px-4 py-2 text-sm tracking-wide text-white transition-colors duration-200 transform bg-teal-500 rounded-md hover:bg-teal-400 focus:outline-none focus:bg-teal-500 focus:ring focus:ring-teal-500 focus:ring-opacity-50 uppercase whitespace-nowrap">
+                <button className="px-6 py-2.5 text-sm font-bold tracking-wide text-white bg-gradient-to-r from-teal-600 to-teal-500 rounded-xl hover:shadow-lg transform hover:scale-105 transition-all duration-300 uppercase whitespace-nowrap">
                   Dashboard Login
                 </button>
               </Link>
               <Link to="/register">
-                <button className="px-4 py-2 text-sm tracking-wide text-teal-500 border border-teal-500 rounded-md transition-colors duration-200 hover:bg-teal-100 focus:outline-none focus:ring focus:ring-teal-500 focus:ring-opacity-50 uppercase whitespace-nowrap">
+                <button className="px-6 py-2.5 text-sm font-bold tracking-wide text-teal-600 dark:text-teal-400 border-2 border-teal-500 rounded-xl hover:bg-teal-50 dark:hover:bg-teal-900/20 transform hover:scale-105 transition-all duration-300 uppercase whitespace-nowrap">
                   Provider Registration
                 </button>
               </Link>
@@ -404,137 +411,104 @@ const Navbar = ({ isDarkMode, setIsDarkMode }) => {
 
       {/* Mobile Menu */}
       <div
-        className={`navbar-menu relative z-50 ${
+        className={`navbar-menu fixed inset-0 z-50 ${
           isMobileMenuOpen ? "" : "pointer-events-none"
         }`}
       >
-        {/* Backdrop */}
+        {/* Backdrop with blur */}
         <div
-          className={`navbar-backdrop fixed inset-0 bg-gray-800 transition-opacity duration-300 ${
-            isMobileMenuOpen ? "opacity-25" : "opacity-0"
+          className={`fixed inset-0 bg-gray-900/50 backdrop-blur-sm transition-opacity duration-500 ${
+            isMobileMenuOpen ? "opacity-100" : "opacity-0"
           }`}
           onClick={closeMobileMenu}
         ></div>
 
         {/* Sliding menu panel */}
         <nav
-          className={`fixed top-0 left-0 bottom-0 flex flex-col w-5/6 max-w-sm py-6 px-6 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 overflow-y-auto transform transition-transform duration-300 ease-out z-50 ${
+          className={`fixed top-0 left-0 bottom-0 flex flex-col w-5/6 max-w-sm py-6 px-6 bg-white dark:bg-gray-900 overflow-y-auto transform transition-all duration-500 ease-out z-50 shadow-2xl ${
             isMobileMenuOpen ? "translate-x-0" : "-translate-x-full"
           }`}
         >
-          <div className="flex items-center mb-2 justify-between">
-            <img src={logo} alt="" height={50} width={50}/>
-            <Link
-              className="mr-auto text-[20px] font-bold leading-none pl-[2px] text-gray-900 dark:text-gray-100"
-              to="/"
-            >
-               ProMed Health <span className="text-teal-500">Plus</span>
-            </Link>
+          <div className="flex items-center mb-6 justify-between">
+            <div className="flex items-center">
+              <img src={logo} alt="" height={50} width={50} className="animate-pulse"/>
+              <Link
+                className="ml-2 text-xl font-bold leading-none bg-gradient-to-r from-gray-900 via-teal-600 to-teal-500 dark:from-gray-100 dark:via-teal-400 dark:to-teal-300 bg-clip-text text-transparent"
+                to="/"
+              >
+                ProMed Health <span className="text-teal-500 dark:text-teal-400">Plus</span>
+              </Link>
+            </div>
             <button className="navbar-close" onClick={closeMobileMenu}>
               <CloseMenuIconSVG/>
             </button>
           </div>
 
-          <ul>
-            <li className="mb-1">
-              <Link
-                className="block px-2 py-1 text-sm font-bold text-gray-800 dark:text-gray-200 hover:bg-teal-50 dark:hover:bg-teal-800 hover:text-teal-500 rounded"
-                to="/"
-                onClick={closeMobileMenu}
-              >
-                Home
-              </Link>
-            </li>
-            {isAuthenticated && (
-              <>
-                <li className="mb-1">
-                  <Link
-                    className="block px-2 py-3 text-sm font-bold text-gray-800 dark:text-gray-200 hover:bg-teal-50 dark:hover:bg-teal-800 hover:text-teal-500 rounded"
-                    to="/dashboard/"
-                    onClick={closeMobileMenu}
-                  >
-                    Dashboard
-                  </Link>
-                </li>
-                <li className="mb-1">
-                  <Link
-                    className="block px-2 py-3 font-bold text-sm text-gray-800 dark:text-gray-200 hover:bg-teal-50 dark:hover:bg-teal-800 hover:text-teal-500 rounded"
-                    to="/profile"
-                    onClick={closeMobileMenu}
-                  >
-                    Profile
-                  </Link>
-                </li>
-              </>
-            )}
-            <li className="mb-1">
-              <Link
-                className="block px-2 py-3 font-bold text-sm text-gray-800 dark:text-gray-200 hover:bg-teal-50 dark:hover:bg-teal-800 hover:text-teal-500 rounded"
-                to="/about/"
-                onClick={closeMobileMenu}
-              >
-                About Us
-              </Link>
-            </li>
-            <li className="mb-1">
-              <Link
-                className="block px-2 py-3 font-bold text-sm text-gray-800 dark:text-gray-200 hover:bg-teal-50 dark:hover:bg-teal-800 hover:text-teal-500 rounded"
-                to="/products/"
-                onClick={closeMobileMenu}
-              >
-                Products
-              </Link>
-            </li>
-            <li className="mb-1">
-              <Link
-                className="block px-2 py-3 font-bold text-sm text-gray-800 dark:text-gray-200 hover:bg-teal-50 dark:hover:bg-teal-800 hover:text-teal-500 rounded"
-                to="/contact/"
-                onClick={closeMobileMenu}
-              >
-                Contact
-              </Link>
-            </li>
+          <ul className="space-y-1">
+            {[
+              { to: "/", label: "Home" },
+              ...(isAuthenticated ? [
+                { to: "/dashboard/", label: "Dashboard" },
+                { to: "/profile", label: "Profile" }
+              ] : []),
+              { to: "/about/", label: "About Us" },
+              { to: "/products/", label: "Products" },
+              { to: "/contact/", label: "Contact" },
+            ].map((item) => (
+              <li key={item.to}>
+                <Link
+                  className="block px-4 py-3 text-sm font-bold text-gray-800 dark:text-gray-200 hover:bg-gradient-to-r hover:from-teal-50 hover:to-teal-100 dark:hover:from-teal-900/30 dark:hover:to-teal-800/30 hover:text-teal-600 dark:hover:text-teal-400 rounded-xl transition-all duration-300 transform hover:translate-x-2"
+                  to={item.to}
+                  onClick={closeMobileMenu}
+                >
+                  {item.label}
+                </Link>
+              </li>
+            ))}
           </ul>
           
           {isAuthenticated && (
-            <div className="flex items-center space-x-4 mt-4">
-              <img
-                src={
-                  profile?.image?.startsWith("http")
-                    ? removeDuplicateMedia(profile.image)
-                    : profile?.image
-                    ? `${process.env.REACT_APP_MEDIA_URL}${profile.image}`
-                    : default_user_img
-                }
-                alt="User Profile"
-                className="w-10 h-10 rounded-full object-cover object-top border border-gray-300 shadow-sm"
-              />
-              <h6 className="text-[12px] font-semibold text-gray-800 dark:text-gray-200">
+            <div className="flex items-center space-x-4 mt-6 p-4 bg-gradient-to-r from-teal-50 to-teal-100 dark:from-teal-900/30 dark:to-teal-800/30 rounded-2xl">
+              <div className="relative">
+                <img
+                  src={
+                    profile?.image?.startsWith("http")
+                      ? removeDuplicateMedia(profile.image)
+                      : profile?.image
+                      ? `${process.env.REACT_APP_MEDIA_URL}${profile.image}`
+                      : default_user_img
+                  }
+                  alt="User Profile"
+                  className="w-12 h-12 rounded-full object-cover object-top border-2 border-teal-500 dark:border-teal-400 shadow-lg"
+                />
+                <span className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-white dark:border-gray-900"></span>
+              </div>
+              <h6 className="text-sm font-bold text-gray-800 dark:text-gray-200 flex-1 truncate">
                 {profile?.full_name || profile?.email || "User"}
               </h6>
             </div>
           )}
 
-          <div className="mt-auto pt-6 flex flex-col">
+          <div className="mt-auto pt-6 flex flex-col space-y-3">
             {isAuthenticated ? (
-              <div className="flex flex-col space-y-4">
+              <>
                 <div className="relative">
                   <button
                     onClick={() => setShowDropdown((prev) => !prev)}
-                    className="w-full px-4 py-2 text-sm tracking-wide text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-700 rounded-md transition-colors duration-200 hover:bg-gray-100 dark:hover:bg-gray-700 focus:outline-none focus:ring focus:ring-gray-300 focus:ring-opacity-50 flex items-center justify-center"
+                    className="w-full px-4 py-3 text-sm font-bold tracking-wide text-gray-700 dark:text-gray-300 bg-gradient-to-r from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-700 rounded-xl transition-all duration-300 hover:shadow-lg transform hover:scale-105 flex items-center justify-center"
                   >
                     <IoIosNotificationsOutline className="text-xl mr-2" />
                     Notifications
                     {notificationCount > 0 && (
-                      <span className="ml-2 bg-red-500 text-white text-xs font-semibold rounded-full h-5 w-5 flex items-center justify-center">
+                      <span className="ml-2 bg-gradient-to-r from-red-500 to-pink-500 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center animate-pulse">
                         {notificationCount}
                       </span>
                     )}
                   </button>
                   {showDropdown && (
-                    <div className="mt-2 w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg z-50">
-                      <div className="p-3 border-b border-gray-200 dark:border-gray-700 text-sm font-semibold text-gray-700 dark:text-gray-300 text-center">
-                        Notifications
+                    <div className="mt-3 w-full bg-white dark:bg-gray-800 rounded-2xl shadow-2xl border border-gray-100 dark:border-gray-700 overflow-hidden animate-slideDown">
+                      <div className="p-3 bg-gradient-to-r from-teal-50 to-teal-100 dark:from-teal-900/30 dark:to-teal-800/30 border-b border-gray-200 dark:border-gray-700">
+                        <h3 className="text-sm font-bold text-gray-800 dark:text-gray-200">Notifications</h3>
                       </div>
                       <ul className="max-h-60 overflow-y-auto">
                         {notifications.length > 0 ? (
@@ -542,26 +516,26 @@ const Navbar = ({ isDarkMode, setIsDarkMode }) => {
                             <li
                               key={notif.id}
                               onClick={() => handleNotificationClick(notif)}
-                              className={`px-4 py-2 text-xs flex flex-col ${
+                              className={`px-4 py-3 flex flex-col border-b border-gray-100 dark:border-gray-700 last:border-b-0 ${
                                 notif.is_read
-                                  ? "text-gray-400"
-                                  : "text-gray-700 dark:text-gray-300"
-                              } hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer`}
+                                  ? "bg-gray-50 dark:bg-gray-800/50 text-gray-400"
+                                  : "text-gray-700 dark:text-gray-300 hover:bg-teal-50 dark:hover:bg-teal-900/20"
+                              } cursor-pointer transition-all duration-300`}
                             >
-                              <div className="flex justify-between items-center">
-                                <span>{notif.message}</span>
+                              <div className="flex justify-between items-start">
+                                <span className="text-sm flex-1">{notif.message}</span>
                                 {notif.data && (
-                                  <IoEyeOutline className="text-gray-400 dark:text-gray-500 text-lg ml-2" />
+                                  <IoEyeOutline className="text-teal-500 text-lg ml-2 flex-shrink-0" />
                                 )}
                               </div>
-                              <span className="text-[10px] text-gray-400 dark:text-gray-500 mt-1 italic">
+                              <span className="text-xs text-gray-400 dark:text-gray-500 mt-1 italic">
                                 {getTimeLabel(notif.date_created)}
                               </span>
                             </li>
                           ))
                         ) : (
-                          <li className="px-4 py-2 text-[10px] text-gray-500 dark:text-gray-400 text-center">
-                            No notifications
+                          <li className="px-4 py-8 text-sm text-gray-500 dark:text-gray-400 text-center">
+                            No notifications yet
                           </li>
                         )}
                       </ul>
@@ -572,12 +546,12 @@ const Navbar = ({ isDarkMode, setIsDarkMode }) => {
                 <button
                   onClick={toggleDarkMode}
                   aria-label="Toggle Dark Mode"
-                  className="w-full px-4 py-2 text-sm tracking-wide text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-700 rounded-md transition-colors duration-200 hover:bg-gray-100 dark:hover:bg-gray-700 focus:outline-none focus:ring focus:ring-gray-300 focus:ring-opacity-50 flex items-center justify-center"
+                  className="w-full px-4 py-3 text-sm font-bold tracking-wide text-gray-700 dark:text-gray-300 bg-gradient-to-r from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-700 rounded-xl transition-all duration-300 hover:shadow-lg transform hover:scale-105 flex items-center justify-center"
                 >
                   {isDarkMode ? (
-                    <MdLightMode size={20} className="text-teal-500 mr-2" />
+                    <MdLightMode size={20} className="text-yellow-500 mr-2" />
                   ) : (
-                    <MdDarkMode size={20} className="text-yellow-500 mr-2" />
+                    <MdDarkMode size={20} className="text-teal-600 mr-2" />
                   )}
                   Toggle Dark Mode
                 </button>
@@ -586,40 +560,40 @@ const Navbar = ({ isDarkMode, setIsDarkMode }) => {
                     logout();
                     closeMobileMenu();
                   }}
-                  className="w-full px-4 py-2 text-sm tracking-wide text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-700 rounded-md transition-colors duration-200 hover:bg-gray-100 dark:hover:bg-gray-700 focus:outline-none focus:ring focus:ring-gray-300 focus:ring-opacity-50"
+                  className="w-full px-4 py-3 text-sm font-bold tracking-wide text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 rounded-xl transition-all duration-300 hover:shadow-lg transform hover:scale-105"
                 >
                   Logout
                 </button>
-              </div>
+              </>
             ) : (
-              <div className="flex flex-col space-y-4">
+              <>
                 <button
                   onClick={toggleDarkMode}
                   aria-label="Toggle Dark Mode"
-                  className="w-full px-4 py-2 text-sm tracking-wide text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-700 rounded-md transition-colors duration-200 hover:bg-gray-100 dark:hover:bg-gray-700 focus:outline-none focus:ring focus:ring-gray-300 focus:ring-opacity-50 flex items-center justify-center"
+                  className="w-full px-4 py-3 text-sm font-bold tracking-wide text-gray-700 dark:text-gray-300 bg-gradient-to-r from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-700 rounded-xl transition-all duration-300 hover:shadow-lg transform hover:scale-105 flex items-center justify-center"
                 >
                   {isDarkMode ? (
-                    <MdLightMode size={20} className="text-teal-500 mr-2" />
+                    <MdLightMode size={20} className="text-yellow-500 mr-2" />
                   ) : (
-                    <MdDarkMode size={20} className="text-yellow-500 mr-2" />
+                    <MdDarkMode size={20} className="text-teal-600 mr-2" />
                   )}
                   Toggle Dark Mode
                 </button>
                 <Link to="/login" onClick={closeMobileMenu}>
-                  <button className="w-full px-4 py-2 text-sm tracking-wide text-white transition-colors duration-200 transform bg-teal-500 rounded-md hover:bg-teal-400 focus:outline-none focus:bg-teal-500 focus:ring focus:ring-teal-500 focus:ring-opacity-50 uppercase">
+                  <button className="w-full px-4 py-3 text-sm font-bold tracking-wide text-white bg-gradient-to-r from-teal-600 to-teal-500 rounded-xl hover:shadow-lg transform hover:scale-105 transition-all duration-300 uppercase">
                     Dashboard Login
                   </button>
                 </Link>
                 <Link to="/register" onClick={closeMobileMenu}>
-                  <button className="w-full px-4 py-2 text-sm tracking-wide text-teal-500 border border-teal-500 rounded-md transition-colors duration-200 hover:bg-teal-100 focus:outline-none focus:ring focus:ring-teal-500 focus:ring-opacity-50 uppercase">
+                  <button className="w-full px-4 py-3 text-sm font-bold tracking-wide text-teal-600 dark:text-teal-400 border-2 border-teal-500 rounded-xl hover:bg-teal-50 dark:hover:bg-teal-900/20 transform hover:scale-105 transition-all duration-300 uppercase">
                     Provider Registration
                   </button>
                 </Link>
-              </div>
+              </>
             )}
           </div>
 
-          <p className="my-4 text-xs text-center text-gray-400 dark:text-gray-500">
+          <p className="mt-6 text-xs text-center text-gray-400 dark:text-gray-500 font-medium">
             ProMed Health Plus &copy; {new Date().getFullYear()}
           </p>
         </nav>
@@ -631,6 +605,24 @@ const Navbar = ({ isDarkMode, setIsDarkMode }) => {
         notification={selectedNotification}
         handleDelete={deleteNotification}
       />
+      
+      {/* Add custom styles for animations */}
+      <style jsx>{`
+        @keyframes slideDown {
+          from {
+            opacity: 0;
+            transform: translateY(-10px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+        
+        .animate-slideDown {
+          animation: slideDown 0.3s ease-out;
+        }
+      `}</style>
     </div>
   );
 };

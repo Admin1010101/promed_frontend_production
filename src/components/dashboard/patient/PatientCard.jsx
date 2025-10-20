@@ -10,6 +10,8 @@ import { formatPhoneNumber } from "react-phone-number-input";
 import NotesPreview from "../documemts/NotesPreview";
 import NotesModal from "../documemts/NotesModal";
 import NewOrderForm from "../../orders/NewOrderForm";
+// 1. IMPORT THE IVR FORM MODAL (Adjust path as necessary)
+import IvrFormModal from "./PatientIVR";
 
 const IVRStatusBadge = ({ status }) => {
   const colors = {
@@ -37,6 +39,8 @@ const listItemVariants = {
 const PatientCard = ({ patient, onViewPdf, onEdit, onDelete }) => {
   const [openOrderModal, setOpenOrderModal] = useState(false);
   const [openNotesModal, setOpenNotesModal] = useState(false);
+  // 2. STATE FOR THE IVR MODAL
+  const [openIvrModal, setOpenIvrModal] = useState(false); 
   const [notesRefreshTrigger, setNotesRefreshTrigger] = useState(0);
   
   const formattedDate = patient.date_of_birth
@@ -65,6 +69,18 @@ const PatientCard = ({ patient, onViewPdf, onEdit, onDelete }) => {
   const handleNotesUpdate = () => {
     setNotesRefreshTrigger(prev => prev + 1);
   };
+
+  // Function to map patient data to the IVR form's expected initialData structure
+  const getIvrInitialData = () => ({
+    // Use the patient's full name for physician/contact if that's the current behavior
+    physicianName: `${patient.first_name} ${patient.last_name}`, 
+    contactName: `${patient.first_name} ${patient.last_name}`,
+    phone: patient.phone_number,
+    facilityAddress: patient.address,
+    facilityCityStateZip: `${patient.city || ''}, ${patient.state || ''}, ${patient.zip_code || ''}`,
+    // Add more fields here if available on the patient object (e.g., npi, taxId)
+  });
+
 
   return (
     <>
@@ -175,11 +191,21 @@ const PatientCard = ({ patient, onViewPdf, onEdit, onDelete }) => {
               <strong>Promed Healthcare Plus IVR</strong>
             </p>
             <div className="flex space-x-2">
+              {/* 3. THE BUTTON THAT SAYS PROMED IVR */}
+              <motion.button
+                onClick={() => setOpenIvrModal(true)}
+                className="text-[10px] px-2 py-1 bg-blue-600 text-white font-semibold rounded-full hover:bg-blue-700 transition"
+                whileTap={{ scale: 0.95 }}
+                title="Open Promed IVR Form"
+              >
+                Promed IVR
+              </motion.button>
+              {/* Existing View PDF Button */}
               <motion.button
                 onClick={() => onViewPdf(patient)}
                 className="p-1 rounded-full text-gray-500 dark:text-gray-400 hover:text-teal-500 transition"
                 whileTap={{ scale: 0.9 }}
-                title="View IVR Form"
+                title="View IVR Form PDF"
               >
                 <IoDocumentsOutline className="w-5 h-5" />
               </motion.button>
@@ -249,6 +275,18 @@ const PatientCard = ({ patient, onViewPdf, onEdit, onDelete }) => {
         patientId={patient.id}
         patientName={`${patient.first_name} ${patient.last_name}`}
         onNotesUpdate={handleNotesUpdate}
+      />
+
+      {/* 4. IVR FORM MODAL INTEGRATION */}
+      <IvrFormModal
+        open={openIvrModal}
+        onClose={() => setOpenIvrModal(false)}
+        initialData={getIvrInitialData()} // Use the mapping function
+        onFormComplete={(result) => {
+          console.log("IVR Form Submitted:", result);
+          // You might want to update the patient data/status here
+          setOpenIvrModal(false); 
+        }}
       />
     </>
   );

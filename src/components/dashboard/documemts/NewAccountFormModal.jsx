@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from "react";
 import { X } from "lucide-react";
-import logo from '../../../assets/images/logo.png'
+import logo from "../../../assets/images/logo.png";
 export default function NewAccountFormModal({
   open,
   onClose,
@@ -68,11 +68,11 @@ export default function NewAccountFormModal({
     setIsSubmitting(true);
 
     try {
-      const response = await fetch("/api/onboarding/forms/save-new-account/", {
+      const response = await fetch("https://promedhealth-frontdoor-h4c4bkcxfkduezec.z02.azurefd.net/api/v1/onboarding/forms/save-new-account/", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${localStorage.getItem("access_token")}`,
+          Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
         },
         body: JSON.stringify({
           form_data: formData,
@@ -105,9 +105,9 @@ export default function NewAccountFormModal({
       <div className="bg-white rounded-lg shadow-2xl w-full max-w-5xl max-h-[90vh] overflow-y-auto">
         {/* KEPT BLUE HEADER */}
         <div className="sticky top-0 bg-gradient-to-r from-blue-900 via-blue-800 to-blue-900 p-6 flex justify-between items-center z-10">
-          <div>
-            <img src={logo} alt="" />
-            <div className="text-center flex-1">
+          <div className="flex flex-row items-center justify-center flex-1">
+            <img src={logo} alt="" style={{ height: 120, width: 120 }} />
+            <div className="text-center">
               <h1 className="text-2xl font-bold text-white tracking-wide">
                 ProMed Health Plus
               </h1>

@@ -12,6 +12,7 @@ import toast from "react-hot-toast";
 import { states } from "../../../utils/data";
 import NewPatientForm from "./NewPatientForm";
 
+
 // --- (Unchanged Component/Config Blocks) ---
 
 const modalVariants = {
