@@ -11,7 +11,8 @@ import {
 } from "react-icons/fa";
 import { AuthContext } from "../../../utils/context/auth";
 import axiosAuth from "../../../utils/axios";
-import CircularProgress from '@mui/material/CircularProgress';
+import CircularProgress from "@mui/material/CircularProgress";
+import NewAccountFormModal from "./NewAccountFormModal";
 
 const FileIcon = ({ filename }) => {
   const ext = filename.split(".").pop().toLowerCase();
@@ -33,13 +34,14 @@ const FileIcon = ({ filename }) => {
 
 const Documents = () => {
   const { user, uploadDocumentAndEmail } = useContext(AuthContext);
-  
+
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [jotformStatus, setJotformStatus] = useState("incomplete");
   const [formDetails, setFormDetails] = useState(null);
   const [checkingFormStatus, setCheckingFormStatus] = useState(false);
   const [documentType, setDocumentType] = useState("MISCELLANEOUS");
+  const [showNewAccountFormModal, setShowNewAccountFormModal] = useState(false);
   const [selectedFiles, setSelectedFiles] = useState([]);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadStatus, setUploadStatus] = useState("");
@@ -47,6 +49,7 @@ const Documents = () => {
 
   const profile = user;
 
+  // Refactored to be a single source of truth for all form data
   const providerInfo = {
     providerName: user?.full_name || "",
     contactEmail: user?.email || "",
@@ -57,25 +60,36 @@ const Documents = () => {
     zipCode: profile?.zip_code || "60611",
   };
 
-  const jotformUrl = `https://form.jotform.com/252644214142044?providerName=${encodeURIComponent(providerInfo.providerName)}&contactEmail=${encodeURIComponent(providerInfo.contactEmail)}&practiceName=${encodeURIComponent(providerInfo.practiceName)}&city=${encodeURIComponent(providerInfo.city)}&state=${encodeURIComponent(providerInfo.state)}&zipCode=${encodeURIComponent(providerInfo.zipCode)}`;
+  // REFACTORED: Using URLSearchParams for cleaner URL generation
+  const jotformBaseUrl = "https://form.jotform.com/252644214142044";
+  const params = new URLSearchParams({
+    providerName: providerInfo.providerName,
+    contactEmail: providerInfo.contactEmail,
+    practiceName: providerInfo.practiceName,
+    city: providerInfo.city,
+    state: providerInfo.state,
+    zipCode: providerInfo.zipCode,
+  });
+  const jotformUrl = `${jotformBaseUrl}?${params.toString()}`;
+  // END REFACTORED URL
 
-  // Check if provider has completed the new account form
   const checkFormStatus = async () => {
     if (!user) return;
-    
+
     setCheckingFormStatus(true);
     try {
       const axiosInstance = axiosAuth();
-      const response = await axiosInstance.get('/onboarding/forms/');
-      
-      // Look for completed "New Account Form" submissions
-      const newAccountForms = response.data.filter(
-        form => form.form_type.toLowerCase().includes('new account') && form.completed
+      const response = await axiosInstance.get(
+        "/onboarding/forms/check-status/"
       );
-      
-      if (newAccountForms.length > 0) {
+
+      if (response.data.completed) {
         setJotformStatus("completed");
-        setFormDetails(newAccountForms[0]); // Get the most recent one
+        setFormDetails({
+          date_created: response.data.date_created,
+          sas_url: response.data.sas_url,
+          form_data: response.data.form_data,
+        });
       } else {
         setJotformStatus("incomplete");
       }
@@ -100,7 +114,7 @@ const Documents = () => {
 
   const handleUpload = async (e) => {
     e.preventDefault();
-    
+
     if (selectedFiles.length === 0) {
       setUploadStatus("Please select at least one file.");
       return;
@@ -120,7 +134,9 @@ const Documents = () => {
     } else {
       console.error("Upload failed:", result.error);
       setUploadStatus(
-        `Failed to upload documents: ${result.error?.detail || result.error || "Please try again."}`
+        `Failed to upload documents: ${
+          result.error?.detail || result.error || "Please try again."
+        }`
       );
     }
 
@@ -128,8 +144,16 @@ const Documents = () => {
   };
 
   const handleOpenJotform = () => {
-    if (jotformStatus === "completed") return;
-    setShowModal(true);
+    if (jotformStatus === "completed") {
+      // Open the PDF in a new tab
+      if (formDetails?.sas_url) {
+        window.open(formDetails.sas_url, "_blank");
+      }
+    } else {
+      // Open the modal
+      // FIX: The modal is now opened with the user's providerInfo
+      setShowNewAccountFormModal(true);
+    }
   };
 
   const handleCloseModal = () => {
@@ -138,6 +162,16 @@ const Documents = () => {
     setTimeout(() => {
       checkFormStatus();
     }, 2000);
+  };
+
+  const handleFormComplete = (result) => {
+    setJotformStatus("completed");
+    setFormDetails({
+      date_created: result.date_created,
+      sas_url: result.sas_url,
+      form_data: result.form_data,
+    });
+    setShowNewAccountFormModal(false);
   };
 
   if (loading || !user) {
@@ -175,16 +209,20 @@ const Documents = () => {
                   <div className="flex items-center gap-3">
                     <FaCheckCircle className="text-green-500 text-xl" />
                     <div>
-                      <p className="font-semibold">Form Completed Successfully!</p>
+                      <p className="font-semibold">
+                        Form Completed Successfully!
+                      </p>
                       <p className="text-sm mt-1">
                         Your new account form was submitted on{" "}
-                        {formDetails?.date_created 
-                          ? new Date(formDetails.date_created).toLocaleDateString('en-US', {
-                              year: 'numeric',
-                              month: 'long',
-                              day: 'numeric'
+                        {formDetails?.date_created
+                          ? new Date(
+                              formDetails.date_created
+                            ).toLocaleDateString("en-US", {
+                              year: "numeric",
+                              month: "long",
+                              day: "numeric",
                             })
-                          : 'recently'}
+                          : "recently"}
                       </p>
                     </div>
                   </div>
@@ -211,14 +249,11 @@ const Documents = () => {
             <div className="mb-10 text-left flex items-center gap-2">
               <button
                 onClick={handleOpenJotform}
-                disabled={jotformStatus === "completed"}
                 className={`font-medium hover:underline text-base flex items-center gap-2 ${
                   jotformStatus === "completed"
-                    ? "text-green-500 cursor-not-allowed"
+                    ? "text-green-500 cursor-pointer"
                     : "text-teal-400 dark:text-teal-500 cursor-pointer"
                 }`}
-                aria-haspopup="dialog"
-                aria-expanded={showModal}
               >
                 {jotformStatus === "completed" ? (
                   <FaCheckCircle className="text-green-500" />
@@ -226,7 +261,7 @@ const Documents = () => {
                   <FaExclamationCircle className="text-red-500" />
                 )}
                 {jotformStatus === "completed"
-                  ? "New Account Form (Completed)"
+                  ? "View New Account Form (Completed)"
                   : "Open New Account Form"}
               </button>
             </div>
@@ -264,7 +299,9 @@ const Documents = () => {
               disabled={jotformStatus !== "completed"}
               className="w-full border border-gray-300 dark:border-gray-600 rounded-md px-3 py-2 bg-white dark:bg-gray-700 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              <option value="PROVIDER_RECORDS_REVIEW">Provider Records Review</option>
+              <option value="PROVIDER_RECORDS_REVIEW">
+                Provider Records Review
+              </option>
               <option value="MISCELLANEOUS">Miscellaneous</option>
             </select>
           </div>
@@ -325,9 +362,15 @@ const Documents = () => {
 
           <button
             type="submit"
-            disabled={selectedFiles.length === 0 || isUploading || jotformStatus !== "completed"}
+            disabled={
+              selectedFiles.length === 0 ||
+              isUploading ||
+              jotformStatus !== "completed"
+            }
             className={`w-full py-2 px-4 rounded-md font-semibold transition duration-200 ${
-              selectedFiles.length === 0 || isUploading || jotformStatus !== "completed"
+              selectedFiles.length === 0 ||
+              isUploading ||
+              jotformStatus !== "completed"
                 ? "bg-gray-300 dark:bg-gray-700 text-gray-600 dark:text-gray-400 cursor-not-allowed"
                 : "bg-teal-600 dark:bg-teal-700 text-white hover:bg-teal-700 dark:hover:bg-teal-600"
             }`}
@@ -356,56 +399,13 @@ const Documents = () => {
         </form>
       </div>
 
-      {/* JotForm Modal */}
-      {showModal && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-60 backdrop-blur-sm animate-fadeIn"
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="modal-title"
-          tabIndex={-1}
-          onKeyDown={(e) => {
-            if (e.key === "Escape") handleCloseModal();
-          }}
-        >
-          <div
-            className="bg-white dark:bg-gray-900 rounded-lg shadow-lg max-w-4xl w-full max-h-[90vh] overflow-auto relative animate-slideIn"
-            style={{ outline: "none" }}
-          >
-            <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700 sticky top-0 bg-white dark:bg-gray-900 z-10">
-              <h2
-                id="modal-title"
-                className="text-lg font-semibold text-gray-800 dark:text-gray-100 text-left w-full"
-              >
-                New Account Form
-              </h2>
-              <button
-                onClick={handleCloseModal}
-                className="text-gray-600 dark:text-gray-300 hover:text-red-500 focus:outline-none focus:ring-2 focus:ring-red-400 rounded"
-                aria-label="Close modal"
-              >
-                <FaTimes className="w-5 h-5" />
-              </button>
-            </div>
-            <div className="p-4">
-              <iframe
-                src={jotformUrl}
-                title="New Account Form"
-                className="w-full min-h-[600px] rounded-md border border-gray-200 dark:border-gray-700 shadow-md"
-                frameBorder="0"
-                allowFullScreen
-              />
-              <div className="mt-4 bg-blue-50 dark:bg-blue-900 border-l-4 border-blue-500 dark:border-blue-400 text-blue-800 dark:text-blue-200 px-4 py-3 rounded-lg text-sm">
-                <p className="font-semibold">After submitting:</p>
-                <p className="mt-1">
-                  Close this window and refresh the page to see your completed form status.
-                  Your submission will be sent to our administrators for review.
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* FIX APPLIED HERE: Pass the providerInfo object as initialData */}
+      <NewAccountFormModal
+        open={showNewAccountFormModal}
+        onClose={() => setShowNewAccountFormModal(false)}
+        onFormComplete={handleFormComplete}
+        initialData={providerInfo}
+      />
     </div>
   );
 };
