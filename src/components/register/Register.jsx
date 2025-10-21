@@ -2,9 +2,14 @@ import React, { useState, useContext } from "react";
 import { AuthContext } from "../../utils/context/auth";
 import { useNavigate, Link } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { IoArrowBack, IoCheckmarkCircle, IoEyeOutline, IoEyeOffOutline } from "react-icons/io5";
+import {
+  IoArrowBack,
+  IoCheckmarkCircle,
+  IoEyeOutline,
+  IoEyeOffOutline,
+} from "react-icons/io5";
 import toast from "react-hot-toast";
-import register_bg_img_2 from '../../assets/images/register_bg_img.jpg';
+import register_bg_img_2 from "../../assets/images/register_bg_img.jpg";
 import { countryCodesList } from "../../utils/data";
 
 // --- START: MOVED COMPONENTS OUTSIDE REGISTER ---
@@ -12,10 +17,11 @@ import { countryCodesList } from "../../utils/data";
 const StepIndicator = ({ step, currentStep }) => (
   <div className="flex items-center">
     <motion.div
-      className={`w-10 h-10 rounded-full flex items-center justify-center font-bold transition-all duration-300 ${currentStep >= step
-          ? 'bg-gradient-to-r from-teal-500 to-blue-500 text-white'
-          : 'bg-white/10 text-gray-400'
-        }`}
+      className={`w-10 h-10 rounded-full flex items-center justify-center font-bold transition-all duration-300 ${
+        currentStep >= step
+          ? "bg-gradient-to-r from-teal-500 to-blue-500 text-white"
+          : "bg-white/10 text-gray-400"
+      }`}
       whileHover={{ scale: 1.1 }}
     >
       {currentStep > step ? <IoCheckmarkCircle size={24} /> : step}
@@ -23,9 +29,19 @@ const StepIndicator = ({ step, currentStep }) => (
   </div>
 );
 
-const InputField = ({ label, type, value, onChange, placeholder, icon, ...props }) => (
+const InputField = ({
+  label,
+  type,
+  value,
+  onChange,
+  placeholder,
+  icon,
+  ...props
+}) => (
   <div>
-    <label className="block text-sm font-semibold text-gray-300 mb-2">{label}</label>
+    <label className="block text-sm font-semibold text-gray-300 mb-2">
+      {label}
+    </label>
     <div className="relative group">
       {icon && (
         <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
@@ -38,7 +54,9 @@ const InputField = ({ label, type, value, onChange, placeholder, icon, ...props 
         onChange={onChange}
         placeholder={placeholder}
         // IMPORTANT: Ensure the value and onChange props are correctly passed down
-        className={`w-full ${icon ? 'pl-12' : 'pl-4'} pr-4 py-4 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-teal-500/50 focus:border-teal-500 transition-all duration-300`}
+        className={`w-full ${
+          icon ? "pl-12" : "pl-4"
+        } pr-4 py-4 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-teal-500/50 focus:border-teal-500 transition-all duration-300`}
         {...props}
       />
     </div>
@@ -61,7 +79,7 @@ const Register = () => {
     state: "",
     country: "",
     facility: "",
-    facilityPhoneNumber: ""
+    facilityPhoneNumber: "",
   });
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -74,19 +92,20 @@ const Register = () => {
   const hasUppercase = (formData.password.match(/[A-Z]/g) || []).length >= 2;
   const hasLowercase = (formData.password.match(/[a-z]/g) || []).length >= 2;
   const hasNumbers = (formData.password.match(/[0-9]/g) || []).length >= 2;
-  const hasSpecialChars = (formData.password.match(/[^A-Za-z0-9]/g) || []).length >= 2;
+  const hasSpecialChars =
+    (formData.password.match(/[^A-Za-z0-9]/g) || []).length >= 2;
 
   const passwordRequirements = [
     { met: hasMinLength, text: "Minimum 12 characters" },
     { met: hasUppercase, text: "At least two uppercase letters" },
     { met: hasLowercase, text: "At least two lowercase letters" },
     { met: hasNumbers, text: "At least two numbers" },
-    { met: hasSpecialChars, text: "At least two special characters" }
+    { met: hasSpecialChars, text: "At least two special characters" },
   ];
 
   const handleChange = (field, value) => {
     // This correctly updates the state
-    setFormData(prev => ({ ...prev, [field]: value }));
+    setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
   const handleSubmit = async (e) => {
@@ -94,8 +113,13 @@ const Register = () => {
     setIsLoading(true);
     setErrorMsg("");
 
-    const formattedPhoneNumber = `${formData.countryCode}${formData.phoneNumber.replace(/\D/g, "")}`;
-    const formattedFacilityPhoneNumber = formData.facilityPhoneNumber.replace(/\D/g, "");
+    const formattedPhoneNumber = `${
+      formData.countryCode
+    }${formData.phoneNumber.replace(/\D/g, "")}`;
+    const formattedFacilityPhoneNumber = formData.facilityPhoneNumber.replace(
+      /\D/g,
+      ""
+    );
 
     if (formData.password !== formData.password2) {
       setErrorMsg("Passwords do not match.");
@@ -103,7 +127,15 @@ const Register = () => {
       return;
     }
 
-    if (!(hasMinLength && hasUppercase && hasLowercase && hasNumbers && hasSpecialChars)) {
+    if (
+      !(
+        hasMinLength &&
+        hasUppercase &&
+        hasLowercase &&
+        hasNumbers &&
+        hasSpecialChars
+      )
+    ) {
       setErrorMsg("Password does not meet all complexity requirements.");
       setIsLoading(false);
       return;
@@ -127,7 +159,10 @@ const Register = () => {
     const result = await register(payload);
 
     if (result.success) {
-      toast.success("Account created! Please check your email to verify your account.", { duration: 5000 });
+      toast.success(
+        "Account created! Please check your email to verify your account.",
+        { duration: 5000 }
+      );
       navigate("/login");
     } else {
       const error = result.error;
@@ -184,32 +219,38 @@ const Register = () => {
               initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.5 }}
-              className="max-w-xl"
+              className="max-w-xl flex items-start gap-6" // <-- Add flex here
             >
-              <div className="w-2 h-16 bg-gradient-to-b from-teal-400 to-blue-500 rounded-full"></div>
-              <h1 className="text-6xl font-semibold text-white mb-4">
-                Join
-                <span className="block text-teal-400">
-                  ProMed
-                </span>
-              </h1>
-              <p className="text-xl text-gray-300 leading-relaxed">
-                Securely manage your patient care and medical supplies with our comprehensive platform.
-              </p>
+              {/* LINE ON THE LEFT */}
+              <div className="w-3 h-20 bg-gradient-to-b from-teal-400 to-blue-500 rounded-full mt-6"></div>
 
-              <div className="mt-12 space-y-4">
-                {["HIPAA Compliant", "Real-time Updates", "24/7 Support"].map((feature, idx) => (
-                  <motion.div
-                    key={idx}
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: 0.8 + idx * 0.1 }}
-                    className="flex items-center gap-3"
-                  >
-                    <IoCheckmarkCircle className="text-teal-400 text-2xl" />
-                    <span className="text-gray-300">{feature}</span>
-                  </motion.div>
-                ))}
+              {/* TEXT CONTENT */}
+              <div>
+                <h1 className="text-6xl font-semibold text-white mb-4">
+                  Join
+                  <span className="block text-teal-400">ProMed</span>
+                </h1>
+                <p className="text-xl text-gray-300 leading-relaxed">
+                  Securely manage your patient care and medical supplies with
+                  our comprehensive platform.
+                </p>
+
+                <div className="mt-12 space-y-4">
+                  {["HIPAA Compliant", "Real-time Updates", "24/7 Support"].map(
+                    (feature, idx) => (
+                      <motion.div
+                        key={idx}
+                        initial={{ opacity: 0, x: -20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: 0.8 + idx * 0.1 }}
+                        className="flex items-center gap-3"
+                      >
+                        <IoCheckmarkCircle className="text-teal-400 text-2xl" />
+                        <span className="text-gray-300">{feature}</span>
+                      </motion.div>
+                    )
+                  )}
+                </div>
               </div>
             </motion.div>
           </div>
@@ -224,7 +265,9 @@ const Register = () => {
             transition={{ delay: 0.3 }}
           >
             <div className="text-center mb-8">
-              <h2 className="text-4xl font-bold text-white mb-3">Create Account</h2>
+              <h2 className="text-4xl font-bold text-white mb-3">
+                Create Account
+              </h2>
               <p className="text-gray-400">Enter your details to get started</p>
             </div>
 
@@ -260,12 +303,16 @@ const Register = () => {
                       exit={{ opacity: 0, x: -20 }}
                       className="space-y-4"
                     >
-                      <h3 className="text-xl font-bold text-white mb-4">Personal Information</h3>
+                      <h3 className="text-xl font-bold text-white mb-4">
+                        Personal Information
+                      </h3>
                       <InputField
                         label="Full Name"
                         type="text"
                         value={formData.fullName}
-                        onChange={(e) => handleChange('fullName', e.target.value)}
+                        onChange={(e) =>
+                          handleChange("fullName", e.target.value)
+                        }
                         placeholder="John Doe"
                         required
                       />
@@ -273,20 +320,28 @@ const Register = () => {
                         label="Email Address"
                         type="email"
                         value={formData.email}
-                        onChange={(e) => handleChange('email', e.target.value)}
+                        onChange={(e) => handleChange("email", e.target.value)}
                         placeholder="john@example.com"
                         required
                       />
                       <div>
-                        <label className="block text-sm font-semibold text-gray-300 mb-2">Phone Number</label>
+                        <label className="block text-sm font-semibold text-gray-300 mb-2">
+                          Phone Number
+                        </label>
                         <div className="flex gap-2">
                           <select
                             value={formData.countryCode}
-                            onChange={(e) => handleChange('countryCode', e.target.value)}
+                            onChange={(e) =>
+                              handleChange("countryCode", e.target.value)
+                            }
                             className="w-32 px-4 py-4 bg-white/5 border border-white/10 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-teal-500/50"
                           >
                             {countryCodesList.map((country) => (
-                              <option key={country.code} value={country.code} className="bg-slate-800">
+                              <option
+                                key={country.code}
+                                value={country.code}
+                                className="bg-slate-800"
+                              >
                                 {country.flag} {country.code}
                               </option>
                             ))}
@@ -294,7 +349,9 @@ const Register = () => {
                           <input
                             type="tel"
                             value={formData.phoneNumber}
-                            onChange={(e) => handleChange('phoneNumber', e.target.value)}
+                            onChange={(e) =>
+                              handleChange("phoneNumber", e.target.value)
+                            }
                             placeholder="555-555-5555"
                             className="flex-1 px-4 py-4 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-teal-500/50"
                             required
@@ -305,7 +362,9 @@ const Register = () => {
                         label="NPI Number"
                         type="text"
                         value={formData.npiNumber}
-                        onChange={(e) => handleChange('npiNumber', e.target.value)}
+                        onChange={(e) =>
+                          handleChange("npiNumber", e.target.value)
+                        }
                         placeholder="10-digit NPI"
                         maxLength="10"
                         required
@@ -321,12 +380,16 @@ const Register = () => {
                       exit={{ opacity: 0, x: -20 }}
                       className="space-y-4"
                     >
-                      <h3 className="text-xl font-bold text-white mb-4">Facility Information</h3>
+                      <h3 className="text-xl font-bold text-white mb-4">
+                        Facility Information
+                      </h3>
                       <InputField
                         label="Facility Name"
                         type="text"
                         value={formData.facility}
-                        onChange={(e) => handleChange('facility', e.target.value)}
+                        onChange={(e) =>
+                          handleChange("facility", e.target.value)
+                        }
                         placeholder="Your Clinic or Hospital"
                         required
                       />
@@ -334,7 +397,9 @@ const Register = () => {
                         label="Facility Phone"
                         type="tel"
                         value={formData.facilityPhoneNumber}
-                        onChange={(e) => handleChange('facilityPhoneNumber', e.target.value)}
+                        onChange={(e) =>
+                          handleChange("facilityPhoneNumber", e.target.value)
+                        }
                         placeholder="555-555-5555"
                         required
                       />
@@ -343,7 +408,7 @@ const Register = () => {
                           label="City"
                           type="text"
                           value={formData.city}
-                          onChange={(e) => handleChange('city', e.target.value)}
+                          onChange={(e) => handleChange("city", e.target.value)}
                           placeholder="Chicago"
                           required
                         />
@@ -351,7 +416,9 @@ const Register = () => {
                           label="State"
                           type="text"
                           value={formData.state}
-                          onChange={(e) => handleChange('state', e.target.value)}
+                          onChange={(e) =>
+                            handleChange("state", e.target.value)
+                          }
                           placeholder="IL"
                           required
                         />
@@ -360,9 +427,11 @@ const Register = () => {
                         label="Country"
                         type="text"
                         value={formData.country}
-                        onChange={(e) => handleChange('country', e.target.value)}
+                        onChange={(e) =>
+                          handleChange("country", e.target.value)
+                        }
                         placeholder="United States"
-                          required
+                        required
                       />
                     </motion.div>
                   )}
@@ -375,14 +444,20 @@ const Register = () => {
                       exit={{ opacity: 0, x: -20 }}
                       className="space-y-4"
                     >
-                      <h3 className="text-xl font-bold text-white mb-4">Security</h3>
+                      <h3 className="text-xl font-bold text-white mb-4">
+                        Security
+                      </h3>
                       <div>
-                        <label className="block text-sm font-semibold text-gray-300 mb-2">Password</label>
+                        <label className="block text-sm font-semibold text-gray-300 mb-2">
+                          Password
+                        </label>
                         <div className="relative">
                           <input
                             type={showPassword ? "text" : "password"}
                             value={formData.password}
-                            onChange={(e) => handleChange('password', e.target.value)}
+                            onChange={(e) =>
+                              handleChange("password", e.target.value)
+                            }
                             placeholder="Create a strong password"
                             className="w-full px-4 pr-12 py-4 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-teal-500/50"
                             required
@@ -392,7 +467,11 @@ const Register = () => {
                             onClick={() => setShowPassword(!showPassword)}
                             className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-teal-400"
                           >
-                            {showPassword ? <IoEyeOffOutline size={20} /> : <IoEyeOutline size={20} />}
+                            {showPassword ? (
+                              <IoEyeOffOutline size={20} />
+                            ) : (
+                              <IoEyeOutline size={20} />
+                            )}
                           </button>
                         </div>
                         <div className="mt-3 space-y-2">
@@ -405,9 +484,15 @@ const Register = () => {
                               className="flex items-center gap-2"
                             >
                               <IoCheckmarkCircle
-                                className={`text-lg ${req.met ? 'text-teal-400' : 'text-gray-600'}`}
+                                className={`text-lg ${
+                                  req.met ? "text-teal-400" : "text-gray-600"
+                                }`}
                               />
-                              <span className={`text-sm ${req.met ? 'text-teal-400' : 'text-gray-500'}`}>
+                              <span
+                                className={`text-sm ${
+                                  req.met ? "text-teal-400" : "text-gray-500"
+                                }`}
+                              >
                                 {req.text}
                               </span>
                             </motion.div>
@@ -418,7 +503,9 @@ const Register = () => {
                         label="Confirm Password"
                         type={showPassword ? "text" : "password"}
                         value={formData.password2}
-                        onChange={(e) => handleChange('password2', e.target.value)}
+                        onChange={(e) =>
+                          handleChange("password2", e.target.value)
+                        }
                         placeholder="Repeat your password"
                         required
                       />
@@ -478,7 +565,10 @@ const Register = () => {
               <div className="mt-6 text-center">
                 <p className="text-gray-400 text-sm">
                   Already have an account?{" "}
-                  <Link to="/login" className="text-teal-400 hover:text-teal-300 font-semibold">
+                  <Link
+                    to="/login"
+                    className="text-teal-400 hover:text-teal-300 font-semibold"
+                  >
                     Sign In
                   </Link>
                 </p>
