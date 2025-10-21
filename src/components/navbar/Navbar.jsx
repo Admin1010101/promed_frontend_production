@@ -630,24 +630,3 @@ const Navbar = ({ isDarkMode, setIsDarkMode }) => {
 
 export default Navbar;
 
-// {
-//     "id": 37,
-//     "user": {
-//         "id": 37,
-//         "email": "william.chandler21@yahoo.com",
-//         "full_name": "WIlliam Chandler",
-//         "username": "william.chandler21@yahoo.com",
-//         "phone_number": "+15022633992",
-//         "country_code": "+1",
-//         "role": "provider"
-//     },
-//     "image": "https://promedheatlhdatastorage.blob.core.windows.net/media/https%3A/promedheatlhdatastorage.blob.core.windows.net/media/defaults/default_user.jpg?se=2025-10-21T13%3A43%3A33Z&sp=r&sv=2025-07-05&sr=b&sig=ODKWDU%2BfhKOopNsYVtMvt4WLWQXkfjO8iqQtQxlngXI%3D",
-//     "full_name": "william.chandler21@yahoo.com",
-//     "phone_number": null,
-//     "country": null,
-//     "city": null,
-//     "bio": null,
-//     "date_created": "2025-10-18T15:38:09.461902Z",
-//     "date_updated": "2025-10-18T15:38:09.461927Z",
-//     "sales_rep": null
-// }
