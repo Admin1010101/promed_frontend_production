@@ -483,7 +483,7 @@ export default function OnBoardingForm() {
 
         {/* Footer */}
         <div className="bg-gradient-to-r from-blue-900 via-blue-800 to-blue-900 py-4 px-8 text-center text-xs text-blue-100">
-          <p className="font-medium">ProMed Health Plus | 1100 Ludlow Street Philadelphia, PA 19107 | 267-235-1092 | www.promedhealthplus.com</p>
+          <p className="font-medium">ProMed Health Plus | 30839 Thousand Oaks Blvd, Westlake Village, CA 91362 | (888)338 - 0490 | www.promedhealthplus.com</p>
         </div>
       </div>
     </div>

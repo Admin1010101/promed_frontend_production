@@ -84,9 +84,9 @@ export default function IvrFormPrintTemplate({ formData }) {
             <div className="text-xs text-left pr-4">
                 <p className="font-bold">SERVICED BY:</p>
                 <p>ProMed Health Plus</p>
-                <p>1100 Ludlow Street</p>
-                <p>Philadelphia, PA 19107</p>
-                <p>o. 267-235-1092</p>
+                <p>30839 Thousand Oaks Blvd</p>
+                <p>Westlake Village, CA 91362</p>
+                <p>(888)338 - 0490</p>
                 <p>www.promedhealthplus.com</p>
             </div>
 

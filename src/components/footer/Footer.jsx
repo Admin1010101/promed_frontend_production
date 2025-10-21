@@ -80,7 +80,7 @@ const Footer = () => {
               </li>
               <li className="flex items-center whitespace-nowrap overflow-hidden text-ellipsis">
                 <AiOutlineMail className="mr-2 text-lg min-w-[1.5rem]" />
-                <span className="break-all">admin@promedhealthplus.com</span>
+                <span className="break-all">portal@promedhealthplus.com</span>
               </li>
               <li className="flex items-center whitespace-nowrap">
                 <AiOutlinePhone className="mr-2 text-lg min-w-[1.5rem]" />

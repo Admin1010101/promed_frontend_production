@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { FaEdit, FaTrashAlt, FaUser, FaShoppingCart } from "react-icons/fa";
 import {
@@ -9,6 +9,7 @@ import {
   IoLocationOutline,
   IoCalendarOutline,
   IoShieldCheckmarkOutline,
+  IoCheckmarkCircle,
 } from "react-icons/io5";
 import { format } from "date-fns";
 import { formatPhoneNumber } from "react-phone-number-input";
@@ -24,8 +25,8 @@ const IVRStatusBadge = ({ status }) => {
     Denied: "bg-red-50 text-red-700 border border-red-200 dark:bg-red-900/20 dark:text-red-400 dark:border-red-800",
   };
   return (
-    <span className={`px-2.5 py-1 text-[11px] font-semibold rounded-md ${colors[status]}`}>
-      {status}
+    <span className={`px-2.5 py-1 text-[11px] font-semibold rounded-md ${colors[status] || colors.Pending}`}>
+      {status || "Pending"}
     </span>
   );
 };
@@ -69,6 +70,11 @@ const PatientCard = ({ patient, onViewPdf, onEdit, onDelete, onPatientUpdate }) 
   const [notesRefreshTrigger, setNotesRefreshTrigger] = useState(0);
   const [ivrPdfUrl, setIvrPdfUrl] = useState(patient.latestIvrPdfUrl || null);
 
+  // Update IVR PDF URL when patient data changes
+  useEffect(() => {
+    setIvrPdfUrl(patient.latestIvrPdfUrl || null);
+  }, [patient.latestIvrPdfUrl]);
+
   const formattedDate = patient.date_of_birth
     ? format(new Date(patient.date_of_birth), "M/d/yyyy")
     : "N/A";
@@ -101,8 +107,23 @@ const PatientCard = ({ patient, onViewPdf, onEdit, onDelete, onPatientUpdate }) 
     contactName: `${patient.first_name} ${patient.last_name}`,
     phone: patient.phone_number,
     facilityAddress: patient.address,
-    facilityCityStateZip: `${patient.city || ""}, ${patient.state || ""}, ${patient.zip_code || ""}`,
+    facilityCityStateZip: `${patient.city || ""}, ${patient.state || ""} ${patient.zip_code || ""}`,
   });
+
+  const handleIvrFormComplete = (result) => {
+    console.log("IVR Form Submitted:", result);
+    setOpenIvrModal(false);
+
+    // Update the IVR PDF URL immediately
+    if (result && result.sas_url) {
+      setIvrPdfUrl(result.sas_url);
+    }
+
+    // Trigger patient update to refresh all data
+    if (onPatientUpdate) {
+      onPatientUpdate(patient.id);
+    }
+  };
 
   return (
     <>
@@ -238,8 +259,8 @@ const PatientCard = ({ patient, onViewPdf, onEdit, onDelete, onPatientUpdate }) 
             </div>
           </Section>
 
-          {/* Documentation */}
-          <Section title="Documentation" icon={IoDocumentsOutline}>
+          {/* Patient Documents Section */}
+          <Section title="Patient Documents" icon={IoDocumentsOutline}>
             <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-2.5">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2 flex-1 min-w-0">
@@ -254,23 +275,30 @@ const PatientCard = ({ patient, onViewPdf, onEdit, onDelete, onPatientUpdate }) 
                   </div>
                 </div>
                 <div className="flex items-center gap-1">
-                  {ivrPdfUrl && (
-                    <motion.a
-                      href={ivrPdfUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      whileTap={{ scale: 0.95 }}
-                      className="p-1.5 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/30 text-blue-600 dark:text-blue-400 transition-colors"
-                      title="View PDF"
-                    >
-                      <IoDownloadOutline className="w-4 h-4" />
-                    </motion.a>
+                  {ivrPdfUrl ? (
+                    <>
+                      <IoCheckmarkCircle className="w-4 h-4 text-green-500 dark:text-green-400 mr-1" title="Form Completed" />
+                      <motion.a
+                        href={ivrPdfUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        whileTap={{ scale: 0.95 }}
+                        className="p-1.5 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/30 text-blue-600 dark:text-blue-400 transition-colors"
+                        title="View PDF"
+                      >
+                        <IoDownloadOutline className="w-4 h-4" />
+                      </motion.a>
+                    </>
+                  ) : (
+                    <span className="text-[10px] text-gray-400 dark:text-gray-500 italic mr-2">
+                      Not submitted
+                    </span>
                   )}
                   <motion.button
                     onClick={() => setOpenIvrModal(true)}
                     whileTap={{ scale: 0.95 }}
                     className="p-1.5 rounded-lg hover:bg-teal-100 dark:hover:bg-teal-900/30 text-teal-600 dark:text-teal-400 transition-colors"
-                    title="Create/Update Form"
+                    title={ivrPdfUrl ? "Update Form" : "Create Form"}
                   >
                     <IoDocumentsOutline className="w-4 h-4" />
                   </motion.button>
@@ -335,18 +363,7 @@ const PatientCard = ({ patient, onViewPdf, onEdit, onDelete, onPatientUpdate }) 
         open={openIvrModal}
         onClose={() => setOpenIvrModal(false)}
         initialData={getIvrInitialData()}
-        onFormComplete={(result) => {
-          console.log("IVR Form Submitted:", result);
-          setOpenIvrModal(false);
-
-          if (result && result.sas_url) {
-            setIvrPdfUrl(result.sas_url);
-          }
-
-          if (onPatientUpdate) {
-            onPatientUpdate(patient.id);
-          }
-        }}
+        onFormComplete={handleIvrFormComplete}
       />
     </>
   );

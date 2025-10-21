@@ -339,9 +339,9 @@ export default function IvrFormModal({
                 <div className="text-xs text-left sm:pr-4 order-2 sm:order-1 text-gray-900">
                     <p className="font-bold">SERVICED BY:</p>
                     <p>ProMed Health Plus</p>
-                    <p>1100 Ludlow Street</p>
-                    <p>Philadelphia, PA 19107</p>
-                    <p>o. 267-235-1092</p>
+                    <p>30839 Thousand Oaks Blvd</p>
+                    <p>Westlake Village, CA 91362</p>
+                    <p>(888)338-0490</p>
                     <p>www.promedhealthplus.com</p>
                 </div>
 
