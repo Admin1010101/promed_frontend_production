@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import { X } from "lucide-react";
 import logo from "../../../assets/images/logo.png";
+
 export default function NewAccountFormModal({
   open,
   onClose,
@@ -100,6 +101,10 @@ export default function NewAccountFormModal({
 
   if (!open) return null;
 
+  // 🛠️ REUSABLE INPUT CLASS FOR CLARITY AND CONSISTENCY
+  const inputClass =
+    "w-full border-b-2 border-gray-300 px-2 py-1 outline-none text-gray-800 focus:border-gray-500 transition-colors";
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4 overflow-y-auto">
       <div className="bg-white rounded-lg shadow-2xl w-full max-w-5xl max-h-[90vh] overflow-y-auto">
@@ -164,7 +169,7 @@ export default function NewAccountFormModal({
                   name="distributor"
                   value={formData.distributor}
                   onChange={handleChange}
-                  className="w-full border-b-2 border-gray-300 px-2 py-1 outline-none focus:border-gray-500 transition-colors"
+                  className={inputClass}
                 />
               </div>
               <div className="bg-white rounded-lg p-4 border border-slate-200 shadow-sm">
@@ -176,7 +181,7 @@ export default function NewAccountFormModal({
                   name="salesRepName"
                   value={formData.salesRepName}
                   onChange={handleChange}
-                  className="w-full border-b-2 border-gray-300 px-2 py-1 outline-none focus:border-gray-500 transition-colors"
+                  className={inputClass}
                 />
               </div>
             </div>
@@ -191,7 +196,7 @@ export default function NewAccountFormModal({
                   name="isoIfApplicable"
                   value={formData.isoIfApplicable}
                   onChange={handleChange}
-                  className="w-full border-b-2 border-gray-300 px-2 py-1 outline-none focus:border-gray-500 transition-colors"
+                  className={inputClass}
                 />
               </div>
               <div className="bg-white rounded-lg p-4 border border-slate-200 shadow-sm">
@@ -203,7 +208,7 @@ export default function NewAccountFormModal({
                   name="salesRepCell"
                   value={formData.salesRepCell}
                   onChange={handleChange}
-                  className="w-full border-b-2 border-gray-300 px-2 py-1 outline-none focus:border-gray-500 transition-colors"
+                  className={inputClass}
                 />
               </div>
             </div>
@@ -218,7 +223,7 @@ export default function NewAccountFormModal({
                   name="providerName"
                   value={formData.providerName}
                   onChange={handleChange}
-                  className="w-full border-b-2 border-gray-300 px-2 py-1 outline-none bg-transparent focus:border-gray-500 transition-colors"
+                  className={inputClass}
                 />
               </div>
               <div className="bg-white rounded-lg p-4 border border-slate-200 shadow-sm">
@@ -230,7 +235,7 @@ export default function NewAccountFormModal({
                   name="taxIdNumber"
                   value={formData.taxIdNumber}
                   onChange={handleChange}
-                  className="w-full border-b-2 border-gray-300 px-2 py-1 outline-none bg-transparent focus:border-gray-500 transition-colors"
+                  className={inputClass}
                 />
               </div>
             </div>
@@ -244,7 +249,7 @@ export default function NewAccountFormModal({
                 name="practiceName"
                 value={formData.practiceName}
                 onChange={handleChange}
-                className="w-full border-b-2 border-gray-300 px-2 py-1 outline-none bg-transparent focus:border-gray-500 transition-colors"
+                className={inputClass}
               />
             </div>
 
@@ -266,7 +271,7 @@ export default function NewAccountFormModal({
                     name="shipTo"
                     value={formData.shipTo}
                     onChange={handleChange}
-                    className="w-full border-b-2 border-gray-300 px-2 py-1 outline-none bg-white/50 focus:border-gray-500 transition-colors rounded-sm"
+                    className={inputClass}
                   />
                 </div>
                 <div className="grid grid-cols-12 gap-4">
@@ -279,7 +284,7 @@ export default function NewAccountFormModal({
                       name="shipCity"
                       value={formData.shipCity}
                       onChange={handleChange}
-                      className="w-full border-b-2 border-gray-300 px-2 py-1 outline-none bg-white/50 focus:border-gray-500 transition-colors rounded-sm"
+                      className={inputClass}
                     />
                   </div>
                   <div className="col-span-3">
@@ -291,7 +296,7 @@ export default function NewAccountFormModal({
                       name="shipState"
                       value={formData.shipState}
                       onChange={handleChange}
-                      className="w-full border-b-2 border-gray-300 px-2 py-1 outline-none bg-white/50 focus:border-gray-500 transition-colors rounded-sm"
+                      className={inputClass}
                     />
                   </div>
                   <div className="col-span-3">
@@ -303,7 +308,7 @@ export default function NewAccountFormModal({
                       name="shipZip"
                       value={formData.shipZip}
                       onChange={handleChange}
-                      className="w-full border-b-2 border-gray-300 px-2 py-1 outline-none bg-white/50 focus:border-gray-500 transition-colors rounded-sm"
+                      className={inputClass}
                     />
                   </div>
                 </div>
@@ -328,7 +333,7 @@ export default function NewAccountFormModal({
                     name="contactName"
                     value={formData.contactName}
                     onChange={handleChange}
-                    className="w-full border-b-2 border-gray-300 px-2 py-1 outline-none bg-white/50 focus:border-gray-500 transition-colors rounded-sm"
+                    className={inputClass}
                   />
                 </div>
                 <div>
@@ -340,7 +345,7 @@ export default function NewAccountFormModal({
                     name="contactPhone"
                     value={formData.contactPhone}
                     onChange={handleChange}
-                    className="w-full border-b-2 border-gray-300 px-2 py-1 outline-none bg-white/50 focus:border-gray-500 transition-colors rounded-sm"
+                    className={inputClass}
                   />
                 </div>
                 <div>
@@ -352,7 +357,7 @@ export default function NewAccountFormModal({
                     name="contactEmail"
                     value={formData.contactEmail}
                     onChange={handleChange}
-                    className="w-full border-b-2 border-gray-300 px-2 py-1 outline-none bg-white/50 focus:border-gray-500 transition-colors rounded-sm"
+                    className={inputClass}
                   />
                 </div>
               </div>
@@ -368,7 +373,7 @@ export default function NewAccountFormModal({
                   name="practicePhone"
                   value={formData.practicePhone}
                   onChange={handleChange}
-                  className="w-full border-b-2 border-gray-300 px-2 py-1 outline-none focus:border-gray-500 transition-colors"
+                  className={inputClass}
                 />
               </div>
               <div className="bg-white rounded-lg p-4 border border-slate-200 shadow-sm">
@@ -380,7 +385,7 @@ export default function NewAccountFormModal({
                   name="practiceFax"
                   value={formData.practiceFax}
                   onChange={handleChange}
-                  className="w-full border-b-2 border-gray-300 px-2 py-1 outline-none focus:border-gray-500 transition-colors"
+                  className={inputClass}
                 />
               </div>
               <div className="bg-white rounded-lg p-4 border border-slate-200 shadow-sm">
@@ -392,7 +397,7 @@ export default function NewAccountFormModal({
                   name="practiceEmail"
                   value={formData.practiceEmail}
                   onChange={handleChange}
-                  className="w-full border-b-2 border-gray-300 px-2 py-1 outline-none focus:border-gray-500 transition-colors"
+                  className={inputClass}
                 />
               </div>
             </div>
@@ -415,7 +420,7 @@ export default function NewAccountFormModal({
                     name="individualNpi"
                     value={formData.individualNpi}
                     onChange={handleChange}
-                    className="w-full border-b-2 border-gray-300 px-2 py-1 outline-none bg-white/50 focus:border-gray-500 transition-colors rounded-sm"
+                    className={inputClass}
                   />
                 </div>
                 <div>
@@ -427,7 +432,7 @@ export default function NewAccountFormModal({
                     name="groupNpi"
                     value={formData.groupNpi}
                     onChange={handleChange}
-                    className="w-full border-b-2 border-gray-300 px-2 py-1 outline-none bg-white/50 focus:border-gray-500 transition-colors rounded-sm"
+                    className={inputClass}
                   />
                 </div>
               </div>
@@ -440,7 +445,7 @@ export default function NewAccountFormModal({
                   name="ptan"
                   value={formData.ptan}
                   onChange={handleChange}
-                  className="w-full border-b-2 border-gray-300 px-2 py-1 outline-none bg-white/50 focus:border-gray-500 transition-colors rounded-sm"
+                  className={inputClass}
                 />
               </div>
             </div>
@@ -463,7 +468,7 @@ export default function NewAccountFormModal({
                     name="billTo"
                     value={formData.billTo}
                     onChange={handleChange}
-                    className="w-full border-b-2 border-gray-300 px-2 py-1 outline-none bg-white/50 focus:border-gray-500 transition-colors rounded-sm"
+                    className={inputClass}
                   />
                 </div>
                 <div className="grid grid-cols-12 gap-4">
@@ -476,7 +481,7 @@ export default function NewAccountFormModal({
                       name="billCity"
                       value={formData.billCity}
                       onChange={handleChange}
-                      className="w-full border-b-2 border-gray-300 px-2 py-1 outline-none bg-white/50 focus:border-gray-500 transition-colors rounded-sm"
+                      className={inputClass}
                     />
                   </div>
                   <div className="col-span-3">
@@ -488,7 +493,7 @@ export default function NewAccountFormModal({
                       name="billState"
                       value={formData.billState}
                       onChange={handleChange}
-                      className="w-full border-b-2 border-gray-300 px-2 py-1 outline-none bg-white/50 focus:border-gray-500 transition-colors rounded-sm"
+                      className={inputClass}
                     />
                   </div>
                   <div className="col-span-3">
@@ -500,7 +505,7 @@ export default function NewAccountFormModal({
                       name="billZip"
                       value={formData.billZip}
                       onChange={handleChange}
-                      className="w-full border-b-2 border-gray-300 px-2 py-1 outline-none bg-white/50 focus:border-gray-500 transition-colors rounded-sm"
+                      className={inputClass}
                     />
                   </div>
                 </div>
@@ -517,7 +522,7 @@ export default function NewAccountFormModal({
                   name="apContactName"
                   value={formData.apContactName}
                   onChange={handleChange}
-                  className="w-full border-b-2 border-gray-300 px-2 py-1 outline-none focus:border-gray-500 transition-colors"
+                  className={inputClass}
                 />
               </div>
               <div className="bg-white rounded-lg p-4 border border-slate-200 shadow-sm">
@@ -529,7 +534,7 @@ export default function NewAccountFormModal({
                   name="apPhone"
                   value={formData.apPhone}
                   onChange={handleChange}
-                  className="w-full border-b-2 border-gray-300 px-2 py-1 outline-none focus:border-gray-500 transition-colors"
+                  className={inputClass}
                 />
               </div>
               <div className="bg-white rounded-lg p-4 border border-slate-200 shadow-sm">
@@ -541,7 +546,7 @@ export default function NewAccountFormModal({
                   name="apEmail"
                   value={formData.apEmail}
                   onChange={handleChange}
-                  className="w-full border-b-2 border-gray-300 px-2 py-1 outline-none focus:border-gray-500 transition-colors"
+                  className={inputClass}
                 />
               </div>
             </div>
@@ -564,7 +569,7 @@ export default function NewAccountFormModal({
                     name="billingContactName"
                     value={formData.billingContactName}
                     onChange={handleChange}
-                    className="w-full border-b-2 border-gray-300 px-2 py-1 outline-none bg-white focus:border-gray-500 transition-colors rounded-sm"
+                    className={inputClass}
                   />
                 </div>
                 <div>
@@ -576,7 +581,7 @@ export default function NewAccountFormModal({
                     name="billingContactEmail"
                     value={formData.billingContactEmail}
                     onChange={handleChange}
-                    className="w-full border-b-2 border-gray-300 px-2 py-1 outline-none bg-white focus:border-gray-500 transition-colors rounded-sm"
+                    className={inputClass}
                   />
                 </div>
               </div>
@@ -625,7 +630,7 @@ export default function NewAccountFormModal({
                   name="billingContactPhone"
                   value={formData.billingContactPhone}
                   onChange={handleChange}
-                  className="w-full border-b-2 border-gray-300 px-2 py-1 outline-none bg-white focus:border-gray-500 transition-colors rounded-sm"
+                  className={inputClass}
                 />
               </div>
             </div>
@@ -645,7 +650,7 @@ export default function NewAccountFormModal({
                     name="signatureName"
                     value={formData.signatureName}
                     onChange={handleChange}
-                    className="w-full border-b-2 border-gray-300 px-2 py-1 outline-none focus:border-gray-500 transition-colors"
+                    className={inputClass}
                   />
                 </div>
                 <div className="bg-white rounded-lg p-3 shadow-sm">
@@ -657,7 +662,7 @@ export default function NewAccountFormModal({
                     name="signatureDate"
                     value={formData.signatureDate}
                     onChange={handleChange}
-                    className="w-full border-b-2 border-gray-300 px-2 py-1 outline-none focus:border-gray-500 transition-colors"
+                    className={inputClass}
                   />
                 </div>
               </div>
@@ -675,7 +680,19 @@ export default function NewAccountFormModal({
             {/* Kept Blue Save Button for visibility/contrast */}
             <button
               onClick={handleSubmit}
-              disabled={isSubmitting}
+              disabled={
+                isSubmitting || // Add basic validation check here if needed
+                !formData.providerName ||
+                !formData.practiceName ||
+                !formData.shipTo ||
+                !formData.shipCity ||
+                !formData.shipState ||
+                !formData.shipZip ||
+                !formData.contactName ||
+                !formData.contactPhone ||
+                !formData.contactEmail ||
+                !formData.signatureName
+              }
               className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 flex items-center gap-2"
             >
               {isSubmitting ? (
