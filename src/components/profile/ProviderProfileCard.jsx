@@ -1,33 +1,21 @@
 import React, { useContext, useState } from "react";
 import { AuthContext } from "../../utils/context/auth";
 import { FaRegEdit } from "react-icons/fa";
+import { IoMailOutline, IoLocationOutline, IoCallOutline, IoCalendarOutline } from "react-icons/io5"; // Added icons
 import axiosAuth from "../../utils/axios";
 import ProviderProfileEdit from "./ProviderProfileEdit";
 import { Modal, Box } from "@mui/material";
 import toast from "react-hot-toast";
 
-const style = {
-  position: "absolute",
-  top: "50%",
-  left: "50%",
-  transform: "translate(-50%, -50%)",
-  width: 600,
-  bgcolor: "background.paper",
-  border: "2px solid #000",
-  boxShadow: 24,
-  p: 4,
-  borderRadius: "8px",
-};
+// Removed the 'style' object as we will use Tailwind classes and a central position.
 
 const ProviderProfileCard = () => {
-  // ✅ FIX: Removed verifyToken, get user directly from context
   const { user } = useContext(AuthContext);
-  const [profile, setProfile] = useState(user); // Initialize with user data from context
+  // Initialize with user data from context
+  const [profile, setProfile] = useState(user); 
   const [isEditing, setIsEditing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
-
-  // ✅ FIX: Removed fetchProfile function and useEffect
 
   const handleEdit = () => {
     setIsEditing(true);
@@ -44,116 +32,172 @@ const ProviderProfileCard = () => {
     try {
       const axiosInstance = axiosAuth();
       const response = await axiosInstance.put("/provider/profile/", updatedData);
-      setProfile(response.data);
+      // Update the local state with the new profile data
+      setProfile(response.data); 
       setIsEditing(false);
-      toast.success('Profile edit is complete.')
+      toast.success('Profile edit is complete.');
     } catch (err) {
       console.error("Failed to update profile:", err);
-      setError("Failed to save profile. Please try again.");
+      // Check for specific error messages from the API if possible
+      setError(err.response?.data?.detail || "Failed to save profile. Please try again.");
     } finally {
       setSaving(false);
     }
   };
 
-  // ✅ FIX: Show loading only if user is not available
   if (!user) {
     return (
-      <div className="text-center mt-20 text-gray-600 dark:text-gray-400 text-lg">Loading...</div>
+      <div className="flex justify-center items-center min-h-[400px] text-gray-400 dark:text-gray-600">
+        Loading User Data...
+      </div>
     );
   }
 
   if (!profile) {
     return (
-      <div className="text-center mt-20 text-red-500 text-lg">
+      <div className="flex justify-center items-center min-h-[400px] text-red-500">
         Profile not found.
       </div>
     );
   }
   
-  const fullDateTime = profile.date_created;
-  const profileCreatedDate = fullDateTime ? fullDateTime.split("T")[0] : "N/A";
+  const profileCreatedDate = profile.date_created ? new Date(profile.date_created).toLocaleDateString() : "N/A";
   
   const formatUSPhoneNumber = (number) => {
-    if (!number || typeof number !== "string") {
-      return number;
-    }
+    if (!number || typeof number !== "string") return "N/A";
     const cleanNumber = number.replace(/\D/g, "");
-    if (cleanNumber.length !== 10) {
-      return number; // Return original if not a 10-digit number
+    if (cleanNumber.length === 10) {
+      return `(${cleanNumber.substring(0, 3)}) ${cleanNumber.substring(3, 6)}-${cleanNumber.substring(6, 10)}`;
     }
-    const areaCode = cleanNumber.substring(0, 3);
-    const middle = cleanNumber.substring(3, 6);
-    const last = cleanNumber.substring(6, 10);
-    return `(${areaCode}) ${middle} - ${last}`;
+    // Handle E.164 format from PhoneNumberField
+    if (cleanNumber.startsWith('1') && cleanNumber.length === 11) {
+        return `+1 (${cleanNumber.substring(1, 4)}) ${cleanNumber.substring(4, 7)}-${cleanNumber.substring(7, 11)}`;
+    }
+    return number;
   };
 
+  // Helper component for cleaner data display
+  const DetailItem = ({ icon: Icon, label, value }) => (
+    <div className="flex items-center text-sm mb-4">
+      <Icon className="text-teal-400 mr-3 text-xl" />
+      <span className="font-semibold text-gray-400 dark:text-gray-400 w-1/3 min-w-[150px]">
+        {label}
+      </span>
+      <span className="text-white dark:text-gray-200 font-medium truncate">
+        {value || "Not specified"}
+      </span>
+    </div>
+  );
+
+
   return (
-    <div className="min-h-screen bg-white dark:bg-gray-900 flex items-center justify-center py-10 px-4 transition-colors duration-500">
-      <div className="bg-white dark:bg-gray-800 shadow-2xl rounded-2xl overflow-hidden w-full max-w-3xl transition-colors duration-500">
-        <div className="relative flex flex-col items-center py-10 px-6">
-          <img
-            src={
-              profile.image?.startsWith("http")
-                ? profile.image
-                : `${process.env.REACT_APP_MEDIA_URL}${profile.image}`
-            }
-            alt="Profile"
-            className="w-32 h-32 rounded-full border-4 border-white dark:border-gray-700 shadow-lg transform transition-transform duration-300 hover:scale-105 mt-2 object-cover object-top"
-          />
-          <h1 className="mt-4 text-2xl md:text-3xl font-extrabold text-gray-800 dark:text-gray-200">
-            {profile.full_name || profile.user?.full_name}
+    <div className="w-full max-w-7xl mx-auto py-10 px-4 sm:px-6 lg:px-8">
+      
+      {/* Profile Card Container - Dark Glassmorphism Style */}
+      <div className="
+        bg-gray-800/80 backdrop-blur-xl 
+        shadow-2xl shadow-gray-900/50 
+        rounded-2xl overflow-hidden 
+        w-full max-w-2xl lg:max-w-3xl 
+        mx-auto transition-all duration-500 
+        border border-gray-700/50
+      ">
+        <div className="relative flex flex-col items-center p-8 sm:p-12">
+          
+          {/* Profile Image and Header */}
+          <div className="relative">
+             <img
+                src={
+                    profile.image && profile.image.startsWith("http")
+                        ? profile.image
+                        : profile.image 
+                          ? `${process.env.REACT_APP_MEDIA_URL || ''}${profile.image}` 
+                          : "https://promedheatlhdatastorage.blob.core.windows.net/static/images/default_user.jpg" // Fallback to a fixed default
+                }
+                alt="Profile"
+                className="w-36 h-36 rounded-full border-4 border-teal-500 shadow-xl object-cover object-top transition-transform duration-500 hover:scale-105"
+            />
+            
+            {/* Edit Button overlay */}
+            <button
+                onClick={handleEdit}
+                className="absolute bottom-0 right-0 p-3 bg-teal-500 hover:bg-teal-600 text-white rounded-full shadow-lg transition-colors transform hover:scale-110"
+                title="Edit Profile"
+            >
+                <FaRegEdit className="text-lg" />
+            </button>
+          </div>
+          
+          <h1 className="mt-6 text-3xl font-extrabold text-white">
+            {profile.full_name || profile.user?.full_name || "New Provider"}
           </h1>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-            {profile.city}, {profile.country}
+          <p className="text-md text-teal-400 font-medium mt-1">
+            {profile.user?.email || "No Email"}
           </p>
-          <button
-            onClick={handleEdit}
-            className="mt-6 bg-teal-600 hover:bg-teal-700 text-white font-semibold px-5 py-2 rounded-lg flex items-center gap-2 shadow-md hover:shadow-lg transition-all"
-          >
-            <FaRegEdit />
-            Edit Profile
-          </button>
-          <div className="flex mt-8 w-full border-t border-gray-200 dark:border-gray-700 items-center"></div>
-          <div className="flex mt-8 w-full">
-            <h3 className="text-base font-bold text-gray-700 dark:text-gray-300 mr-2">Role: </h3>
-            <p className="text-gray-600 dark:text-gray-400 text-base">
-              {profile.role || "No Role provided."}
-            </p>
+
+          {/* Details Section */}
+          <div className="mt-10 w-full grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-4">
+            <h2 className="col-span-full text-xl font-bold text-teal-400 mb-4 border-b border-gray-700 pb-2">
+                Contact & Location
+            </h2>
+            
+            <DetailItem 
+                icon={IoLocationOutline} 
+                label="Location" 
+                value={`${profile.city || 'N/A'}, ${profile.country || 'N/A'}`} 
+            />
+            <DetailItem 
+                icon={IoCallOutline} 
+                label="Facility Phone" 
+                value={formatUSPhoneNumber(profile.facility_phone_number)} 
+            />
+            <DetailItem 
+                icon={IoMailOutline} 
+                label="Primary Email" 
+                value={profile.user?.email} 
+            />
+            <DetailItem 
+                icon={IoCalendarOutline} 
+                label="Date Joined" 
+                value={profileCreatedDate} 
+            />
+
+            <h2 className="col-span-full text-xl font-bold text-teal-400 mt-6 mb-4 border-b border-gray-700 pb-2">
+                Facility Details
+            </h2>
+            <DetailItem 
+                icon={FaRegEdit} 
+                label="Role" 
+                value={profile.role} 
+            />
+            <DetailItem 
+                icon={FaRegEdit} 
+                label="Facility" 
+                value={profile.facility} 
+            />
           </div>
-          <div className="flex mt-2 w-full">
-            <h3 className="text-base font-bold text-gray-700 dark:text-gray-300 mr-2">Facility: </h3>
-            <p className="text-gray-600 dark:text-gray-400 text-base">
-              {profile.facility || "No Facility provided."}
-            </p>
-          </div>
-          <div className="flex mt-2 w-full">
-            <h3 className="text-base font-bold text-gray-700 dark:text-gray-300 mr-2">
-              Facility Phone Number:{" "}
-            </h3>
-            <p className="text-gray-600 dark:text-gray-400 text-base">
-              {formatUSPhoneNumber(profile.facility_phone_number) ||
-                "No facility phone number provided."}
-            </p>
-          </div>
-          <div className="flex mt-2 w-full">
-            <h3 className="text-base font-bold text-gray-700 dark:text-gray-300 mr-2">
-              Date Joined:{" "}
-            </h3>
-            <p className="text-gray-600 dark:text-gray-400 text-base">
-              {profileCreatedDate || "No date provided."}
-            </p>
-          </div>
+          
         </div>
       </div>
+      
+      {/* Modal for Editing */}
       <Modal open={isEditing} onClose={handleCancelEdit}>
-        <Box sx={{
-          ...style,
-          bgcolor: 'background.paper',
-          '@media (prefers-color-scheme: dark)': {
-            bgcolor: '#1f2937',
-            color: '#d1d5db',
-          },
-        }}>
+        <Box 
+          sx={{
+            position: "absolute",
+            top: "50%",
+            left: "50%",
+            transform: "translate(-50%, -50%)",
+            width: { xs: '90%', sm: 600 }, // Responsive width
+            // We only need basic positioning here, the internal component handles the rest of the look
+            p: 0, 
+            outline: 0, 
+            // Ensures the Box itself doesn't apply conflicting styles
+            bgcolor: 'transparent', 
+            border: 'none',
+          }}
+        >
+          {/* ProviderProfileEdit already has the dark, animated look */}
           <ProviderProfileEdit
             profile={profile}
             onSave={handleSave}

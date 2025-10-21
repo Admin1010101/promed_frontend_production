@@ -1,7 +1,8 @@
 import React, { useState } from "react";
 import { motion } from "framer-motion";
 import { IoLocationOutline, IoCallOutline, IoMailOutline, IoHelpCircleOutline } from "react-icons/io5";
-// Make sure states is imported properly, e.g.:
+import toast from 'react-hot-toast'; // Required for toast messages
+import axios from "axios";             // Required for API calls
 import { states } from '../../utils/data/index';
 
 const containerVariants = {
@@ -31,6 +32,8 @@ const itemVariants = {
 const Contact = () => {
   const [formData, setFormData] = useState({
     name: "",
+    // ✅ ADDED: Facility field to match the PublicContactView serializer
+    facility: "", 
     city: "",
     state: "",
     zip: "",
@@ -45,14 +48,55 @@ const Contact = () => {
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
+  const resetForm = () => {
+    setFormData({
+        name: "",
+        facility: "",
+        city: "",
+        state: "",
+        zip: "",
+        phone: "",
+        email: "",
+        question: "",
+    });
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsSubmitting(true);
+
+    const { name, email, phone, question, facility, city, state, zip } = formData;
+    
+    // Check for required fields (including the new 'facility' field)
+    if (!name || !facility || !city || !state || !zip || !phone || !email || !question) {
+        toast.error("Please fill in all required fields.");
+        setIsSubmitting(false);
+        return;
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+        toast.error("Please enter a valid email address.");
+        setIsSubmitting(false);
+        return;
+    }
+
     try {
-      console.log("Form submitted:", formData);
-      // TODO: send to your backend / API
-    } catch (err) {
-      console.error("Submission error:", err);
+      // ✅ Use the existing backend URL and Axios logic
+      await axios.post(
+        // NOTE: Ensure REACT_APP_API_URL is correctly defined in your .env
+        `${process.env.REACT_APP_API_URL}/contact-us/`, 
+        formData
+      );
+      toast.success("Your message has been sent. We'll get back to you soon!");
+      
+      resetForm(); // Clear the form on success
+    } catch (error) {
+      console.error(
+        "Failed to send message:",
+        error.response?.data || error.message
+      );
+      toast.error("Failed to send message. Please try again.");
     } finally {
       setIsSubmitting(false);
     }
@@ -61,7 +105,7 @@ const Contact = () => {
   return (
     <div className="bg-gray-50 dark:bg-gray-900 transition-colors duration-500 min-h-screen pt-20 pb-32">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-7xl">
-        {/* Header */}
+        {/* Header (No change) */}
         <motion.header
           initial="hidden"
           animate="visible"
@@ -110,11 +154,28 @@ const Contact = () => {
                   value={formData.name}
                   onChange={handleChange}
                   required
-                  placeholder="Your Name / Practice Name"
+                  placeholder="Your Name"
                   className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition duration-300"
                 />
               </div>
 
+              {/* ✅ NEW FIELD: Facility Name */}
+              <div>
+                <label htmlFor="facility" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Facility Name
+                </label>
+                <input
+                  id="facility"
+                  name="facility"
+                  type="text"
+                  value={formData.facility}
+                  onChange={handleChange}
+                  required
+                  placeholder="Your Practice or Facility Name"
+                  className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition duration-300"
+                />
+              </div>
+              
               {/* City / State / Zip */}
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div>
@@ -234,7 +295,7 @@ const Contact = () => {
             </form>
           </motion.div>
 
-          {/* Contact Info & Map */}
+          {/* Contact Info & Map (No change) */}
           <div className="space-y-8">
             <motion.div
               variants={itemVariants}
@@ -294,7 +355,7 @@ const Contact = () => {
           </div>
         </motion.div>
 
-        {/* FAQ Section */}
+        {/* FAQ Section (No change) */}
         <motion.section
           initial="hidden"
           whileInView="visible"

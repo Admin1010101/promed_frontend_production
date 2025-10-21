@@ -1,18 +1,23 @@
 import React, { useState } from "react";
 import { Modal, Box } from "@mui/material";
-import { motion } from "framer-motion"; 
+import { motion, AnimatePresence } from "framer-motion"; // Make sure AnimatePresence is available if using modal exit transition
 import { IoMailOutline, IoCallOutline } from "react-icons/io5";
 import { states, about_approach_data, about_team } from "../../utils/data";
 import about_bg_img from '../../assets/images/about_bg_img.jpg';
+
+import toast from 'react-hot-toast'; 
+import axios from "axios"; 
 
 const MotionBox = motion(Box);
 
 const About = () => {
   const [open, setOpen] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false); 
 
   const [formData, setFormData] = useState({
     name: "",
+    facility: "", 
     city: "",
     state: "",
     zip: "",
@@ -26,28 +31,74 @@ const About = () => {
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    console.log("Form submitted:", formData);
-    // You would typically send data to an API here
-    setOpen(false);
+  const resetForm = () => {
+    setFormData({
+        name: "",
+        facility: "",
+        city: "",
+        state: "",
+        zip: "",
+        phone: "",
+        email: "",
+        question: "",
+    });
   };
+  
+  // ✅ UPDATED: handleSubmit function for API call and validation
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    
+    const { name, email, phone, question, facility, city, state, zip } = formData;
+    
+    // Validation
+    if (!name || !facility || !city || !state || !zip || !phone || !email || !question) {
+        toast.error("Please fill in all required fields.");
+        setIsSubmitting(false);
+        return;
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+        toast.error("Please enter a valid email address.");
+        setIsSubmitting(false);
+        return;
+    }
+
+    try {
+      // API Call to your Django endpoint
+      await axios.post(
+        `${process.env.REACT_APP_API_URL}/contact-us/`, 
+        formData
+      );
+      
+      toast.success("Your message has been sent. We'll get back to you soon!");
+      
+      handleClose(); // Close modal on success
+      resetForm();   // Clear the form
+    } catch (error) {
+      console.error(
+        "Failed to send message:",
+        error.response?.data || error.message
+      );
+      toast.error("Failed to send message. Please try again.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+  // END UPDATED handleSubmit
 
   const handleClose = () => {
     setOpen(false);
   };
 
-  // 🎯 Modal Animation Variants - FIX APPLIED HERE
   const modalVariants = {
-    // We add x: "-50%" and y: "-50%" to all states. 
-    // This tells Framer Motion to apply the centering translation 
-    // along with the opacity and scale animations.
     hidden: { opacity: 0, scale: 0.95, x: "-50%", y: "-50%" },
     visible: {
       opacity: 1,
       scale: 1,
-      x: "-50%", // <-- Centering translation for the X-axis
-      y: "-50%", // <-- Centering translation for the Y-axis
+      x: "-50%", 
+      y: "-50%", 
       transition: {
         duration: 0.3,
         ease: "easeOut",
@@ -64,13 +115,10 @@ const About = () => {
     },
   };
 
-  // 🎯 Modal Style - FIX APPLIED HERE
   const modalStyle = {
     position: "absolute",
     top: "50%",
     left: "50%",
-    // REMOVED: transform: "translate(-50%, -50%)", 
-    // This is now handled by the Framer Motion variants to avoid conflicts.
     width: "100%",
     maxWidth: 600,
     maxHeight: "90vh",
@@ -106,7 +154,7 @@ const About = () => {
     <div className={darkModeClass}>
       <div className="bg-white dark:bg-gray-900 transition-colors duration-500 min-h-screen">
         
-        {/* Hero Section */}
+        {/* ... (Hero Section content remains the same) ... */}
         <motion.header
           className="bg-white dark:bg-gray-900 text-gray-800 dark:text-white pt-32 pb-16 transition-colors duration-500"
           initial="hidden"
@@ -124,7 +172,7 @@ const About = () => {
               className="text-lg sm:text-2xl mt-4 max-w-4xl mx-auto opacity-90 text-gray-600 dark:text-gray-300 font-semibold"
               variants={itemVariants}
             >
-              Built For The Next Generation Of Care...
+              {''}Built For The Next Generation Of Care...
             </motion.p>
           </div>
         </motion.header>
@@ -140,10 +188,7 @@ const About = () => {
             viewport={{ once: true, amount: 0.3 }}
             variants={containerVariants}
           >
-            {/* 💥 FIX: Responsive layout for Image above Text on small screens */}
             <div className="flex flex-col md:flex-row items-center gap-12">
-              
-              {/* Image Container: order-1 on small, order-2 on medium+ */}
               <motion.div
                 className="w-full md:w-1/2 mt-8 md:mt-0 order-1 md:order-2"
                 variants={itemVariants}
@@ -154,8 +199,6 @@ const About = () => {
                   className="rounded-xl shadow-2xl w-full h-auto border-4 border-teal-500/50 dark:border-teal-400/50"
                 />
               </motion.div>
-              
-              {/* Text Container: order-2 on small, order-1 on medium+ */}
               <motion.div
                 className="md:w-1/2 order-2 md:order-1"
                 variants={itemVariants}
@@ -174,7 +217,6 @@ const About = () => {
                   superior patient outcomes and practice success.
                 </p>
               </motion.div>
-              
             </div>
           </motion.section>
 
@@ -310,6 +352,24 @@ const About = () => {
                   className="mt-1 w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-2 focus:ring-teal-500 focus:outline-none bg-white dark:bg-gray-700 text-gray-800 dark:text-white placeholder-gray-400 dark:placeholder-gray-500"
                 />
               </div>
+              
+              {/* ✅ NEW FIELD: Facility Name */}
+              <div>
+                <label htmlFor="facility" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Facility Name
+                </label>
+                <input
+                  id="facility"
+                  name="facility"
+                  type="text"
+                  value={formData.facility}
+                  onChange={handleChange}
+                  required
+                  placeholder="Your Practice or Facility Name"
+                  className="mt-1 w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-2 focus:ring-teal-500 focus:outline-none bg-white dark:bg-gray-700 text-gray-800 dark:text-white placeholder-gray-400 dark:placeholder-gray-500"
+                />
+              </div>
+              {/* END NEW FIELD */}
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
@@ -322,6 +382,7 @@ const About = () => {
                     value={formData.city}
                     onChange={handleChange}
                     required
+                    placeholder="e.g. Philadelphia"
                     className="mt-1 w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-2 focus:ring-teal-500 focus:outline-none bg-white dark:bg-gray-700 text-gray-800 dark:text-white placeholder-gray-400 dark:placeholder-gray-500"
                   />
                 </div>
@@ -362,6 +423,7 @@ const About = () => {
                       value={formData.zip}
                       onChange={handleChange}
                       required
+                      placeholder="e.g. 19103"
                       className="mt-1 w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-2 focus:ring-teal-500 focus:outline-none bg-white dark:bg-gray-700 text-gray-800 dark:text-white placeholder-gray-400 dark:placeholder-gray-500"
                     />
                   </div>
@@ -416,9 +478,12 @@ const About = () => {
               {/* Submission Button */}
               <button
                 type="submit"
-                className="w-full bg-teal-600 hover:bg-teal-700 dark:bg-teal-500 dark:hover:bg-teal-400 text-white font-semibold py-3 px-6 rounded-lg shadow-lg transition duration-300"
+                disabled={isSubmitting}
+                className={`w-full bg-teal-600 text-white font-semibold py-3 px-6 rounded-lg shadow-lg transition duration-300 ${
+                  isSubmitting ? "opacity-50 cursor-not-allowed" : "hover:bg-teal-700 dark:bg-teal-500 dark:hover:bg-teal-400"
+                }`}
               >
-                Send Message
+                {isSubmitting ? "Sending..." : "Send Message"}
               </button>
             </form>
           </motion.div>

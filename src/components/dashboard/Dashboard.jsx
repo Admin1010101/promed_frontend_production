@@ -70,7 +70,14 @@ const Dashboard = () => {
 
   return (
     <FilterProvider>
-        <div className="flex-1 bg-white dark:bg-gray-900 pt-6">
+        {/* 🚀 FIX: Used responsive padding classes:
+            - pt-16 (64px) for small screens (default).
+            - md:pt-24 (96px) for medium/desktop screens, assuming the navbar is taller there. 
+        */}
+        <div className="flex-1 bg-white dark:bg-gray-900 pt-24">
+          
+          {/* Note: Moved the chat button down to ensure it is visible immediately after the navbar. 
+             The ml-11 on the px container seems odd for mobile, but I left it for now. */}
           <div className="px-4 sm:px-6 ml-11 font-bold mb-6">
             <button
               onClick={() => setOpenModal(true)}

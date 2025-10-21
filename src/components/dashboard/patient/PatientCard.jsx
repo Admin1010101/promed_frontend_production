@@ -1,34 +1,60 @@
 import React, { useState } from "react";
 import { motion } from "framer-motion";
-import { FaEdit, FaTrashAlt } from "react-icons/fa";
+import { FaEdit, FaTrashAlt, FaUser, FaShoppingCart } from "react-icons/fa";
 import {
   IoInformationCircleOutline,
   IoDocumentsOutline,
-  IoDownloadOutline, // Added for the PDF link icon
+  IoDownloadOutline,
+  IoCallOutline,
+  IoLocationOutline,
+  IoCalendarOutline,
+  IoShieldCheckmarkOutline,
 } from "react-icons/io5";
 import { format } from "date-fns";
 import { formatPhoneNumber } from "react-phone-number-input";
 import NotesPreview from "../documemts/NotesPreview";
 import NotesModal from "../documemts/NotesModal";
 import NewOrderForm from "../../orders/NewOrderForm";
-import IvrFormModal from "./PatientIVR"; // Assuming this is the correct path
+import IvrFormModal from "./PatientIVR";
 
 const IVRStatusBadge = ({ status }) => {
   const colors = {
-    Approved:
-      "bg-green-100 text-green-700 dark:bg-green-800 dark:text-green-200",
-    Pending:
-      "bg-yellow-100 text-yellow-700 dark:bg-yellow-800 dark:text-yellow-200",
-    Denied: "bg-red-100 text-red-700 dark:bg-red-800 dark:text-red-200",
+    Approved: "bg-green-50 text-green-700 border border-green-200 dark:bg-green-900/20 dark:text-green-400 dark:border-green-800",
+    Pending: "bg-yellow-50 text-yellow-700 border border-yellow-200 dark:bg-yellow-900/20 dark:text-yellow-400 dark:border-yellow-800",
+    Denied: "bg-red-50 text-red-700 border border-red-200 dark:bg-red-900/20 dark:text-red-400 dark:border-red-800",
   };
   return (
-    <span
-      className={`px-2 py-1 text-[10px] font-semibold rounded-full ml-1 ${colors[status]}`}
-    >
+    <span className={`px-2.5 py-1 text-[11px] font-semibold rounded-md ${colors[status]}`}>
       {status}
     </span>
   );
 };
+
+const InfoRow = ({ icon: Icon, label, value }) => (
+  <div className="flex items-start gap-2">
+    <Icon className="w-4 h-4 text-gray-400 dark:text-gray-500 mt-0.5 flex-shrink-0" />
+    <div className="flex-1 min-w-0">
+      <span className="text-[10px] text-gray-500 dark:text-gray-400 uppercase tracking-wide font-medium block">
+        {label}
+      </span>
+      <span className="text-xs text-gray-900 dark:text-gray-100 font-medium break-words">
+        {value || "—"}
+      </span>
+    </div>
+  </div>
+);
+
+const Section = ({ title, icon: Icon, children }) => (
+  <div>
+    <div className="flex items-center gap-2 mb-2 pb-1.5 border-b border-gray-200 dark:border-gray-700">
+      {Icon && <Icon className="w-3.5 h-3.5 text-gray-500 dark:text-gray-400" />}
+      <h4 className="text-[10px] font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
+        {title}
+      </h4>
+    </div>
+    {children}
+  </div>
+);
 
 const listItemVariants = {
   hidden: { y: 20, opacity: 0 },
@@ -39,12 +65,10 @@ const listItemVariants = {
 const PatientCard = ({ patient, onViewPdf, onEdit, onDelete, onPatientUpdate }) => {
   const [openOrderModal, setOpenOrderModal] = useState(false);
   const [openNotesModal, setOpenNotesModal] = useState(false);
-  const [openIvrModal, setOpenIvrModal] = useState(false); 
+  const [openIvrModal, setOpenIvrModal] = useState(false);
   const [notesRefreshTrigger, setNotesRefreshTrigger] = useState(0);
-
-  // 1. New State to store the PDF link (initial value from patient data if available)
   const [ivrPdfUrl, setIvrPdfUrl] = useState(patient.latestIvrPdfUrl || null);
-  
+
   const formattedDate = patient.date_of_birth
     ? format(new Date(patient.date_of_birth), "M/d/yyyy")
     : "N/A";
@@ -68,209 +92,228 @@ const PatientCard = ({ patient, onViewPdf, onEdit, onDelete, onPatientUpdate }) 
   };
 
   const handleNotesUpdate = () => {
-    setNotesRefreshTrigger(prev => prev + 1);
+    setNotesRefreshTrigger((prev) => prev + 1);
   };
 
   const getIvrInitialData = () => ({
-    patientId: patient.id, 
-    physicianName: `${patient.first_name} ${patient.last_name}`, 
+    patientId: patient.id,
+    physicianName: `${patient.first_name} ${patient.last_name}`,
     contactName: `${patient.first_name} ${patient.last_name}`,
     phone: patient.phone_number,
     facilityAddress: patient.address,
-    facilityCityStateZip: `${patient.city || ''}, ${patient.state || ''}, ${patient.zip_code || ''}`,
+    facilityCityStateZip: `${patient.city || ""}, ${patient.state || ""}, ${patient.zip_code || ""}`,
   });
-
 
   return (
     <>
       <motion.div
-        className="border p-4 rounded-xl border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 shadow-md space-y-2 text-gray-900 dark:text-gray-200"
+        className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-md transition-shadow duration-200 overflow-hidden"
         variants={listItemVariants}
         initial="hidden"
         animate="visible"
         exit="exit"
-        whileHover={{
-          scale: 1.005,
-          boxShadow:
-            "0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)",
-        }}
-        transition={{ type: "spring", stiffness: 300, damping: 20 }}
       >
-        {/* ... (Existing sections like Header, Identification, Insurance) ... */}
+        {/* Header */}
+        <div className="bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-700 px-4 py-3 border-b border-gray-200 dark:border-gray-700">
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex items-center gap-2.5 flex-1 min-w-0">
+              <div className="w-9 h-9 rounded-full bg-teal-100 dark:bg-teal-900/30 flex items-center justify-center flex-shrink-0">
+                <FaUser className="w-4 h-4 text-teal-600 dark:text-teal-400" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <h3 className="text-base font-bold text-gray-900 dark:text-gray-100 truncate">
+                  {patient.first_name} {patient.last_name}
+                </h3>
+                <p className="text-[10px] text-gray-500 dark:text-gray-400">
+                  MRN: <span className="font-mono font-medium">{patient.medical_record_number}</span>
+                </p>
+              </div>
+            </div>
 
-        <div className="flex justify-between items-center mb-4">
-          <h3 className="text-lg font-semibold">
-            {patient.first_name} {patient.last_name}
-          </h3>
-          <div className="flex items-center space-x-3">
-            <motion.button
-              onClick={() => onEdit(patient)}
-              className="text-gray-500 dark:text-gray-400 hover:text-teal-500 transition"
-              title="Edit Patient"
-              whileTap={{ scale: 0.85 }}
-            >
-              <FaEdit className="text-base" />
-            </motion.button>
-            <motion.button
-              onClick={() => onDelete(patient.id)}
-              className="text-gray-500 dark:text-gray-400 hover:text-red-500 transition"
-              title="Delete Patient"
-              whileTap={{ scale: 0.85 }}
-            >
-              <FaTrashAlt className="text-base" />
-            </motion.button>
-          </div>
-        </div>
-
-        {/* Patient Identification & Contact */}
-        <div className="flex items-center justify-between w-full">
-          <p className="text-xs mr-2">
-            <strong>Medical Record Num:</strong> {patient.medical_record_number}
-          </p>
-          <strong className="text-xs">
-            IVR Status: <IVRStatusBadge status={patient.ivrStatus} />
-          </strong>
-        </div>
-        
-        <div className="text-xs text-gray-700 dark:text-gray-300 space-y-1 pt-1">
-          <p className="flex">
-            <strong className="mr-1">Address:</strong> {patient.address}{" "}
-            {patient.city}, {patient.state} {patient.zip_code}
-          </p>
-          <p className="flex">
-            <strong className="mr-1">Phone Number:</strong> {formattedPhoneNumber}
-          </p>
-          <p className="flex">
-            <strong className="mr-1">Date of Birth:</strong> {formattedDate}
-          </p>
-          <p className="flex">
-            <strong className="mr-1">Age:</strong>{" "}
-            {calculateAge(patient.date_of_birth)}
-          </p>
-        </div>
-
-        {/* Insurance Information */}
-        <div className="w-full h-[1px] bg-gray-200 dark:bg-gray-700 my-3"></div>
-        
-        <p className="text-sm font-semibold text-center mb-1">Insurance Information</p>
-        
-        <div className="text-xs text-gray-700 dark:text-gray-300 space-y-1">
-          <p className="flex">
-            <strong className="mr-1">Primary Insurance Provider:</strong>{" "}
-            {patient.primary_insurance}
-          </p>
-          <p className="flex">
-            <strong className="mr-1">Primary Insurance Number:</strong>{" "}
-            {patient.primary_insurance_number}
-          </p>
-          <p className="flex">
-            <strong className="mr-1">Secondary Insurance Provider:</strong>{" "}
-            {patient.secondary_insurance || "N/A"}
-          </p>
-          <p className="flex">
-            <strong className="mr-1">Secondary Insurance Number:</strong>{" "}
-            {patient.secondary_insurance_number || "N/A"}
-          </p>
-          <p className="flex">
-            <strong className="mr-1">Tertiary Insurance Provider:</strong>{" "}
-            {patient.tertiary_insurance || "N/A"}
-          </p>
-          <p className="flex">
-            <strong className="mr-1">Tertiary Insurance Number:</strong>{" "}
-            {patient.tertiary_insurance_number || "N/A"}
-          </p>
-        </div>
-
-        {/* Patient Documentation */}
-        <div className="w-full h-[1px] bg-gray-200 dark:bg-gray-700 my-3"></div>
-        
-        <p className="text-sm font-semibold text-center mb-1">Patient Documentation</p>
-        
-        <div className="text-xs text-gray-700 dark:text-gray-300 space-y-2">
-          
-          {/* IVR Row */}
-          <div className="flex items-center justify-between">
-            <p className="flex font-semibold">
-              Promed Healthcare Plus IVR
-            </p>
-            <div className="flex space-x-2">
-              
-              {/* Conditional Link to View PDF */}
-              {ivrPdfUrl && (
-                <motion.a
-                  href={ivrPdfUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="p-1 rounded-full text-blue-500 dark:text-blue-400 hover:text-blue-600 transition"
-                  whileTap={{ scale: 0.95 }}
-                  title="View Latest IVR PDF"
-                >
-                  <IoDownloadOutline className="w-5 h-5" />
-                </motion.a>
-              )}
-              
-              {/* Button to Open Form */}
+            {/* Action Buttons */}
+            <div className="flex items-center gap-1">
               <motion.button
-                onClick={() => setOpenIvrModal(true)}
-                className="p-1 rounded-full text-gray-500 dark:text-gray-400 hover:text-teal-500 transition"
+                onClick={() => onEdit(patient)}
                 whileTap={{ scale: 0.95 }}
-                title="Create/Update IVR Form"
+                className="p-1.5 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-600 dark:text-gray-300 hover:text-teal-600 dark:hover:text-teal-400 transition-colors"
+                title="Edit Patient"
               >
-                <IoDocumentsOutline className="w-5 h-5" />
+                <FaEdit className="w-3.5 h-3.5" />
+              </motion.button>
+              <motion.button
+                onClick={() => onDelete(patient.id)}
+                whileTap={{ scale: 0.95 }}
+                className="p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 text-gray-600 dark:text-gray-300 hover:text-red-600 dark:hover:text-red-400 transition-colors"
+                title="Delete Patient"
+              >
+                <FaTrashAlt className="w-3.5 h-3.5" />
               </motion.button>
             </div>
           </div>
           
-        </div>
-
-        {/* Patient Order */}
-        {/* ... (Order section remains the same) ... */}
-        <div className="w-full h-[1px] bg-gray-200 dark:bg-gray-700 my-3"></div>
-        
-        <p className="text-sm font-semibold text-center mt-2 mb-2">Patient Order</p>
-
-        <div className="flex justify-between items-center flex-wrap gap-2">
-          <p className="text-xs text-gray-700 dark:text-gray-300 font-bold">
-            Place an order for this patient.
-          </p>
-          <div className="relative flex items-center gap-1">
-            {patient.ivrStatus !== "Approved" && (
-              <div className="relative group">
-                <IoInformationCircleOutline className="text-xl text-red-400 font-semibold cursor-pointer dark:text-red-300" />
-                <div
-                  className="absolute bottom-full mb-2 left-1/2 transform -translate-x-1/2
-                  bg-white border border-gray-200 shadow-lg px-3 py-1 text-xs text-gray-500
-                  rounded-xl w-max opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10 font-semibold
-                  dark:bg-gray-800 dark:border-gray-700 dark:text-gray-300"
-                >
-                  Orders can only be placed for patients with an approved IVR.
-                </div>
-              </div>
-            )}
-            <motion.button
-              className={`text-[10px] px-3 py-1 rounded-full flex items-center gap-1 transition-all
-              ${
-                patient.ivrStatus === "Approved"
-                  ? "bg-teal-500 text-white hover:bg-teal-600"
-                  : "bg-gray-200 text-gray-500 cursor-not-allowed dark:bg-gray-700 dark:text-gray-400"
-              }`}
-              onClick={() => setOpenOrderModal(true)}
-              disabled={patient.ivrStatus !== "Approved"}
-              whileTap={patient.ivrStatus === "Approved" ? { scale: 0.95 } : {}}
-            >
-              + New Order
-            </motion.button>
+          <div className="mt-2">
+            <IVRStatusBadge status={patient.ivrStatus} />
           </div>
         </div>
-        
-        {/* Notes Section */}
-        <div className="w-full h-[1px] bg-gray-200 dark:bg-gray-700 my-3"></div>
-        
-        <NotesPreview 
-          patientId={patient.id} 
-          onViewAll={() => setOpenNotesModal(true)}
-          refreshTrigger={notesRefreshTrigger}
-        />
+
+        {/* Content */}
+        <div className="p-4 space-y-4">
+          {/* Contact Information */}
+          <Section title="Contact" icon={IoCallOutline}>
+            <div className="space-y-3">
+              <InfoRow
+                icon={IoLocationOutline}
+                label="Address"
+                value={`${patient.address}, ${patient.city}, ${patient.state} ${patient.zip_code}`}
+              />
+              <InfoRow icon={IoCallOutline} label="Phone" value={formattedPhoneNumber} />
+              <InfoRow
+                icon={IoCalendarOutline}
+                label="Date of Birth"
+                value={`${formattedDate} (${calculateAge(patient.date_of_birth)} yrs)`}
+              />
+            </div>
+          </Section>
+
+          {/* Insurance Information */}
+          <Section title="Insurance" icon={IoShieldCheckmarkOutline}>
+            <div className="space-y-2">
+              {/* Primary */}
+              <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-2.5">
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-[10px] font-bold text-gray-700 dark:text-gray-300 uppercase">
+                    Primary
+                  </span>
+                  <span className="text-[9px] px-1.5 py-0.5 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 rounded-full font-medium">
+                    1st
+                  </span>
+                </div>
+                <p className="text-xs font-semibold text-gray-900 dark:text-gray-100">
+                  {patient.primary_insurance}
+                </p>
+                <p className="text-[10px] text-gray-600 dark:text-gray-400 font-mono mt-0.5">
+                  {patient.primary_insurance_number}
+                </p>
+              </div>
+
+              {/* Secondary */}
+              {patient.secondary_insurance && (
+                <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-2.5">
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-[10px] font-bold text-gray-700 dark:text-gray-300 uppercase">
+                      Secondary
+                    </span>
+                    <span className="text-[9px] px-1.5 py-0.5 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400 rounded-full font-medium">
+                      2nd
+                    </span>
+                  </div>
+                  <p className="text-xs font-semibold text-gray-900 dark:text-gray-100">
+                    {patient.secondary_insurance}
+                  </p>
+                  <p className="text-[10px] text-gray-600 dark:text-gray-400 font-mono mt-0.5">
+                    {patient.secondary_insurance_number}
+                  </p>
+                </div>
+              )}
+
+              {/* Tertiary */}
+              {patient.tertiary_insurance && (
+                <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-2.5">
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-[10px] font-bold text-gray-700 dark:text-gray-300 uppercase">
+                      Tertiary
+                    </span>
+                    <span className="text-[9px] px-1.5 py-0.5 bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400 rounded-full font-medium">
+                      3rd
+                    </span>
+                  </div>
+                  <p className="text-xs font-semibold text-gray-900 dark:text-gray-100">
+                    {patient.tertiary_insurance}
+                  </p>
+                  <p className="text-[10px] text-gray-600 dark:text-gray-400 font-mono mt-0.5">
+                    {patient.tertiary_insurance_number}
+                  </p>
+                </div>
+              )}
+            </div>
+          </Section>
+
+          {/* Documentation */}
+          <Section title="Documentation" icon={IoDocumentsOutline}>
+            <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-2.5">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2 flex-1 min-w-0">
+                  <IoDocumentsOutline className="w-4 h-4 text-gray-500 dark:text-gray-400 flex-shrink-0" />
+                  <div className="min-w-0">
+                    <p className="text-xs font-semibold text-gray-900 dark:text-gray-100 truncate">
+                      IVR Form
+                    </p>
+                    <p className="text-[10px] text-gray-500 dark:text-gray-400">
+                      Insurance Verification
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-1">
+                  {ivrPdfUrl && (
+                    <motion.a
+                      href={ivrPdfUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      whileTap={{ scale: 0.95 }}
+                      className="p-1.5 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/30 text-blue-600 dark:text-blue-400 transition-colors"
+                      title="View PDF"
+                    >
+                      <IoDownloadOutline className="w-4 h-4" />
+                    </motion.a>
+                  )}
+                  <motion.button
+                    onClick={() => setOpenIvrModal(true)}
+                    whileTap={{ scale: 0.95 }}
+                    className="p-1.5 rounded-lg hover:bg-teal-100 dark:hover:bg-teal-900/30 text-teal-600 dark:text-teal-400 transition-colors"
+                    title="Create/Update Form"
+                  >
+                    <IoDocumentsOutline className="w-4 h-4" />
+                  </motion.button>
+                </div>
+              </div>
+            </div>
+          </Section>
+
+          {/* Orders */}
+          <Section title="Orders" icon={FaShoppingCart}>
+            <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-3">
+              {patient.ivrStatus === "Approved" ? (
+                <motion.button
+                  onClick={() => setOpenOrderModal(true)}
+                  whileTap={{ scale: 0.98 }}
+                  className="w-full bg-teal-600 hover:bg-teal-700 dark:bg-teal-700 dark:hover:bg-teal-600 text-white font-semibold py-2.5 px-3 rounded-lg transition-colors flex items-center justify-center gap-2"
+                >
+                  <FaShoppingCart className="w-3.5 h-3.5" />
+                  <span className="text-xs">Create New Order</span>
+                </motion.button>
+              ) : (
+                <div className="flex items-start gap-2 text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-2.5">
+                  <IoInformationCircleOutline className="w-4 h-4 flex-shrink-0 mt-0.5" />
+                  <div>
+                    <p className="text-xs font-semibold">IVR Approval Required</p>
+                    <p className="text-[10px] mt-0.5">
+                      Orders require an approved IVR first.
+                    </p>
+                  </div>
+                </div>
+              )}
+            </div>
+          </Section>
+
+          {/* Notes */}
+          <Section title="Notes" icon={IoDocumentsOutline}>
+            <NotesPreview
+              patientId={patient.id}
+              onViewAll={() => setOpenNotesModal(true)}
+              refreshTrigger={notesRefreshTrigger}
+            />
+          </Section>
+        </div>
       </motion.div>
 
       {/* Modals */}
@@ -279,7 +322,7 @@ const PatientCard = ({ patient, onViewPdf, onEdit, onDelete, onPatientUpdate }) 
         onClose={() => setOpenOrderModal(false)}
         patient={patient}
       />
-      
+
       <NotesModal
         open={openNotesModal}
         onClose={() => setOpenNotesModal(false)}
@@ -288,21 +331,18 @@ const PatientCard = ({ patient, onViewPdf, onEdit, onDelete, onPatientUpdate }) 
         onNotesUpdate={handleNotesUpdate}
       />
 
-      {/* IVR FORM MODAL INTEGRATION */}
       <IvrFormModal
         open={openIvrModal}
         onClose={() => setOpenIvrModal(false)}
-        initialData={getIvrInitialData()} 
+        initialData={getIvrInitialData()}
         onFormComplete={(result) => {
           console.log("IVR Form Submitted:", result);
-          setOpenIvrModal(false); 
-          
-          // 2. CRITICAL CHANGE: Save the returned SAS URL
+          setOpenIvrModal(false);
+
           if (result && result.sas_url) {
             setIvrPdfUrl(result.sas_url);
           }
-          
-          // Call the update function to refresh status on the main patient list
+
           if (onPatientUpdate) {
             onPatientUpdate(patient.id);
           }

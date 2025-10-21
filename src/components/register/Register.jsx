@@ -186,6 +186,7 @@ const Register = () => {
               transition={{ delay: 0.5 }}
               className="max-w-xl"
             >
+              <div className="w-2 h-16 bg-gradient-to-b from-teal-400 to-blue-500 rounded-full"></div>
               <h1 className="text-6xl font-semibold text-white mb-4">
                 Join
                 <span className="block text-teal-400">
