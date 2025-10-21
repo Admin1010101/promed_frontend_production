@@ -9,7 +9,7 @@ export const AuthContext = createContext();
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [isMfaPending, setIsMfaPending] = useState(false); 
+  const [isMfaPending, setIsMfaPending] = useState(false);
 
   // --- Helper Functions ---
 
@@ -68,20 +68,36 @@ export const AuthProvider = ({ children }) => {
     localStorage.removeItem("accessToken");
     localStorage.removeItem("refreshToken");
     localStorage.removeItem("session_id");
+    localStorage.removeItem("mfa_method"); // ✅ Clear MFA method too
     setUser(null);
+    setIsMfaPending(false);
+  };
+
+  // ✅ NEW: Clear MFA state completely
+  const clearMfaState = () => {
+    console.log("🧹 Clearing MFA state");
+    localStorage.removeItem("session_id");
+    localStorage.removeItem("mfa_method");
     setIsMfaPending(false);
   };
 
   // --- Initial Load Effect ---
   useEffect(() => {
     const accessToken = localStorage.getItem("accessToken");
-    const session_id = localStorage.getItem("session_id"); 
+    const refreshToken = localStorage.getItem("refreshToken");
+    const session_id = localStorage.getItem("session_id");
     
     console.log("🔍 Initial Load Check:");
     console.log("  - Access Token exists:", !!accessToken);
+    console.log("  - Refresh Token exists:", !!refreshToken);
     console.log("  - Session ID exists:", !!session_id);
     
-    if (accessToken && !session_id) {
+    // ✅ FIX: Only show MFA if we have session_id AND no refresh token
+    if (session_id && !refreshToken) {
+        console.log("⏳ MFA session detected, waiting for code verification");
+        setIsMfaPending(true);
+        setLoading(false);
+    } else if (accessToken && refreshToken) {
         console.log("✅ Valid session found, fetching user data");
         fetchUserData(accessToken)
             .catch((error) => {
@@ -89,13 +105,12 @@ export const AuthProvider = ({ children }) => {
                 logout();
             })
             .finally(() => setLoading(false));
-            
-    } else if (session_id) {
-        console.log("⏳ MFA session detected, waiting for code verification");
-        setIsMfaPending(true); 
-        setLoading(false);
     } else {
         console.log("ℹ️ No active session found");
+        // ✅ FIX: Clear any stale MFA state
+        if (session_id) {
+          clearMfaState();
+        }
         setLoading(false);
     }
   }, []);
@@ -104,7 +119,7 @@ export const AuthProvider = ({ children }) => {
 
   const login = async (email, password, method = "sms") => {
     try {
-      console.log("🔐 Login attempt for:", email);
+      console.log("🔐 Login attempt for:", email, "Method:", method);
       
       const response = await axios.post(
         `${API_BASE_URL}/provider/token/`,
@@ -113,17 +128,18 @@ export const AuthProvider = ({ children }) => {
 
       const { access, refresh, mfa_required, session_id } = response.data;
 
-      if (!access || !refresh) {
-        console.error("❌ Invalid response: missing tokens");
+      if (!access) {
+        console.error("❌ Invalid response: missing access token");
         return { success: false, error: "Invalid response: missing tokens." };
       }
 
       if (mfa_required) {
         console.log("🔒 MFA required, storing temporary tokens");
-        localStorage.setItem("accessToken", access); 
-        localStorage.setItem("session_id", session_id); 
+        localStorage.setItem("accessToken", access);
+        localStorage.setItem("session_id", session_id);
+        localStorage.setItem("mfa_method", method); // ✅ Store method for reference
         
-        setIsMfaPending(true); 
+        setIsMfaPending(true);
         
         return { 
           mfa_required: true, 
@@ -132,11 +148,17 @@ export const AuthProvider = ({ children }) => {
         };
       }
 
+      // ✅ FIX: If no MFA required, ensure we have refresh token
+      if (!refresh) {
+        console.error("❌ No refresh token provided");
+        return { success: false, error: "Invalid response: missing refresh token." };
+      }
+
       console.log("✅ Login successful, storing tokens");
       localStorage.setItem("accessToken", access);
       localStorage.setItem("refreshToken", refresh);
-      setIsMfaPending(false); 
-      fetchUserData(access); 
+      clearMfaState(); // ✅ Clear any MFA state
+      fetchUserData(access);
 
       return { success: true };
     } catch (error) {
@@ -159,7 +181,7 @@ export const AuthProvider = ({ children }) => {
         }
       }
 
-      setIsMfaPending(false); 
+      clearMfaState(); // ✅ Clear MFA state on error
       return { success: false, error: errorMessage };
     }
   };
@@ -168,19 +190,24 @@ export const AuthProvider = ({ children }) => {
     try {
       const session_id = localStorage.getItem("session_id");
       const accessToken = localStorage.getItem("accessToken");
+      const storedMethod = localStorage.getItem("mfa_method") || method;
       
       console.log("🔍 MFA Verification:");
       console.log("  - Session ID exists:", !!session_id);
       console.log("  - Access Token exists:", !!accessToken);
+      console.log("  - Method:", storedMethod);
+      console.log("  - Code:", code);
       
       if (!session_id) {
         console.error("❌ No active MFA session found");
-        return { success: false, error: "No active MFA session found" };
+        clearMfaState();
+        return { success: false, error: "No active MFA session found. Please log in again." };
       }
       
       if (!accessToken) {
         console.error("❌ No access token found");
-        return { success: false, error: "No access token found" };
+        clearMfaState();
+        return { success: false, error: "No access token found. Please log in again." };
       }
       
       const response = await axios.post(
@@ -196,30 +223,39 @@ export const AuthProvider = ({ children }) => {
       
       const { refresh: finalRefreshToken, access: newAccessToken } = response.data;
 
-      if (finalRefreshToken) {
-        localStorage.setItem("refreshToken", finalRefreshToken);
-        console.log("✅ Refresh token saved");
+      if (!finalRefreshToken || !newAccessToken) {
+        console.error("❌ Missing tokens in verification response");
+        clearMfaState();
+        return { success: false, error: "Verification failed. Please try again." };
       }
+
+      // ✅ Save both tokens
+      localStorage.setItem("refreshToken", finalRefreshToken);
+      localStorage.setItem("accessToken", newAccessToken);
+      console.log("✅ Tokens saved successfully");
       
-      if (newAccessToken) {
-        localStorage.setItem("accessToken", newAccessToken);
-        console.log("✅ Access token updated");
-      }
+      // ✅ Clear MFA state
+      clearMfaState();
       
-      localStorage.removeItem("session_id");
-      console.log("✅ Session ID removed");
-      
-      setIsMfaPending(false); 
-      
-      await fetchUserData(newAccessToken || localStorage.getItem("accessToken"));
+      await fetchUserData(newAccessToken);
 
       return { success: true };
     } catch (error) {
       console.error("❌ MFA verification error:", error.response?.data || error.message);
-      logout(); 
+      
+      // ✅ FIX: Don't logout, just clear MFA state and let user try again
+      clearMfaState();
+      
+      let errorMessage = "Invalid verification code. Please try again.";
+      if (error.response?.data?.error) {
+        errorMessage = error.response.data.error;
+      } else if (error.response?.data?.detail) {
+        errorMessage = error.response.data.detail;
+      }
+      
       return { 
         success: false, 
-        error: error.response?.data?.error || error.response?.data?.detail || "MFA verification failed" 
+        error: errorMessage
       };
     }
   };
@@ -227,19 +263,10 @@ export const AuthProvider = ({ children }) => {
   // --- Patient Management Functions ---
   const getPatients = async () => {
     console.log("=== getPatients API Call ===");
-    console.log("User:", user);
-    console.log("Access Token exists:", !!localStorage.getItem("accessToken"));
     
     try {
       const axiosInstance = axiosAuth();
-      console.log("Sending GET request to: /patients/");
-      
       const response = await axiosInstance.get('/patients/');
-      
-      console.log("✅ Response Status:", response.status);
-      console.log("✅ Response Data:", response.data);
-      console.log("✅ Is Array:", Array.isArray(response.data));
-      console.log("✅ Data Length:", response.data?.length);
       
       if (!Array.isArray(response.data)) {
         console.error("❌ Response data is not an array");
@@ -252,13 +279,7 @@ export const AuthProvider = ({ children }) => {
       return { success: true, data: response.data };
       
     } catch (error) {
-      console.error("=== getPatients ERROR ===");
-      console.error("Full Error:", error);
-      console.error("Response Status:", error.response?.status);
-      console.error("Response Data:", error.response?.data);
-      console.error("Response Headers:", error.response?.headers);
-      console.error("Request Config:", error.config);
-      
+      console.error("=== getPatients ERROR ===", error);
       return { 
         success: false, 
         error: error.response?.data || error.message,
@@ -268,61 +289,22 @@ export const AuthProvider = ({ children }) => {
   };
 
   const postPatient = async (patientData) => {
-    console.log("=== postPatient API Call ===");
-    console.log("🔍 Patient Data:", patientData);
-    
-    const accessToken = localStorage.getItem("accessToken");
     const sessionId = localStorage.getItem("session_id");
-    
-    console.log("🔍 Auth State:");
-    console.log("  - Access Token exists:", !!accessToken);
-    console.log("  - Session ID exists:", !!sessionId);
-    console.log("  - User exists:", !!user);
-    console.log("  - Is MFA Pending:", isMfaPending);
     
     // Check if user is in MFA pending state
     if (sessionId || isMfaPending) {
-      console.error("❌ Cannot create patient: MFA verification pending");
       return { 
         success: false, 
         error: "Please complete MFA verification before creating patients" 
       };
     }
     
-    // Check if access token exists
-    if (!accessToken) {
-      console.error("❌ Cannot create patient: No access token found");
-      return { 
-        success: false, 
-        error: "Authentication required. Please log in again." 
-      };
-    }
-    
     try {
       const axiosInstance = axiosAuth();
-      console.log("✅ Axios instance created");
-      console.log("🚀 Sending POST request to: /patients/");
-      
       const response = await axiosInstance.post('/patients/', patientData);
-      
-      console.log("✅ Patient created successfully!");
-      console.log("✅ Response:", response.data);
-      
       return { success: true, data: response.data };
     } catch (error) {
-      console.error("=== postPatient ERROR ===");
-      console.error("❌ Full Error:", error);
-      console.error("❌ Response Status:", error.response?.status);
-      console.error("❌ Response Data:", error.response?.data);
-      console.error("❌ Response Headers:", error.response?.headers);
-      console.error("❌ Request Config:", error.config);
-      
-      // If 401, might need to re-login
-      if (error.response?.status === 401) {
-        console.error("🚨 401 Unauthorized - Token might be invalid or expired");
-        console.error("🚨 Consider logging out and logging back in");
-      }
-      
+      console.error("❌ Failed to create patient:", error);
       return { 
         success: false, 
         error: error.response?.data || error.message,
@@ -332,54 +314,32 @@ export const AuthProvider = ({ children }) => {
   };
 
   const updatePatient = async (patientId, patientData) => {
-    console.log("=== updatePatient API Call ===");
-    console.log("🔍 Patient ID:", patientId);
-    console.log("🔍 Patient Data:", patientData);
-    
     try {
       const axiosInstance = axiosAuth();
       const response = await axiosInstance.put(`/patients/${patientId}/`, patientData);
-      
-      console.log("✅ Patient updated successfully!");
       return { success: true, data: response.data };
     } catch (error) {
-      console.error("❌ Failed to update patient:", error);
-      console.error("❌ Response:", error.response?.data);
       return { success: false, error: error.response?.data || error.message };
     }
   };
 
   const deletePatient = async (patientId) => {
-    console.log("=== deletePatient API Call ===");
-    console.log("🔍 Patient ID:", patientId);
-    
     try {
       const axiosInstance = axiosAuth();
       await axiosInstance.delete(`/patients/${patientId}/`);
-      
-      console.log("✅ Patient deleted successfully!");
       return { success: true };
     } catch (error) {
-      console.error("❌ Failed to delete patient:", error);
-      console.error("❌ Response:", error.response?.data);
       return { success: false, error: error.response?.data || error.message };
     }
   };
 
-  // --- Document Upload Function ---
   const uploadDocumentAndEmail = async (documentType, files) => {
-    console.log("=== uploadDocumentAndEmail API Call ===");
-    console.log("🔍 Document Type:", documentType);
-    console.log("🔍 Files Count:", files.length);
-    
     try {
       const axiosInstance = axiosAuth();
       
-      // Create FormData to send files
       const formData = new FormData();
       formData.append('document_type', documentType);
       
-      // Append all files
       files.forEach((file) => {
         formData.append('files', file);
       });
@@ -394,22 +354,14 @@ export const AuthProvider = ({ children }) => {
         }
       );
 
-      console.log("✅ Documents uploaded successfully!");
       return { success: true, data: response.data };
     } catch (error) {
-      console.error("❌ Failed to upload documents:", error);
-      console.error("❌ Response:", error.response?.data);
       return { 
         success: false, 
         error: error.response?.data || error.message 
       };
     }
   };
-
-  console.log("=== AUTH STATE ===");
-  console.log("Access Token:", localStorage.getItem("accessToken"));
-  console.log("Refresh Token:", localStorage.getItem("refreshToken"));
-  console.log("Session ID:", localStorage.getItem("session_id"));
 
   return (
     <AuthContext.Provider
@@ -421,6 +373,7 @@ export const AuthProvider = ({ children }) => {
         logout,
         login,
         verifyCode,
+        clearMfaState, // ✅ Export this for manual clearing if needed
         getPatients,
         postPatient,
         updatePatient,

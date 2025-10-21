@@ -121,10 +121,10 @@ const About = () => {
               About Promed Health <span className="text-teal-500">Plus</span>
             </motion.h1>
             <motion.p
-              className="text-lg sm:text-xl mt-4 max-w-4xl mx-auto opacity-90 text-gray-600 dark:text-gray-300 font-semibold"
+              className="text-lg sm:text-2xl mt-4 max-w-4xl mx-auto opacity-90 text-gray-600 dark:text-gray-300 font-semibold"
               variants={itemVariants}
             >
-              Empowering Providers with Comprehensive Wound Care Solutions
+              Built For The Next Generation Of Care...
             </motion.p>
           </div>
         </motion.header>
@@ -164,11 +164,11 @@ const About = () => {
                   Our Mission
                 </h2>
                 <p className="text-gray-700 dark:text-gray-300 text-base md:text-lg">
-                  At **ProMed Health Plus**, we are dedicated to transforming
+                  At ProMed Health Plus, we are dedicated to transforming
                   wound care by equipping private practices with the tools and
                   support they need to thrive. With over 80% of our services
                   dedicated to empowering independent providers, we guide you
-                  from initial setup through seamless reimbursement—with expert
+                  from initial setup through seamless reimbursement with expert
                   support at every step. Our streamlined processes, selective
                   partnerships, and unwavering commitment to excellence ensure
                   superior patient outcomes and practice success.

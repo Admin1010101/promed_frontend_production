@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback } from "react";
 import { X, Check, Loader2 } from "lucide-react";
-import { motion } from "framer-motion"; 
+import { motion } from "framer-motion";
 import logo from "../../../assets/images/logo.png";
 import toast from "react-hot-toast";
 
@@ -26,7 +26,6 @@ const PRODUCT_CHECKBOXES = [
   "Revoshield+ Q4289",
 ];
 
-// 💡 Placeholder: Define these arrays as they are used in the form JSX
 const POS_OPTIONS = ["Hospital Inpatient (21)", "Hospital Outpatient (22)", "Physician's Office (11)", "ASC (24)", "Home Health (12)"];
 const WOUND_BILLING_CODES = [
   { label: "Skin substitute procedure", code: "15271" },
@@ -83,7 +82,7 @@ const getInitialState = (data) => ({
   physicianSignatureName: data?.providerName || "", // Mandatory for validation
 });
 
-// --- Helper Components (Required for the form to compile) ---
+// --- Helper Components ---
 
 const InputLine = ({ label, name, value, onChange, className = "", type = "text", disabled = false }) => (
     <div className={`flex flex-col ${className}`}>
@@ -96,8 +95,10 @@ const InputLine = ({ label, name, value, onChange, className = "", type = "text"
             value={value || ''}
             onChange={onChange}
             disabled={disabled}
-            className={`border-b-2 border-gray-600 h-8 px-1 text-sm outline-none transition-colors ${
-                disabled ? 'bg-gray-100 border-dashed text-gray-500' : 'focus:border-blue-500'
+            className={`border-b-2 border-gray-600 h-8 px-1 text-sm outline-none transition-colors 
+            ${
+                // 💡 FIX APPLIED: Explicitly set text-gray-800 for the input value
+                disabled ? 'bg-gray-100 border-dashed text-gray-500' : 'focus:border-blue-500 text-gray-800'
             }`}
         />
     </div>
@@ -138,7 +139,6 @@ const RadioGroup = ({ label, name, value, options, onChange }) => (
     </div>
 );
 
-// --- Success Toast Component (Custom content for viewing the PDF) ---
 const SuccessToast = ({ t, sasUrl, onClose }) => (
   <div className="bg-white p-4 rounded-xl shadow-lg flex flex-col items-start w-80">
     <div className="flex items-center mb-2">
@@ -186,7 +186,6 @@ export default function IvrFormModal({
   const patientIdRef = useRef(initialData?.id || initialData?.patientId);
   
   const formRef = useRef(null); 
-
 
   const handleChange = useCallback((e) => {
     const { name, value, type, checked } = e.target;
@@ -249,10 +248,8 @@ export default function IvrFormModal({
     const patientId = patientIdRef.current;
     const validationErrors = validateForm();
 
-    // 1. Client-side Validation Check
     if (validationErrors.length > 0) {
         if (formRef.current) {
-            // Scroll to the top of the form content on validation error
             formRef.current.scrollTop = 0; 
         }
         validationErrors.forEach((err) => toast.error(err));
@@ -311,10 +308,10 @@ export default function IvrFormModal({
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-2 sm:p-4 overflow-y-auto print:p-0">
       <div className="bg-white rounded-xl shadow-2xl w-full max-w-6xl max-h-[98vh] overflow-y-auto print:max-w-full print:shadow-none print:max-h-full print:rounded-none">
         
-        {/* Modal Header (Fixed blue bar) */}
+        {/* Modal Header */}
         <div className="sticky top-0 bg-blue-900 p-4 flex justify-between items-center z-10 print:hidden rounded-t-xl">
           <h2 className="text-xl font-bold text-white">
-            Patient Verification Request Form
+            Insurance Verification Request Form
           </h2>
           <motion.button
             onClick={onClose}
@@ -327,21 +324,22 @@ export default function IvrFormModal({
 
         <div className="p-4 sm:p-6 md:p-8 print:p-0">
           
-          {/* --- MAIN FORM CONTENT CONTAINER --- */}
+          {/* --- MAIN FORM CONTENT CONTAINER (With visibility fix) --- */}
           <div
             ref={formRef}
-            className="space-y-6 text-xs border border-gray-300 p-4 sm:p-6 print:border-none print:p-0"
+            // 💡 FIX APPLIED: Ensure the content container has a white background and dark text.
+            className="space-y-6 text-xs border border-gray-300 p-4 sm:p-6 print:border-none print:p-0 bg-white text-gray-800"
           >
             
-            {/* 1. Header Section (The missing part, now fixed) */}
+            {/* 1. Header Section */}
             <div className="grid grid-cols-1 sm:grid-cols-3 border-b-4 border-gray-800 pb-3 mb-4 gap-4">
                 {/* Left Column (Service Details) */}
-                <div className="text-xs text-left sm:pr-4 order-2 sm:order-1 text-gray-900">
+                <div className="text-xs text-left sm:pr-4 order-2 sm:order-1">
                     <p className="font-bold">SERVICED BY:</p>
                     <p>ProMed Health Plus</p>
-                    <p>1100 Ludlow Street</p>
-                    <p>Philadelphia, PA 19107</p>
-                    <p>o. 267-235-1092</p>
+                    <p>30839 Thousand Oaks Blvd</p>
+                    <p>West Lake Village, CA 91362</p>
+                    <p>(888)338 - 0490</p>
                     <p>www.promedhealthplus.com</p>
                 </div>
 
@@ -365,7 +363,7 @@ export default function IvrFormModal({
                             name="salesRepresentative"
                             value={formData.salesRepresentative}
                             onChange={handleChange}
-                            className="border-b border-gray-600 w-full sm:w-3/5 text-sm outline-none focus:border-blue-500"
+                            className="border-b border-gray-600 w-full sm:w-3/5 text-sm outline-none focus:border-blue-500 text-gray-800"
                         />
                     </div>
                 </div>
@@ -534,7 +532,7 @@ export default function IvrFormModal({
                     className={`flex-1 min-w-0 border-b-2 border-gray-600 h-8 px-1 text-sm outline-none transition-colors mt-1 sm:mt-0 ${
                       formData.placeOfService !== "OTHER"
                         ? "bg-gray-100 border-dashed"
-                        : "focus:border-blue-500"
+                        : "focus:border-blue-500 text-gray-800" // 💡 FIX APPLIED
                     }`}
                   />
                 </div>
@@ -648,6 +646,7 @@ export default function IvrFormModal({
                   )}
                 </div>
 
+                {/* 💥 Closure fix starts here: This was the unclosed div */}
                 <div className="border border-dashed border-gray-300 p-3 rounded-md space-y-3">
                   <RadioGroup
                     label="IS THE PATIENT CURRENTLY UNDER A POST-OP GLOBAL SURGICAL PERIOD"
@@ -680,6 +679,7 @@ export default function IvrFormModal({
                     />
                   </div>
                 </div>
+                {/* 💥 End of Authorization Questions Column */}
               </div>
             </div>
 
@@ -729,7 +729,8 @@ export default function IvrFormModal({
                   value={formData.icd10Codes}
                   onChange={handleChange}
                   rows="3"
-                  className="border-2 border-gray-400 p-2 text-sm focus:border-blue-500 outline-none resize-y rounded-md"
+                  // 💡 FIX APPLIED: Ensure textarea content is dark
+                  className="border-2 border-gray-400 p-2 text-sm focus:border-blue-500 outline-none resize-y rounded-md text-gray-800"
                 ></textarea>
               </div>
 
@@ -742,7 +743,8 @@ export default function IvrFormModal({
                   value={formData.totalWoundSize}
                   onChange={handleChange}
                   rows="3"
-                  className="border-2 border-gray-400 p-2 text-sm focus:border-blue-500 outline-none resize-y rounded-md"
+                  // 💡 FIX APPLIED: Ensure textarea content is dark
+                  className="border-2 border-gray-400 p-2 text-sm focus:border-blue-500 outline-none resize-y rounded-md text-gray-800"
                 ></textarea>
               </div>
 
@@ -756,7 +758,8 @@ export default function IvrFormModal({
                   name="physicianSignatureName"
                   value={formData.physicianSignatureName}
                   onChange={handleChange}
-                  className="border-b-2 border-gray-600 h-8 px-1 text-base focus:border-blue-500 outline-none font-semibold"
+                  // 💡 FIX APPLIED: Ensure input content is dark
+                  className="border-b-2 border-gray-600 h-8 px-1 text-base focus:border-blue-500 outline-none font-semibold text-gray-800"
                 />
               </div>
             </div>

@@ -84,6 +84,8 @@ const FilterCommandCenter = ({
     setPatientsPerPage(Number(e.target.value));
   };
 
+  
+
   return (
     <Modal
       open={open}
@@ -373,6 +375,23 @@ const Patients = () => {
     }));
   };
 
+const handlePatientUpdate = useCallback(async (patientId) => {
+    const currentPatients = patients;
+    const patientIndex = currentPatients.findIndex(p => p.id === patientId);
+
+    if (patientIndex === -1) {
+        await fetchPatients();
+        return;
+    }
+    try {
+        await fetchPatients();
+        toast.success(`Patient ${patientId} updated successfully.`);
+    } catch (error) {
+        console.error("Error refreshing patient after VR submission:", error);
+        toast.error("Failed to refresh patient data after submission.");
+    }
+}, [patients, fetchPatients]); // Depend on `patients` and the `fetchPatients` hook
+
   const resetForm = () => {
     setFormData({
       first_name: "",
@@ -626,6 +645,7 @@ const Patients = () => {
                 onViewPdf={handleViewPdf}
                 onEdit={handleEditPatient}
                 onDelete={handleDeletePatient}
+                onPatientUpdate={handlePatientUpdate}
               />
             ))
           ) : (

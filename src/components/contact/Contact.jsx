@@ -259,12 +259,12 @@ const Contact = () => {
                 <IoCallOutline className="text-teal-600 dark:text-teal-400 text-2xl flex-shrink-0 mt-1" />
                 <div>
                   <p className="font-semibold text-gray-800 dark:text-white">Call Us</p>
-                  <a href="tel:+12675551212" className="text-teal-600 dark:text-teal-400 text-sm hover:underline">
+                  <a href="tel:+18883380490" className="text-teal-600 dark:text-teal-400 text-sm hover:underline">
                     P - (888)338-0490
                   </a>
                   <br />
-                  <a href="tel:+12675551212" className="text-teal-600 dark:text-teal-400 text-sm hover:underline">
-                    F - (888)338-0490
+                  <a href="tel:" className="text-teal-600 dark:text-teal-400 text-sm hover:underline">
+                    F - (267)351 -9182
                   </a>
                 </div>
               </div>
@@ -274,7 +274,7 @@ const Contact = () => {
                 <div>
                   <p className="font-semibold text-gray-800 dark:text-white">General Inquiry</p>
                   <a href="mailto:info@promedhealth.com" className="text-teal-600 dark:text-teal-400 text-sm hover:underline">
-                    admin@promedhealthplus.com
+                    portal@promedhealthplus.com
                   </a>
                 </div>
               </div>

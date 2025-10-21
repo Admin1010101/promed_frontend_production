@@ -4,14 +4,14 @@ import { FaEdit, FaTrashAlt } from "react-icons/fa";
 import {
   IoInformationCircleOutline,
   IoDocumentsOutline,
+  IoDownloadOutline, // Added for the PDF link icon
 } from "react-icons/io5";
 import { format } from "date-fns";
 import { formatPhoneNumber } from "react-phone-number-input";
 import NotesPreview from "../documemts/NotesPreview";
 import NotesModal from "../documemts/NotesModal";
 import NewOrderForm from "../../orders/NewOrderForm";
-// 1. IMPORT THE IVR FORM MODAL (Adjust path as necessary)
-import IvrFormModal from "./PatientIVR";
+import IvrFormModal from "./PatientIVR"; // Assuming this is the correct path
 
 const IVRStatusBadge = ({ status }) => {
   const colors = {
@@ -36,12 +36,14 @@ const listItemVariants = {
   exit: { opacity: 0, x: -50, transition: { duration: 0.2 } },
 };
 
-const PatientCard = ({ patient, onViewPdf, onEdit, onDelete }) => {
+const PatientCard = ({ patient, onViewPdf, onEdit, onDelete, onPatientUpdate }) => {
   const [openOrderModal, setOpenOrderModal] = useState(false);
   const [openNotesModal, setOpenNotesModal] = useState(false);
-  // 2. STATE FOR THE IVR MODAL
   const [openIvrModal, setOpenIvrModal] = useState(false); 
   const [notesRefreshTrigger, setNotesRefreshTrigger] = useState(0);
+
+  // 1. New State to store the PDF link (initial value from patient data if available)
+  const [ivrPdfUrl, setIvrPdfUrl] = useState(patient.latestIvrPdfUrl || null);
   
   const formattedDate = patient.date_of_birth
     ? format(new Date(patient.date_of_birth), "M/d/yyyy")
@@ -65,20 +67,17 @@ const PatientCard = ({ patient, onViewPdf, onEdit, onDelete }) => {
     return age;
   };
 
-  // This function will be called by NotesModal when notes are updated
   const handleNotesUpdate = () => {
     setNotesRefreshTrigger(prev => prev + 1);
   };
 
-  // Function to map patient data to the IVR form's expected initialData structure
   const getIvrInitialData = () => ({
-    // Use the patient's full name for physician/contact if that's the current behavior
+    patientId: patient.id, 
     physicianName: `${patient.first_name} ${patient.last_name}`, 
     contactName: `${patient.first_name} ${patient.last_name}`,
     phone: patient.phone_number,
     facilityAddress: patient.address,
     facilityCityStateZip: `${patient.city || ''}, ${patient.state || ''}, ${patient.zip_code || ''}`,
-    // Add more fields here if available on the patient object (e.g., npi, taxId)
   });
 
 
@@ -97,6 +96,8 @@ const PatientCard = ({ patient, onViewPdf, onEdit, onDelete }) => {
         }}
         transition={{ type: "spring", stiffness: 300, damping: 20 }}
       >
+        {/* ... (Existing sections like Header, Identification, Insurance) ... */}
+
         <div className="flex justify-between items-center mb-4">
           <h3 className="text-lg font-semibold">
             {patient.first_name} {patient.last_name}
@@ -185,35 +186,45 @@ const PatientCard = ({ patient, onViewPdf, onEdit, onDelete }) => {
         
         <p className="text-sm font-semibold text-center mb-1">Patient Documentation</p>
         
-        <div className="text-xs text-gray-700 dark:text-gray-300">
+        <div className="text-xs text-gray-700 dark:text-gray-300 space-y-2">
+          
+          {/* IVR Row */}
           <div className="flex items-center justify-between">
-            <p className="flex">
-              <strong>Promed Healthcare Plus IVR</strong>
+            <p className="flex font-semibold">
+              Promed Healthcare Plus IVR
             </p>
             <div className="flex space-x-2">
-              {/* 3. THE BUTTON THAT SAYS PROMED IVR */}
+              
+              {/* Conditional Link to View PDF */}
+              {ivrPdfUrl && (
+                <motion.a
+                  href={ivrPdfUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="p-1 rounded-full text-blue-500 dark:text-blue-400 hover:text-blue-600 transition"
+                  whileTap={{ scale: 0.95 }}
+                  title="View Latest IVR PDF"
+                >
+                  <IoDownloadOutline className="w-5 h-5" />
+                </motion.a>
+              )}
+              
+              {/* Button to Open Form */}
               <motion.button
                 onClick={() => setOpenIvrModal(true)}
-                className="text-[10px] px-2 py-1 bg-blue-600 text-white font-semibold rounded-full hover:bg-blue-700 transition"
-                whileTap={{ scale: 0.95 }}
-                title="Open Promed IVR Form"
-              >
-                Promed IVR
-              </motion.button>
-              {/* Existing View PDF Button */}
-              <motion.button
-                onClick={() => onViewPdf(patient)}
                 className="p-1 rounded-full text-gray-500 dark:text-gray-400 hover:text-teal-500 transition"
-                whileTap={{ scale: 0.9 }}
-                title="View IVR Form PDF"
+                whileTap={{ scale: 0.95 }}
+                title="Create/Update IVR Form"
               >
                 <IoDocumentsOutline className="w-5 h-5" />
               </motion.button>
             </div>
           </div>
+          
         </div>
 
         {/* Patient Order */}
+        {/* ... (Order section remains the same) ... */}
         <div className="w-full h-[1px] bg-gray-200 dark:bg-gray-700 my-3"></div>
         
         <p className="text-sm font-semibold text-center mt-2 mb-2">Patient Order</p>
@@ -277,15 +288,24 @@ const PatientCard = ({ patient, onViewPdf, onEdit, onDelete }) => {
         onNotesUpdate={handleNotesUpdate}
       />
 
-      {/* 4. IVR FORM MODAL INTEGRATION */}
+      {/* IVR FORM MODAL INTEGRATION */}
       <IvrFormModal
         open={openIvrModal}
         onClose={() => setOpenIvrModal(false)}
-        initialData={getIvrInitialData()} // Use the mapping function
+        initialData={getIvrInitialData()} 
         onFormComplete={(result) => {
           console.log("IVR Form Submitted:", result);
-          // You might want to update the patient data/status here
           setOpenIvrModal(false); 
+          
+          // 2. CRITICAL CHANGE: Save the returned SAS URL
+          if (result && result.sas_url) {
+            setIvrPdfUrl(result.sas_url);
+          }
+          
+          // Call the update function to refresh status on the main patient list
+          if (onPatientUpdate) {
+            onPatientUpdate(patient.id);
+          }
         }}
       />
     </>

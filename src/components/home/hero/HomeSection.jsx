@@ -127,10 +127,10 @@ const HeroSection = () => {
             </motion.h1>
             
             <motion.p 
-              className="text-gray-200 text-lg md:text-xl leading-snug mt-2 max-w-lg drop-shadow-md"
+              className="text-gray-200 text-lg md:text-xl leading-snug mt-2 ML-2 max-w-lg drop-shadow-md"
               variants={itemVariants}
             >
-              Empowering Providers with Comprehensive Wound Care Solutions
+              {''}Built For The Next Generation Of Care...
             </motion.p>
             
             <motion.button

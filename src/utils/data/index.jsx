@@ -74,13 +74,13 @@ export const about_approach_data = [
   },
   {
     id: 2,
-    title: "Support",
+    title: "Growth",
     text: "Our dedicated clinical specialists offer expert support to assist with product selection, application techniques, and addressing specific patient needs.",
     icon: <BiSupport />
   },
   {
     id: 3,
-    title: "Commitment",
+    title: "Clawback Insurance",
     text: "We are committed to making a difference in underserved communities around the world by providing access to high-quality wound care products and education.",
     icon: <MdOutlineHandshake />
   },

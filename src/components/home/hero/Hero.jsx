@@ -98,7 +98,7 @@ const Hero = () => {
               Promed Health <span className="text-blue-500">Plus</span>
             </h1>
             <p className="mt-4 text-sm sm:text-base md:text-lg text-center lg:text-start">
-              Empowering Providers with Comprehensive Wound Care Solutions
+              Built For The Next Generation Of Care...
             </p>
 
             <div className="mt-8 flex justify-center lg:justify-start">
