@@ -26,7 +26,7 @@ const PatientIVRHistoryModal = ({ open, onClose, patientId, patientName }) => {
       setLoading(true);
       const response = await fetch(`https://promedhealth-frontdoor-h4c4bkcxfkduezec.z02.azurefd.net/api/v1/patients/${patientId}/ivr-forms/`, {
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
+          'Authorization': `Bearer ${localStorage.getItem('accessToken')}`,
         },
       });
       

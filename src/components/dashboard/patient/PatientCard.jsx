@@ -1,5 +1,3 @@
-// Updated PatientCard.jsx - Key changes highlighted
-
 import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { FaEdit, FaTrashAlt, FaUser, FaShoppingCart } from "react-icons/fa";
@@ -11,7 +9,7 @@ import {
   IoCalendarOutline,
   IoShieldCheckmarkOutline,
   IoCheckmarkCircle,
-  IoListOutline, // NEW ICON for viewing history
+  IoListOutline,
 } from "react-icons/io5";
 import { format } from "date-fns";
 import { formatPhoneNumber } from "react-phone-number-input";
@@ -19,9 +17,7 @@ import NotesPreview from "../documemts/NotesPreview";
 import NotesModal from "../documemts/NotesModal";
 import NewOrderForm from "../../orders/NewOrderForm";
 import IvrFormModal from "./PatientIVR";
-import PatientIVRHistoryModal from "./PatientIVRHistoryModal"; 
-
-
+import PatientIVRHistoryModal from "./PatientIVRHistoryModal";
 
 const IVRStatusBadge = ({ status }) => {
   const colors = {
@@ -66,38 +62,65 @@ const listItemVariants = {
   hidden: { y: 20, opacity: 0 },
   visible: { y: 0, opacity: 1, transition: { duration: 0.3 } },
   exit: { opacity: 0, x: -50, transition: { duration: 0.2 } },
-};// ← NEW IMPORT
+};
 
 const PatientCard = ({ patient, onViewPdf, onEdit, onDelete, onPatientUpdate }) => {
   const [openOrderModal, setOpenOrderModal] = useState(false);
   const [openNotesModal, setOpenNotesModal] = useState(false);
   const [openIvrModal, setOpenIvrModal] = useState(false);
-  const [openIvrHistoryModal, setOpenIvrHistoryModal] = useState(false); // ← NEW STATE
+  const [openIvrHistoryModal, setOpenIvrHistoryModal] = useState(false);
   const [notesRefreshTrigger, setNotesRefreshTrigger] = useState(0);
   const [ivrPdfUrl, setIvrPdfUrl] = useState(patient.latestIvrPdfUrl || null);
-  const [ivrCount, setIvrCount] = useState(0); // ← NEW STATE to track count
+  const [ivrCount, setIvrCount] = useState(0);
+  const [ivrLoading, setIvrLoading] = useState(true);
+
+  // Fetch IVR count when component mounts or patient ID changes
+  useEffect(() => {
+    console.log('🔍 PatientCard useEffect triggered for patient:', patient?.id);
+    if (patient?.id) {
+      console.log('✅ Calling fetchIvrCount for patient:', patient.id);
+      fetchIvrCount();
+    } else {
+      console.log('❌ No patient ID found:', patient);
+    }
+  }, [patient?.id]);
 
   // Update IVR PDF URL when patient data changes
   useEffect(() => {
     setIvrPdfUrl(patient.latestIvrPdfUrl || null);
-    // Fetch IVR count for this patient
-    fetchIvrCount();
-  }, [patient.latestIvrPdfUrl, patient.id]);
+  }, [patient.latestIvrPdfUrl]);
 
-  // ← NEW FUNCTION: Fetch IVR count
   const fetchIvrCount = async () => {
+    if (!patient?.id) return;
+    
     try {
-      const response = await fetch(`/api/patients/${patient.id}/ivr-forms/`, {
+      setIvrLoading(true);
+      const token = localStorage.getItem('accessToken');
+      
+      console.log(`Fetching IVRs for patient ${patient.id}...`); // Debug log
+      
+      const response = await fetch(`https://promedhealth-frontdoor-h4c4bkcxfkduezec.z02.azurefd.net/api/v1/patients/${patient.id}/ivr-forms/`, {
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
         },
       });
+      
+      console.log('IVR fetch response status:', response.status); // Debug log
+      
       if (response.ok) {
         const data = await response.json();
+        console.log('IVR forms data:', data); // Debug log
         setIvrCount(data.length);
+      } else {
+        console.error('Failed to fetch IVR forms:', response.status);
+        setIvrCount(0);
       }
     } catch (error) {
       console.error('Error fetching IVR count:', error);
+      setIvrCount(0);
+    } finally {
+      setIvrLoading(false);
     }
   };
 
@@ -140,7 +163,6 @@ const PatientCard = ({ patient, onViewPdf, onEdit, onDelete, onPatientUpdate }) 
     console.log("IVR Form Submitted:", result);
     setOpenIvrModal(false);
 
-    // Update the IVR PDF URL immediately
     if (result && result.sas_url) {
       setIvrPdfUrl(result.sas_url);
     }
@@ -148,7 +170,7 @@ const PatientCard = ({ patient, onViewPdf, onEdit, onDelete, onPatientUpdate }) 
     // Refresh IVR count
     fetchIvrCount();
 
-    // Trigger patient update to refresh all data
+    // Trigger patient update
     if (onPatientUpdate) {
       onPatientUpdate(patient.id);
     }
@@ -163,131 +185,132 @@ const PatientCard = ({ patient, onViewPdf, onEdit, onDelete, onPatientUpdate }) 
         animate="visible"
         exit="exit"
       >
-        {/* Header - Same as before */}
+        {/* Header */}
         <div className="bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-700 px-4 py-3 border-b border-gray-200 dark:border-gray-700">
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="flex items-center gap-2.5 flex-1 min-w-0">
-                      <div className="w-9 h-9 rounded-full bg-teal-100 dark:bg-teal-900/30 flex items-center justify-center flex-shrink-0">
-                        <FaUser className="w-4 h-4 text-teal-600 dark:text-teal-400" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <h3 className="text-base font-bold text-gray-900 dark:text-gray-100 truncate">
-                          {patient.first_name} {patient.last_name}
-                        </h3>
-                        <p className="text-[10px] text-gray-500 dark:text-gray-400">
-                          MRN: <span className="font-mono font-medium">{patient.medical_record_number}</span>
-                        </p>
-                      </div>
-                    </div>
-        
-                    {/* Action Buttons */}
-                    <div className="flex items-center gap-1">
-                      <motion.button
-                        onClick={() => onEdit(patient)}
-                        whileTap={{ scale: 0.95 }}
-                        className="p-1.5 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-600 dark:text-gray-300 hover:text-teal-600 dark:hover:text-teal-400 transition-colors"
-                        title="Edit Patient"
-                      >
-                        <FaEdit className="w-3.5 h-3.5" />
-                      </motion.button>
-                      <motion.button
-                        onClick={() => onDelete(patient.id)}
-                        whileTap={{ scale: 0.95 }}
-                        className="p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 text-gray-600 dark:text-gray-300 hover:text-red-600 dark:hover:text-red-400 transition-colors"
-                        title="Delete Patient"
-                      >
-                        <FaTrashAlt className="w-3.5 h-3.5" />
-                      </motion.button>
-                    </div>
-                  </div>
-                  
-                  <div className="mt-2">
-                    <IVRStatusBadge status={patient.ivrStatus} />
-                  </div>
-                </div>
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex items-center gap-2.5 flex-1 min-w-0">
+              <div className="w-9 h-9 rounded-full bg-teal-100 dark:bg-teal-900/30 flex items-center justify-center flex-shrink-0">
+                <FaUser className="w-4 h-4 text-teal-600 dark:text-teal-400" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <h3 className="text-base font-bold text-gray-900 dark:text-gray-100 truncate">
+                  {patient.first_name} {patient.last_name}
+                </h3>
+                <p className="text-[10px] text-gray-500 dark:text-gray-400">
+                  MRN: <span className="font-mono font-medium">{patient.medical_record_number}</span>
+                </p>
+              </div>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex items-center gap-1">
+              <motion.button
+                onClick={() => onEdit(patient)}
+                whileTap={{ scale: 0.95 }}
+                className="p-1.5 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-600 dark:text-gray-300 hover:text-teal-600 dark:hover:text-teal-400 transition-colors"
+                title="Edit Patient"
+              >
+                <FaEdit className="w-3.5 h-3.5" />
+              </motion.button>
+              <motion.button
+                onClick={() => onDelete(patient.id)}
+                whileTap={{ scale: 0.95 }}
+                className="p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 text-gray-600 dark:text-gray-300 hover:text-red-600 dark:hover:text-red-400 transition-colors"
+                title="Delete Patient"
+              >
+                <FaTrashAlt className="w-3.5 h-3.5" />
+              </motion.button>
+            </div>
+          </div>
+          
+          <div className="mt-2">
+            <IVRStatusBadge status={patient.ivrStatus} />
+          </div>
+        </div>
 
         {/* Content */}
         <div className="p-4 space-y-4">
-          {/* Contact Information - Same as before */}
+          {/* Contact Information */}
           <Section title="Contact" icon={IoCallOutline}>
-                      <div className="space-y-3">
-                        <InfoRow
-                          icon={IoLocationOutline}
-                          label="Address"
-                          value={`${patient.address}, ${patient.city}, ${patient.state} ${patient.zip_code}`}
-                        />
-                        <InfoRow icon={IoCallOutline} label="Phone" value={formattedPhoneNumber} />
-                        <InfoRow
-                          icon={IoCalendarOutline}
-                          label="Date of Birth"
-                          value={`${formattedDate} (${calculateAge(patient.date_of_birth)} yrs)`}
-                        />
-                      </div>
-                    </Section>
-          {/* Insurance Information - Same as before */}
-          <Section title="Insurance" icon={IoShieldCheckmarkOutline}>
-                      <div className="space-y-2">
-                        {/* Primary */}
-                        <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-2.5">
-                          <div className="flex items-center justify-between mb-1">
-                            <span className="text-[10px] font-bold text-gray-700 dark:text-gray-300 uppercase">
-                              Primary
-                            </span>
-                            <span className="text-[9px] px-1.5 py-0.5 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 rounded-full font-medium">
-                              1st
-                            </span>
-                          </div>
-                          <p className="text-xs font-semibold text-gray-900 dark:text-gray-100">
-                            {patient.primary_insurance}
-                          </p>
-                          <p className="text-[10px] text-gray-600 dark:text-gray-400 font-mono mt-0.5">
-                            {patient.primary_insurance_number}
-                          </p>
-                        </div>
-          
-                        {/* Secondary */}
-                        {patient.secondary_insurance && (
-                          <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-2.5">
-                            <div className="flex items-center justify-between mb-1">
-                              <span className="text-[10px] font-bold text-gray-700 dark:text-gray-300 uppercase">
-                                Secondary
-                              </span>
-                              <span className="text-[9px] px-1.5 py-0.5 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400 rounded-full font-medium">
-                                2nd
-                              </span>
-                            </div>
-                            <p className="text-xs font-semibold text-gray-900 dark:text-gray-100">
-                              {patient.secondary_insurance}
-                            </p>
-                            <p className="text-[10px] text-gray-600 dark:text-gray-400 font-mono mt-0.5">
-                              {patient.secondary_insurance_number}
-                            </p>
-                          </div>
-                        )}
-          
-                        {/* Tertiary */}
-                        {patient.tertiary_insurance && (
-                          <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-2.5">
-                            <div className="flex items-center justify-between mb-1">
-                              <span className="text-[10px] font-bold text-gray-700 dark:text-gray-300 uppercase">
-                                Tertiary
-                              </span>
-                              <span className="text-[9px] px-1.5 py-0.5 bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400 rounded-full font-medium">
-                                3rd
-                              </span>
-                            </div>
-                            <p className="text-xs font-semibold text-gray-900 dark:text-gray-100">
-                              {patient.tertiary_insurance}
-                            </p>
-                            <p className="text-[10px] text-gray-600 dark:text-gray-400 font-mono mt-0.5">
-                              {patient.tertiary_insurance_number}
-                            </p>
-                          </div>
-                        )}
-                      </div>
-                    </Section>
+            <div className="space-y-3">
+              <InfoRow
+                icon={IoLocationOutline}
+                label="Address"
+                value={`${patient.address}, ${patient.city}, ${patient.state} ${patient.zip_code}`}
+              />
+              <InfoRow icon={IoCallOutline} label="Phone" value={formattedPhoneNumber} />
+              <InfoRow
+                icon={IoCalendarOutline}
+                label="Date of Birth"
+                value={`${formattedDate} (${calculateAge(patient.date_of_birth)} yrs)`}
+              />
+            </div>
+          </Section>
 
-          {/* ========== UPDATED PATIENT DOCUMENTS SECTION ========== */}
+          {/* Insurance Information */}
+          <Section title="Insurance" icon={IoShieldCheckmarkOutline}>
+            <div className="space-y-2">
+              {/* Primary */}
+              <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-2.5">
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-[10px] font-bold text-gray-700 dark:text-gray-300 uppercase">
+                    Primary
+                  </span>
+                  <span className="text-[9px] px-1.5 py-0.5 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 rounded-full font-medium">
+                    1st
+                  </span>
+                </div>
+                <p className="text-xs font-semibold text-gray-900 dark:text-gray-100">
+                  {patient.primary_insurance}
+                </p>
+                <p className="text-[10px] text-gray-600 dark:text-gray-400 font-mono mt-0.5">
+                  {patient.primary_insurance_number}
+                </p>
+              </div>
+
+              {/* Secondary */}
+              {patient.secondary_insurance && (
+                <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-2.5">
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-[10px] font-bold text-gray-700 dark:text-gray-300 uppercase">
+                      Secondary
+                    </span>
+                    <span className="text-[9px] px-1.5 py-0.5 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400 rounded-full font-medium">
+                      2nd
+                    </span>
+                  </div>
+                  <p className="text-xs font-semibold text-gray-900 dark:text-gray-100">
+                    {patient.secondary_insurance}
+                  </p>
+                  <p className="text-[10px] text-gray-600 dark:text-gray-400 font-mono mt-0.5">
+                    {patient.secondary_insurance_number}
+                  </p>
+                </div>
+              )}
+
+              {/* Tertiary */}
+              {patient.tertiary_insurance && (
+                <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-2.5">
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-[10px] font-bold text-gray-700 dark:text-gray-300 uppercase">
+                      Tertiary
+                    </span>
+                    <span className="text-[9px] px-1.5 py-0.5 bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400 rounded-full font-medium">
+                      3rd
+                    </span>
+                  </div>
+                  <p className="text-xs font-semibold text-gray-900 dark:text-gray-100">
+                    {patient.tertiary_insurance}
+                  </p>
+                  <p className="text-[10px] text-gray-600 dark:text-gray-400 font-mono mt-0.5">
+                    {patient.tertiary_insurance_number}
+                  </p>
+                </div>
+              )}
+            </div>
+          </Section>
+
+          {/* Patient Documents Section */}
           <Section title="Patient Documents" icon={IoDocumentsOutline}>
             <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-2.5">
               <div className="flex items-center justify-between">
@@ -298,14 +321,15 @@ const PatientCard = ({ patient, onViewPdf, onEdit, onDelete, onPatientUpdate }) 
                       <p className="text-xs font-semibold text-gray-900 dark:text-gray-100 truncate">
                         IVR Forms
                       </p>
-                      {ivrCount > 0 && (
+                      {!ivrLoading && ivrCount > 0 && (
                         <span className="inline-flex items-center justify-center px-2 py-0.5 text-[10px] font-bold text-teal-700 dark:text-teal-400 bg-teal-100 dark:bg-teal-900/30 rounded-full">
                           {ivrCount}
                         </span>
                       )}
                     </div>
                     <p className="text-[10px] text-gray-500 dark:text-gray-400">
-                      {ivrCount === 0 ? 'No forms submitted' : 
+                      {ivrLoading ? 'Loading...' :
+                       ivrCount === 0 ? 'No forms submitted' : 
                        ivrCount === 1 ? '1 form submitted' : 
                        `${ivrCount} forms submitted`}
                     </p>
@@ -314,15 +338,15 @@ const PatientCard = ({ patient, onViewPdf, onEdit, onDelete, onPatientUpdate }) 
                 
                 <div className="flex items-center gap-1">
                   {/* Show checkmark if any IVR exists */}
-                  {ivrCount > 0 && (
+                  {!ivrLoading && ivrCount > 0 && (
                     <IoCheckmarkCircle 
                       className="w-4 h-4 text-green-500 dark:text-green-400" 
                       title="Forms Submitted" 
                     />
                   )}
                   
-                  {/* View All IVRs Button - REPLACES the single download button */}
-                  {ivrCount > 0 && (
+                  {/* View All IVRs Button */}
+                  {!ivrLoading && ivrCount > 0 && (
                     <motion.button
                       onClick={() => setOpenIvrHistoryModal(true)}
                       whileTap={{ scale: 0.95 }}
@@ -406,7 +430,6 @@ const PatientCard = ({ patient, onViewPdf, onEdit, onDelete, onPatientUpdate }) 
         onFormComplete={handleIvrFormComplete}
       />
 
-      {/* ← NEW MODAL: IVR History */}
       <PatientIVRHistoryModal
         open={openIvrHistoryModal}
         onClose={() => setOpenIvrHistoryModal(false)}
