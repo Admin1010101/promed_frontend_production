@@ -346,6 +346,8 @@ const NewOrderForm = ({ open, onClose, patient }) => {
       deliveryDateStr = formData.deliveryDate.toISOString().split("T")[0];
     }
 
+    console.log('USER: ', user)
+
     const orderPayload = {
       provider: user.id,
       patient: patient.id,
