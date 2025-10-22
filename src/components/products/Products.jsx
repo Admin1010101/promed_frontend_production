@@ -1,13 +1,33 @@
 import React, { useState } from "react"; 
 import { Shield, Package, CheckCircle, Phone, Mail, MapPin, Zap, ArrowRight } from "lucide-react";
 import { motion } from "framer-motion";
+import toast from 'react-hot-toast'; 
+import axios from "axios";
+
+// Import states array - make sure this path is correct for your project
+// import { states } from "../../utils/data";
+
+// Temporary states array - replace with import above
+const states = [
+  "AL", "AK", "AZ", "AR", "CA", "CO", "CT", "DE", "FL", "GA",
+  "HI", "ID", "IL", "IN", "IA", "KS", "KY", "LA", "ME", "MD",
+  "MA", "MI", "MN", "MS", "MO", "MT", "NE", "NV", "NH", "NJ",
+  "NM", "NY", "NC", "ND", "OH", "OK", "OR", "PA", "RI", "SC",
+  "SD", "TN", "TX", "UT", "VT", "VA", "WA", "WV", "WI", "WY"
+];
 
 const Products = () => {
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  
   const [formData, setFormData] = useState({
     name: '',
-    email: '',
     facility: '',
-    message: ''
+    city: '',
+    state: '',
+    zip: '',
+    phone: '',
+    email: '',
+    question: ''
   });
 
   const containerVariants = {
@@ -92,14 +112,62 @@ const Products = () => {
     },
   };
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    alert('Thank you for your message! We will be in touch soon.');
-    setFormData({ name: '', email: '', facility: '', message: '' });
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleInputChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+  const resetForm = () => {
+    setFormData({
+      name: '',
+      facility: '',
+      city: '',
+      state: '',
+      zip: '',
+      phone: '',
+      email: '',
+      question: ''
+    });
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    
+    const { name, email, phone, question, facility, city, state, zip } = formData;
+    
+    // Validation
+    if (!name || !facility || !city || !state || !zip || !phone || !email || !question) {
+      toast.error("Please fill in all required fields.");
+      setIsSubmitting(false);
+      return;
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      toast.error("Please enter a valid email address.");
+      setIsSubmitting(false);
+      return;
+    }
+
+    try {
+      // API Call to your Django endpoint
+      await axios.post(
+        `${process.env.REACT_APP_API_URL}/contact-us/`, 
+        formData
+      );
+      
+      toast.success("Your message has been sent. We'll get back to you soon!");
+      resetForm();
+    } catch (error) {
+      console.error(
+        "Failed to send message:",
+        error.response?.data || error.message
+      );
+      toast.error("Failed to send message. Please try again.");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -215,71 +283,6 @@ const Products = () => {
           </motion.div>
         </motion.section>
 
-        {/* Featured Products Section - Card Style */}
-        {/* <motion.section
-          className="mb-20 p-6 md:p-12 bg-gray-50 dark:bg-gray-800 rounded-2xl shadow-xl border border-gray-100 dark:border-gray-700 transition-colors duration-500"
-          initial="hidden"
-          whileInView="visible"
-          viewport={{ once: true, amount: 0.1 }}
-          variants={containerVariants}
-        >
-          <motion.div variants={itemVariants} className="text-center mb-12">
-            <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 dark:text-white mb-4">
-              Featured <span className="text-teal-500">Products</span>
-            </h2>
-            <p className="text-lg text-gray-600 dark:text-gray-300 max-w-3xl mx-auto">
-              Industry-leading skin graft solutions from trusted manufacturers
-            </p>
-          </motion.div>
-          
-          <motion.div
-            variants={containerVariants}
-            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 justify-items-center"
-          >
-            {products.map((product) => (
-              <motion.div
-                key={product.id}
-                variants={itemVariants}
-                className="bg-white dark:bg-gray-700 rounded-2xl shadow-lg overflow-hidden relative border border-gray-200 dark:border-gray-600 w-full max-w-[400px] transition-colors duration-300"
-                style={{ height: "500px" }}
-                whileHover={{ y: -8, transition: { duration: 0.3 } }}
-              >
-                <div className="relative h-full">
-                  <img
-                    src={product.image}
-                    alt={product.title}
-                    className="w-full h-full object-cover"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-gray-900 via-gray-900/80 to-transparent flex flex-col justify-end p-6">
-                    <motion.div
-                      initial={{ opacity: 0, y: 20 }}
-                      whileInView={{ opacity: 1, y: 0 }}
-                      transition={{ delay: 0.2 }}
-                    >
-                      <h3 className="text-2xl font-bold text-white mb-2">
-                        {product.title}
-                      </h3>
-                      <p className="text-sm text-teal-300 mb-4 font-semibold">
-                        by {product.manufacturer}
-                      </p>
-                      <p className="text-gray-200 leading-relaxed mb-6 text-sm">
-                        {product.description}
-                      </p>
-                      <motion.button
-                        className="w-full bg-teal-600 hover:bg-teal-700 dark:bg-teal-500 dark:hover:bg-teal-400 text-white font-semibold py-3 px-6 rounded-xl transition duration-300 shadow-lg flex items-center justify-center gap-2"
-                        whileHover={{ scale: 1.02 }}
-                        whileTap={{ scale: 0.98 }}
-                      >
-                        Learn More <ArrowRight size={20} />
-                      </motion.button>
-                    </motion.div>
-                  </div>
-                </div>
-              </motion.div>
-            ))}
-          </motion.div>
-        </motion.section> */}
-
         {/* Why Choose ProMed Section - Card Style */}
         <motion.section
           className="mb-20 p-6 md:p-12 bg-teal-50 dark:bg-gray-800 rounded-2xl shadow-xl border border-gray-100 dark:border-gray-700 transition-colors duration-500"
@@ -355,58 +358,146 @@ const Products = () => {
               className="bg-gray-50 dark:bg-gray-700 rounded-2xl p-8 border border-gray-200 dark:border-gray-600 transition-colors duration-300"
             >
               <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-6">Send Us a Message</h3>
-              <div className="space-y-6">
+              <form onSubmit={handleSubmit} className="space-y-6">
                 <div>
-                  <label className="block text-gray-700 dark:text-gray-300 font-semibold mb-2">Name</label>
+                  <label className="block text-gray-700 dark:text-gray-300 font-semibold mb-2">
+                    Provider Name
+                  </label>
                   <input
                     type="text"
                     name="name"
                     value={formData.name}
-                    onChange={handleInputChange}
+                    onChange={handleChange}
+                    required
                     className="w-full px-4 py-3 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:border-teal-500 focus:ring-2 focus:ring-teal-200 dark:focus:ring-teal-800 outline-none transition-all"
-                    placeholder="Your name"
+                    placeholder="e.g., Dr. John Smith"
                   />
                 </div>
+
                 <div>
-                  <label className="block text-gray-700 dark:text-gray-300 font-semibold mb-2">Email</label>
-                  <input
-                    type="email"
-                    name="email"
-                    value={formData.email}
-                    onChange={handleInputChange}
-                    className="w-full px-4 py-3 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:border-teal-500 focus:ring-2 focus:ring-teal-200 dark:focus:ring-teal-800 outline-none transition-all"
-                    placeholder="Your email"
-                  />
-                </div>
-                <div>
-                  <label className="block text-gray-700 dark:text-gray-300 font-semibold mb-2">Facility</label>
+                  <label className="block text-gray-700 dark:text-gray-300 font-semibold mb-2">
+                    Facility Name
+                  </label>
                   <input
                     type="text"
                     name="facility"
                     value={formData.facility}
-                    onChange={handleInputChange}
+                    onChange={handleChange}
+                    required
                     className="w-full px-4 py-3 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:border-teal-500 focus:ring-2 focus:ring-teal-200 dark:focus:ring-teal-800 outline-none transition-all"
-                    placeholder="Your facility"
+                    placeholder="Your Practice or Facility Name"
                   />
                 </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-gray-700 dark:text-gray-300 font-semibold mb-2">
+                      City
+                    </label>
+                    <input
+                      type="text"
+                      name="city"
+                      value={formData.city}
+                      onChange={handleChange}
+                      required
+                      className="w-full px-4 py-3 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:border-teal-500 focus:ring-2 focus:ring-teal-200 dark:focus:ring-teal-800 outline-none transition-all"
+                      placeholder="e.g. Philadelphia"
+                    />
+                  </div>
+
+                  <div className="flex gap-2">
+                    <div className="flex-1">
+                      <label className="block text-gray-700 dark:text-gray-300 font-semibold mb-2">
+                        State
+                      </label>
+                      <select
+                        name="state"
+                        value={formData.state}
+                        onChange={handleChange}
+                        required
+                        className="w-full px-4 py-3 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:border-teal-500 focus:ring-2 focus:ring-teal-200 dark:focus:ring-teal-800 outline-none transition-all"
+                      >
+                        <option value="">Select</option>
+                        {states.map((state) => (
+                          <option key={state} value={state}>
+                            {state}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+                </div>
+
                 <div>
-                  <label className="block text-gray-700 dark:text-gray-300 font-semibold mb-2">Message</label>
+                  <label className="block text-gray-700 dark:text-gray-300 font-semibold mb-2">
+                    Zip Code
+                  </label>
+                  <input
+                    type="text"
+                    name="zip"
+                    value={formData.zip}
+                    onChange={handleChange}
+                    required
+                    className="w-full px-4 py-3 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:border-teal-500 focus:ring-2 focus:ring-teal-200 dark:focus:ring-teal-800 outline-none transition-all"
+                    placeholder="e.g. 19103"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-gray-700 dark:text-gray-300 font-semibold mb-2">
+                    Phone Number
+                  </label>
+                  <input
+                    type="tel"
+                    name="phone"
+                    value={formData.phone}
+                    onChange={handleChange}
+                    required
+                    className="w-full px-4 py-3 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:border-teal-500 focus:ring-2 focus:ring-teal-200 dark:focus:ring-teal-800 outline-none transition-all"
+                    placeholder="(123) 456-7890"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-gray-700 dark:text-gray-300 font-semibold mb-2">
+                    Email
+                  </label>
+                  <input
+                    type="email"
+                    name="email"
+                    value={formData.email}
+                    onChange={handleChange}
+                    required
+                    className="w-full px-4 py-3 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:border-teal-500 focus:ring-2 focus:ring-teal-200 dark:focus:ring-teal-800 outline-none transition-all"
+                    placeholder="you@example.com"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-gray-700 dark:text-gray-300 font-semibold mb-2">
+                    Message
+                  </label>
                   <textarea
-                    name="message"
-                    value={formData.message}
-                    onChange={handleInputChange}
+                    name="question"
+                    value={formData.question}
+                    onChange={handleChange}
+                    required
                     rows={4}
                     className="w-full px-4 py-3 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:border-teal-500 focus:ring-2 focus:ring-teal-200 dark:focus:ring-teal-800 outline-none transition-all resize-none"
                     placeholder="How can we help you?"
                   />
                 </div>
+
                 <button
-                  onClick={handleSubmit}
-                  className="w-full bg-teal-600 hover:bg-teal-700 dark:bg-teal-500 dark:hover:bg-teal-400 text-white font-semibold py-4 rounded-xl shadow-lg transition-all"
+                  type="submit"
+                  disabled={isSubmitting}
+                  className={`w-full bg-teal-600 hover:bg-teal-700 dark:bg-teal-500 dark:hover:bg-teal-400 text-white font-semibold py-4 rounded-xl shadow-lg transition-all ${
+                    isSubmitting ? 'opacity-50 cursor-not-allowed' : ''
+                  }`}
                 >
-                  Send Message
+                  {isSubmitting ? 'Sending...' : 'Send Message'}
                 </button>
-              </div>
+              </form>
             </motion.div>
           </div>
         </motion.section>

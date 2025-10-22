@@ -1,4 +1,4 @@
-import { FaChalkboardTeacher } from "react-icons/fa";
+import { FaChalkboardTeacher, FaSeedling } from "react-icons/fa";
 import { BiSupport } from "react-icons/bi";
 import { MdOutlineHandshake } from "react-icons/md";
 
@@ -69,19 +69,19 @@ export const about_approach_data = [
   {
     id: 1,
     title: "Educate",
-    text: "We aim to provide advanced support by understanding the process and outlining the direction.",
+    text: "We're committed to advancing wound care education by providing accessible resources, training, and support that empower clinicians to deliver better care and improve patient outcomes.",
     icon: <FaChalkboardTeacher />
   },
   {
     id: 2,
     title: "Growth",
-    text: "Our dedicated clinical specialists offer expert support to assist with product selection, application techniques, and addressing specific patient needs.",
-    icon: <BiSupport />
+    text: "We're dedicated to driving growth in the wound care community by expanding access to innovative products, education, and partnerships that improve outcomes and elevate patient care.",
+    icon: <FaSeedling />
   },
   {
     id: 3,
     title: "Clawback Insurance",
-    text: "We are committed to making a difference in underserved communities around the world by providing access to high-quality wound care products and education.",
+    text: "We’ve partnered with a clawback insurance provider to protect healthcare partners while advancing access to quality wound care and education in underserved communities nationwide.",
     icon: <MdOutlineHandshake />
   },
 ];
