@@ -95,25 +95,39 @@ const PatientCard = ({ patient, onViewPdf, onEdit, onDelete, onPatientUpdate }) 
     
     try {
       setIvrLoading(true);
-      const token = localStorage.getItem('accessToken');
+      const token = localStorage.getItem('accessToken'); // ← FIXED: Changed from 'access_token'
       
-      console.log(`Fetching IVRs for patient ${patient.id}...`); // Debug log
+      console.log(`Fetching IVRs for patient ${patient.id}...`);
+      console.log('Token exists:', !!token);
       
-      const response = await fetch(`https://promedhealth-frontdoor-h4c4bkcxfkduezec.z02.azurefd.net/api/v1/patients/${patient.id}/ivr-forms/`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
+      // Try multiple authentication formats
+      const headers = {
+        'Content-Type': 'application/json',
+      };
+      
+      // Add authorization header if token exists
+      if (token) {
+        // Try Bearer format first
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+      
+      console.log('Request headers:', headers);
+      
+      const response = await fetch(`/api/v1/patients/${patient.id}/ivr-forms/`, {
+        method: 'GET',
+        headers: headers,
+        credentials: 'include', // Include cookies
       });
       
-      console.log('IVR fetch response status:', response.status); // Debug log
+      console.log('IVR fetch response status:', response.status);
       
       if (response.ok) {
         const data = await response.json();
-        console.log('IVR forms data:', data); // Debug log
+        console.log('IVR forms data:', data);
         setIvrCount(data.length);
       } else {
-        console.error('Failed to fetch IVR forms:', response.status);
+        const errorData = await response.json().catch(() => ({}));
+        console.error('Failed to fetch IVR forms:', response.status, errorData);
         setIvrCount(0);
       }
     } catch (error) {

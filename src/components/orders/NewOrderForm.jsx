@@ -9,6 +9,7 @@ import {
   MenuItem,
 } from "@mui/material";
 import { AuthContext } from "../../utils/context/auth";
+import { useFilter } from "../../utils/context/FilterContext";
 import OrderItem from "./OrderItem";
 import OrderSummary from "./OrderSummary";
 import toast from "react-hot-toast";
@@ -106,6 +107,7 @@ const NewOrderForm = ({ open, onClose, patient }) => {
   const [step, setStep] = useState(1);
   const totalSteps = 3;
   const { user, logout } = useContext(AuthContext);
+  const { triggerOrderRefresh } = useFilter();
   const [itemsData, setItemsData] = useState([]);
   const [selectedVariants, setSelectedVariants] = useState({});
   const [loading, setLoading] = useState(false);
@@ -133,7 +135,6 @@ const NewOrderForm = ({ open, onClose, patient }) => {
     }));
   };
 
-  // 🔍 Helper to safely format date strings
   const safeFormatDate = (dateStr) => {
     if (!dateStr) return "";
     try {
@@ -153,11 +154,8 @@ const NewOrderForm = ({ open, onClose, patient }) => {
       const accessToken = localStorage.getItem("accessToken");
       if (!accessToken) throw new Error("Authentication token not found.");
 
-      // const apiUrl = `${process.env.REACT_APP_API_URL}/products/`;
       const apiUrl =
         "https://promedhealth-frontdoor-h4c4bkcxfkduezec.z02.azurefd.net/api/v1/products/";
-      console.log("🔍 Fetching products from:", apiUrl);
-      console.log("🔍 REACT_APP_API_URL:", process.env.REACT_APP_API_URL);
 
       const response = await fetch(apiUrl, {
         headers: {
@@ -166,75 +164,24 @@ const NewOrderForm = ({ open, onClose, patient }) => {
         },
       });
 
-      console.log("📡 Response status:", response.status);
-      console.log(
-        "📡 Response headers:",
-        Object.fromEntries(response.headers.entries())
-      );
-      console.log("📡 Response URL:", response.url);
-
       if (!response.ok) {
-        // Try to get the response text to see what we're actually getting
-        const responseText = await response.text();
-        console.error("❌ Response not OK. Status:", response.status);
-        console.error(
-          "❌ Response body preview:",
-          responseText.substring(0, 500)
-        );
-
         if (response.status === 401) {
           logout();
           throw new Error("Session expired. Please log in again.");
         }
-
-        if (response.status === 404) {
-          throw new Error(`API endpoint not found: ${apiUrl}`);
-        }
-
         throw new Error(`Failed to fetch products. Status: ${response.status}`);
-      }
-
-      // Check content type before parsing
-      const contentType = response.headers.get("content-type");
-      console.log("📄 Content-Type:", contentType);
-
-      if (!contentType || !contentType.includes("application/json")) {
-        const responseText = await response.text();
-        console.error("❌ Not JSON response:", responseText.substring(0, 500));
-        throw new Error(
-          `Expected JSON but got ${contentType}. Check if the API endpoint is correct.`
-        );
       }
 
       const data = await response.json();
 
-      console.log("✅ Products fetched successfully");
-      console.log("📦 Total products:", data?.length);
-
       if (!Array.isArray(data)) {
-        console.error("❌ Response is not an array:", data);
         throw new Error("Invalid response format from server");
-      }
-
-      if (data.length > 0) {
-        console.log("📦 First product:", data[0]);
-      } else {
-        console.warn("⚠️ No products returned from API");
       }
 
       setItemsData(data);
     } catch (err) {
       console.error("❌ Product fetch error:", err);
-      console.error("❌ Error stack:", err.stack);
-
-      // More user-friendly error messages
-      let errorMessage = err.message;
-      if (err.message.includes("<!doctype")) {
-        errorMessage =
-          "API endpoint returning HTML instead of JSON. Please check your API configuration in Azure.";
-      }
-
-      setError(errorMessage);
+      setError(err.message);
     } finally {
       setLoading(false);
     }
@@ -247,7 +194,6 @@ const NewOrderForm = ({ open, onClose, patient }) => {
     }));
   };
 
-  // Calculate total area across ALL products
   const calculateTotalArea = () => {
     let total = 0;
     Object.entries(selectedVariants).forEach(([productId, variants]) => {
@@ -266,7 +212,6 @@ const NewOrderForm = ({ open, onClose, patient }) => {
     return total;
   };
 
-  // Calculate total price
   const total = Object.entries(selectedVariants).reduce(
     (sum, [productId, variants]) => {
       if (!Array.isArray(variants)) return sum;
@@ -283,7 +228,6 @@ const NewOrderForm = ({ open, onClose, patient }) => {
     0
   );
 
-  // Calculate wound dimensions and limits with safety checks
   const woundLength = parseFloat(patient?.wound_size_length) || 0;
   const woundWidth = parseFloat(patient?.wound_size_width) || 0;
   const woundArea = woundLength * woundWidth;
@@ -346,8 +290,6 @@ const NewOrderForm = ({ open, onClose, patient }) => {
       deliveryDateStr = formData.deliveryDate.toISOString().split("T")[0];
     }
 
-    console.log('USER: ', user)
-
     const orderPayload = {
       provider: user.id,
       patient: patient.id,
@@ -369,7 +311,6 @@ const NewOrderForm = ({ open, onClose, patient }) => {
         throw new Error("Authentication token not found. Please log in again.");
       }
 
-      // ✅ FIXED: Changed /products/ to /orders/
       const response = await fetch(
         "https://promedhealth-frontdoor-h4c4bkcxfkduezec.z02.azurefd.net/api/v1/orders/",
         {
@@ -382,11 +323,8 @@ const NewOrderForm = ({ open, onClose, patient }) => {
         }
       );
 
-      console.log("📡 Order submission response status:", response.status);
-
       if (!response.ok) {
         const errorData = await response.json();
-        console.error("❌ Order submission failed:", errorData);
         throw new Error(
           errorData.detail || errorData.error || "Failed to place order."
         );
@@ -395,10 +333,14 @@ const NewOrderForm = ({ open, onClose, patient }) => {
       const responseData = await response.json();
       console.log("✅ Order created successfully:", responseData);
 
+      triggerOrderRefresh();
+
       toast.success("Order confirmed and submitted successfully!");
+      
       onClose();
       setStep(1);
       setSelectedVariants({});
+      
     } catch (err) {
       console.error("❌ Order submission error:", err);
       toast.error(`Error: ${err.message}`);
@@ -409,14 +351,6 @@ const NewOrderForm = ({ open, onClose, patient }) => {
 
   useEffect(() => {
     if (open && user && patient) {
-      // 🔍 DEBUG LOG - Remove after troubleshooting
-      console.log("🔍 Modal opened with patient:", {
-        dob: patient?.date_of_birth,
-        dobType: typeof patient?.date_of_birth,
-        address: patient?.address,
-        city: patient?.city,
-      });
-
       setFormData({
         providerName: user?.full_name || "",
         facilityName: user?.profile?.facility || "",

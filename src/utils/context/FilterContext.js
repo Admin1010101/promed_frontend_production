@@ -6,13 +6,23 @@ export const FilterContext = createContext({
   setActivationFilter: () => {},
 });
 
+
 // Create the provider component
 export const FilterProvider = ({ children }) => {
   const [activationFilter, setActivationFilter] = useState("Activated");
+  const [orderRefreshTrigger, setOrderRefreshTrigger] = useState(0);
+
+  const triggerOrderRefresh = () => {
+    console.log("🔄 Triggering order history refresh");
+    setOrderRefreshTrigger(prev => prev + 1);
+  };
+  
 
   const value = {
     activationFilter,
     setActivationFilter,
+    orderRefreshTrigger,      
+    triggerOrderRefresh  
   };
 
   return (
