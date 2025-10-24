@@ -19,19 +19,27 @@ import NewOrderForm from "../../orders/NewOrderForm";
 import IvrFormModal from "./PatientIVR";
 import PatientIVRHistoryModal from "./PatientIVRHistoryModal";
 
+// ✅ Centralized API configuration
+const API_BASE_URL =
+  process.env.REACT_APP_API_URL ||
+  "https://promedhealth-frontdoor-h4c4bkcxfkduezec.z02.azurefd.net";
+
 const IVRStatusBadge = ({ status }) => {
   const colors = {
-    Approved:
+    approved:
       "bg-green-50 text-green-700 border border-green-200 dark:bg-green-900/20 dark:text-green-400 dark:border-green-800",
-    Pending:
+    pending:
       "bg-yellow-50 text-yellow-700 border border-yellow-200 dark:bg-yellow-900/20 dark:text-yellow-400 dark:border-yellow-800",
-    Denied:
+    denied:
       "bg-red-50 text-red-700 border border-red-200 dark:bg-red-900/20 dark:text-red-400 dark:border-red-800",
   };
+
+  const normalizedStatus = status?.toLowerCase() || "pending";
+
   return (
     <span
       className={`px-2.5 py-1 text-[11px] font-semibold rounded-md ${
-        colors[status] || colors.Pending
+        colors[normalizedStatus] || colors.pending
       }`}
     >
       {status || "Pending"}
@@ -40,8 +48,8 @@ const IVRStatusBadge = ({ status }) => {
 };
 
 const getPatientIvrStatus = (patient) => {
-  const status = patient?.latest_ivr_status || "pending";
-  return status.toLowerCase();
+  const status = patient?.latest_ivr_status_display || "No IVR Submitted";
+  return status;
 };
 
 const InfoRow = ({ icon: Icon, label, value }) => (
@@ -90,104 +98,171 @@ const PatientCard = ({
   const [openIvrModal, setOpenIvrModal] = useState(false);
   const [openIvrHistoryModal, setOpenIvrHistoryModal] = useState(false);
   const [notesRefreshTrigger, setNotesRefreshTrigger] = useState(0);
-  const [ivrPdfUrl, setIvrPdfUrl] = useState(patient.latestIvrPdfUrl || null);
-  const [ivrCount, setIvrCount] = useState(0);
-  const [ivrLoading, setIvrLoading] = useState(true);
+  const [ivrPdfUrl, setIvrPdfUrl] = useState(patient.latest_ivr_pdf_url || null);
+  const [ivrCount, setIvrCount] = useState(patient.ivr_count || 0);
+  const [ivrForms, setIvrForms] = useState([]); // ✅ Initialize as empty array
+  const [ivrLoading, setIvrLoading] = useState(false);
+  const [fetchError, setFetchError] = useState(null);
 
-  // Fetch IVR count when component mounts or patient ID changes
   useEffect(() => {
-    console.log("🔍 PatientCard useEffect triggered for patient:", patient?.id);
-    if (patient?.id) {
-      console.log("✅ Calling fetchIvrCount for patient:", patient.id);
-      fetchIvrCount();
-    } else {
-      console.log("❌ No patient ID found:", patient);
-    }
-  }, [patient?.id]);
+    console.group(
+      `🔍 Patient: ${patient.first_name} ${patient.last_name} (ID: ${patient.id})`
+    );
+    console.log("All patient props:", Object.keys(patient));
+    console.log("IVR-related props:", {
+      ivr_count: patient.ivr_count,
+      latest_ivr_status: patient.latest_ivr_status,
+      latest_ivr_status_display: patient.latest_ivr_status_display,
+      has_approved_ivr: patient.has_approved_ivr,
+      latest_ivr_pdf_url: patient.latest_ivr_pdf_url ? "exists" : "null",
+    });
+    console.groupEnd();
+  }, [patient]);
 
-  // Update IVR PDF URL when patient data changes
+  // ✅ Update IVR data from patient prop
   useEffect(() => {
-    setIvrPdfUrl(patient.latestIvrPdfUrl || null);
-  }, [patient.latestIvrPdfUrl]);
+    setIvrPdfUrl(patient.latest_ivr_pdf_url || null);
+    setIvrCount(patient.ivr_count || 0);
+  }, [patient.latest_ivr_pdf_url, patient.ivr_count]);
 
-  // PatientCard.jsx
-  // ... (around line 160)
-
+  // ✅ FIXED: Fetch IVR count with proper error handling and URL construction
   const fetchIvrCount = async () => {
-    if (!patient?.id) return;
+    if (!patient?.id) {
+      console.warn("⚠️ No patient ID provided to fetchIvrCount");
+      return;
+    }
 
     try {
       setIvrLoading(true);
+      setFetchError(null);
+      
       const token = localStorage.getItem("accessToken");
-      console.log('TOKEN: ', token)
 
       if (!token) {
-        console.error(
-          "❌ No authentication token found. Cannot fetch IVR count."
-        );
+        console.error("❌ No authentication token found");
+        setFetchError("No authentication token");
         setIvrCount(0);
+        setIvrForms([]);
         return;
       }
 
-      // ... (fetch call is correct) ...
-      const response = await fetch(
-        `https://promedhealth-frontdoor-h4c4bkcxfkduezec.z02.azurefd.net/api/v1/patients/${patient.id}/ivr-forms/`,
-        {
-          method: "GET",
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-          credentials: "include",
-        }
-      );
-      console.log("📋 IVR fetch response status:", response.status);
+      // ✅ FIXED: Ensure no duplicate /api/v1 in URL
+      const baseUrl = API_BASE_URL.replace(/\/api\/v1\/?$/, '');
+      const apiUrl = `${baseUrl}/api/v1/patients/${patient.id}/ivr-forms/`;
+      
+      console.log(`🔍 Fetching IVR forms for patient ${patient.id}`);
+      console.log(`📍 API URL: ${apiUrl}`);
+      console.log(`🔑 Token exists: ${!!token} (length: ${token.length})`);
 
-      // 🛑 CRITICAL FIX: Handle potential HTML response from server
+      const response = await fetch(apiUrl, {
+        method: "GET",
+        headers: {
+          "Authorization": `Bearer ${token}`,
+          "Content-Type": "application/json",
+          "Accept": "application/json",
+        },
+      });
+
+      console.log("📋 IVR fetch response status:", response.status);
+      console.log("📋 Response OK:", response.ok);
+
+      // ✅ Check content type before parsing
       const contentType = response.headers.get("content-type");
 
-      if (
-        response.ok &&
-        contentType &&
-        contentType.includes("application/json")
-      ) {
-        const data = await response.json();
-        console.log("✅ IVR forms data:", data);
+      if (!response.ok) {
+        // Handle different error scenarios
+        if (response.status === 401) {
+          const errorText = await response.text();
+          console.error("❌ 401 Unauthorized. Token may be expired or invalid.");
+          console.error("Response body:", errorText);
+          setFetchError("Authentication failed. Please log in again.");
+          setIvrCount(0);
+          setIvrForms([]);
+          return;
+        }
 
-        const approvedCount = data.filter(
-          (f) => f.status === "approved"
-        ).length;
-        const pendingCount = data.filter((f) => f.status === "pending").length;
+        if (response.status === 403) {
+          console.error("❌ 403 Forbidden. User doesn't have permission.");
+          setFetchError("Access denied");
+          setIvrCount(0);
+          setIvrForms([]);
+          return;
+        }
 
-        console.log(
-          `📊 IVR Stats - Total: ${data.length}, Approved: ${approvedCount}, Pending: ${pendingCount}`
-        );
+        if (response.status === 404) {
+          console.error("❌ 404 Not Found. Endpoint may not exist or patient not found.");
+          setFetchError("IVR endpoint not found");
+          setIvrCount(0);
+          setIvrForms([]);
+          return;
+        }
 
-        setIvrCount(data.length);
-      } else if (response.status === 401 || response.status === 403) {
-        // Explicitly handle authentication failures
-        console.error(
-          `❌ Authentication failed (${response.status}). Token might be expired.`
-        );
+        // Generic error
+        const errorText = await response.text();
+        console.error(`❌ HTTP ${response.status}:`, errorText);
+        setFetchError(`Server error: ${response.status}`);
         setIvrCount(0);
-      } else {
-        // Catch all other non-JSON responses (likely the HTML error page)
+        setIvrForms([]);
+        return;
+      }
+
+      // ✅ Validate JSON response
+      if (!contentType || !contentType.includes("application/json")) {
         const text = await response.text();
         console.error(
-          "❌ Failed to fetch IVR forms. Received non-JSON content (Status: " +
-            response.status +
-            "):",
-          text.substring(0, 50) + "..."
+          "❌ Expected JSON but received:",
+          contentType,
+          "\nBody preview:",
+          text.substring(0, 200)
         );
+        setFetchError("Invalid response format");
         setIvrCount(0);
+        setIvrForms([]);
+        return;
       }
+
+      const data = await response.json();
+      console.log("✅ IVR forms data:", data);
+
+      if (!Array.isArray(data)) {
+        console.error("❌ Expected array but got:", typeof data);
+        setFetchError("Invalid data format");
+        setIvrCount(0);
+        setIvrForms([]);
+        return;
+      }
+
+      const approvedCount = data.filter((f) => f.status === "approved").length;
+      const pendingCount = data.filter((f) => f.status === "pending").length;
+
+      console.log(
+        `📊 IVR Stats - Total: ${data.length}, Approved: ${approvedCount}, Pending: ${pendingCount}`
+      );
+
+      setIvrCount(data.length);
+      setIvrForms(data); // ✅ Store the forms data
+      setFetchError(null);
+
     } catch (error) {
-      console.error("❌ Error fetching IVR count:", error);
+      console.error("❌ Network or parsing error:", error);
+      setFetchError(error.message);
       setIvrCount(0);
+      setIvrForms([]);
     } finally {
       setIvrLoading(false);
     }
   };
+
+  // ✅ Only fetch on mount if patient ID exists
+  useEffect(() => {
+    if (patient?.id) {
+      console.log(
+        "🎯 PatientCard mounted, fetching IVR count for patient:",
+        patient.id
+      );
+      fetchIvrCount();
+    }
+  }, [patient?.id]);
 
   const formattedDate = patient.date_of_birth
     ? format(new Date(patient.date_of_birth), "M/d/yyyy")
@@ -227,7 +302,7 @@ const PatientCard = ({
   });
 
   const handleIvrFormComplete = (result) => {
-    console.log("IVR Form Submitted:", result);
+    console.log("✅ IVR Form Submitted:", result);
     setOpenIvrModal(false);
 
     if (result && result.sas_url) {
@@ -294,7 +369,7 @@ const PatientCard = ({
           </div>
 
           <div className="mt-2">
-            <IVRStatusBadge status={getPatientIvrStatus()} />
+            <IVRStatusBadge status={getPatientIvrStatus(patient)} />
           </div>
         </div>
 
@@ -397,7 +472,7 @@ const PatientCard = ({
                       <p className="text-xs font-semibold text-gray-900 dark:text-gray-100 truncate">
                         IVR Forms
                       </p>
-                      {!ivrLoading && ivrCount > 0 && (
+                      {!ivrLoading && !fetchError && ivrCount > 0 && (
                         <span className="inline-flex items-center justify-center px-2 py-0.5 text-[10px] font-bold text-teal-700 dark:text-teal-400 bg-teal-100 dark:bg-teal-900/30 rounded-full">
                           {ivrCount}
                         </span>
@@ -406,6 +481,8 @@ const PatientCard = ({
                     <p className="text-[10px] text-gray-500 dark:text-gray-400">
                       {ivrLoading
                         ? "Loading..."
+                        : fetchError
+                        ? `Error: ${fetchError}`
                         : ivrCount === 0
                         ? "No forms submitted"
                         : ivrCount === 1
@@ -417,7 +494,7 @@ const PatientCard = ({
 
                 <div className="flex items-center gap-1">
                   {/* Show checkmark if any IVR exists */}
-                  {!ivrLoading && ivrCount > 0 && (
+                  {!ivrLoading && !fetchError && ivrCount > 0 && (
                     <IoCheckmarkCircle
                       className="w-4 h-4 text-green-500 dark:text-green-400"
                       title="Forms Submitted"
@@ -425,7 +502,7 @@ const PatientCard = ({
                   )}
 
                   {/* View All IVRs Button */}
-                  {!ivrLoading && ivrCount > 0 && (
+                  {!ivrLoading && !fetchError && ivrCount > 0 && (
                     <motion.button
                       onClick={() => setOpenIvrHistoryModal(true)}
                       whileTap={{ scale: 0.95 }}
@@ -455,7 +532,7 @@ const PatientCard = ({
           {/* Orders */}
           <Section title="Orders" icon={FaShoppingCart}>
             <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-3">
-              {patient.ivrStatus === "Approved" ? (
+              {patient.has_approved_ivr ? (
                 <motion.button
                   onClick={() => setOpenOrderModal(true)}
                   whileTap={{ scale: 0.98 }}
@@ -518,6 +595,9 @@ const PatientCard = ({
         onClose={() => setOpenIvrHistoryModal(false)}
         patientId={patient.id}
         patientName={`${patient.first_name} ${patient.last_name}`}
+        ivrForms={ivrForms} // ✅ Pass the fetched data
+        loading={ivrLoading} // ✅ Pass loading state
+        error={fetchError} // ✅ Pass error state
       />
     </>
   );

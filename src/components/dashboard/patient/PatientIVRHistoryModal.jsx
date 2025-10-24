@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   IoClose,
@@ -12,58 +12,15 @@ import {
   IoRemoveCircle,
 } from 'react-icons/io5';
 
-const PatientIVRHistoryModal = ({ open, onClose, patientId, patientName }) => {
-  const [ivrForms, setIvrForms] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
-
-  useEffect(() => {
-    if (open && patientId) {
-      fetchPatientIVRs();
-    }
-  }, [open, patientId]);
-
-  const fetchPatientIVRs = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      
-      const token = localStorage.getItem('accessToken');
-      
-      if (!token) {
-        throw new Error('No authentication token found');
-      }
-
-      // ✅ FIXED: Use the correct new IVR endpoint
-      const response = await fetch(
-        `/api/v1/patients/${patientId}/ivr-forms/`,
-        {
-          method: 'GET',
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json',
-          },
-          credentials: 'include',
-        }
-      );
-      
-      if (!response.ok) {
-        throw new Error(`Failed to fetch IVR forms: ${response.status}`);
-      }
-      
-      const data = await response.json();
-      console.log('✅ Fetched IVR forms:', data);
-      setIvrForms(data);
-      
-    } catch (error) {
-      console.error('❌ Error fetching IVR forms:', error);
-      setError(error.message);
-      setIvrForms([]);
-    } finally {
-      setLoading(false);
-    }
-  };
-
+const PatientIVRHistoryModal = ({ 
+  open, 
+  onClose, 
+  patientId, 
+  patientName,
+  ivrForms = [],
+  loading = false,
+  error = null
+}) => {
   const formatDate = (dateString) => {
     if (!dateString) return 'N/A';
     const date = new Date(dateString);
@@ -76,9 +33,7 @@ const PatientIVRHistoryModal = ({ open, onClose, patientId, patientName }) => {
     });
   };
 
-  // ✅ FIXED: Map backend status values to display
   const getStatusBadge = (status) => {
-    // Backend uses: 'pending', 'approved', 'denied', 'cancelled', 'withdrawn'
     const normalizedStatus = status?.toLowerCase() || 'pending';
     
     const styles = {
