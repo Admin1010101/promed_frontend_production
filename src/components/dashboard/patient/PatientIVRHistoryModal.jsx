@@ -9,11 +9,13 @@ import {
   IoTimeOutline,
   IoCloseCircle,
   IoEyeOutline,
+  IoRemoveCircle,
 } from 'react-icons/io5';
 
 const PatientIVRHistoryModal = ({ open, onClose, patientId, patientName }) => {
   const [ivrForms, setIvrForms] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     if (open && patientId) {
@@ -24,24 +26,46 @@ const PatientIVRHistoryModal = ({ open, onClose, patientId, patientName }) => {
   const fetchPatientIVRs = async () => {
     try {
       setLoading(true);
-      const response = await fetch(`https://promedhealth-frontdoor-h4c4bkcxfkduezec.z02.azurefd.net/api/v1/patients/${patientId}/ivr-forms/`, {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('accessToken')}`,
-        },
-      });
+      setError(null);
       
-      if (response.ok) {
-        const data = await response.json();
-        setIvrForms(data);
+      const token = localStorage.getItem('accessToken');
+      
+      if (!token) {
+        throw new Error('No authentication token found');
       }
+
+      // ✅ FIXED: Use the correct new IVR endpoint
+      const response = await fetch(
+        `/api/v1/patients/${patientId}/ivr-forms/`,
+        {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+          credentials: 'include',
+        }
+      );
+      
+      if (!response.ok) {
+        throw new Error(`Failed to fetch IVR forms: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      console.log('✅ Fetched IVR forms:', data);
+      setIvrForms(data);
+      
     } catch (error) {
-      console.error('Error fetching IVR forms:', error);
+      console.error('❌ Error fetching IVR forms:', error);
+      setError(error.message);
+      setIvrForms([]);
     } finally {
       setLoading(false);
     }
   };
 
   const formatDate = (dateString) => {
+    if (!dateString) return 'N/A';
     const date = new Date(dateString);
     return date.toLocaleDateString('en-US', { 
       month: 'short', 
@@ -52,23 +76,39 @@ const PatientIVRHistoryModal = ({ open, onClose, patientId, patientName }) => {
     });
   };
 
+  // ✅ FIXED: Map backend status values to display
   const getStatusBadge = (status) => {
+    // Backend uses: 'pending', 'approved', 'denied', 'cancelled', 'withdrawn'
+    const normalizedStatus = status?.toLowerCase() || 'pending';
+    
     const styles = {
-      Approved: 'bg-green-50 text-green-700 border-green-200 dark:bg-green-900/20 dark:text-green-400 dark:border-green-800',
-      Pending: 'bg-yellow-50 text-yellow-700 border-yellow-200 dark:bg-yellow-900/20 dark:text-yellow-400 dark:border-yellow-800',
-      Denied: 'bg-red-50 text-red-700 border-red-200 dark:bg-red-900/20 dark:text-red-400 dark:border-red-800',
+      approved: 'bg-green-50 text-green-700 border-green-200 dark:bg-green-900/20 dark:text-green-400 dark:border-green-800',
+      pending: 'bg-yellow-50 text-yellow-700 border-yellow-200 dark:bg-yellow-900/20 dark:text-yellow-400 dark:border-yellow-800',
+      denied: 'bg-red-50 text-red-700 border-red-200 dark:bg-red-900/20 dark:text-red-400 dark:border-red-800',
+      cancelled: 'bg-gray-50 text-gray-700 border-gray-200 dark:bg-gray-900/20 dark:text-gray-400 dark:border-gray-800',
+      withdrawn: 'bg-orange-50 text-orange-700 border-orange-200 dark:bg-orange-900/20 dark:text-orange-400 dark:border-orange-800',
     };
     
     const icons = {
-      Approved: <IoCheckmarkCircle className="w-3.5 h-3.5" />,
-      Pending: <IoTimeOutline className="w-3.5 h-3.5" />,
-      Denied: <IoCloseCircle className="w-3.5 h-3.5" />,
+      approved: <IoCheckmarkCircle className="w-3.5 h-3.5" />,
+      pending: <IoTimeOutline className="w-3.5 h-3.5" />,
+      denied: <IoCloseCircle className="w-3.5 h-3.5" />,
+      cancelled: <IoRemoveCircle className="w-3.5 h-3.5" />,
+      withdrawn: <IoRemoveCircle className="w-3.5 h-3.5" />,
+    };
+
+    const displayText = {
+      approved: 'Approved',
+      pending: 'Pending',
+      denied: 'Denied',
+      cancelled: 'Cancelled',
+      withdrawn: 'Withdrawn',
     };
 
     return (
-      <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold rounded-md border ${styles[status] || styles.Pending}`}>
-        {icons[status] || icons.Pending}
-        {status || 'Pending'}
+      <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold rounded-md border ${styles[normalizedStatus] || styles.pending}`}>
+        {icons[normalizedStatus] || icons.pending}
+        {displayText[normalizedStatus] || 'Pending'}
       </span>
     );
   };
@@ -108,6 +148,16 @@ const PatientIVRHistoryModal = ({ open, onClose, patientId, patientName }) => {
               <div className="flex items-center justify-center py-12">
                 <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-teal-600"></div>
               </div>
+            ) : error ? (
+              <div className="text-center py-12">
+                <IoCloseCircle className="w-16 h-16 text-red-400 mx-auto mb-4" />
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
+                  Error Loading IVR Forms
+                </h3>
+                <p className="text-gray-600 dark:text-gray-400">
+                  {error}
+                </p>
+              </div>
             ) : ivrForms.length === 0 ? (
               <div className="text-center py-12">
                 <IoDocumentsOutline className="w-16 h-16 text-gray-400 mx-auto mb-4" />
@@ -141,7 +191,7 @@ const PatientIVRHistoryModal = ({ open, onClose, patientId, patientName }) => {
                             </h4>
                             <div className="flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400 mt-0.5">
                               <IoCalendarOutline className="w-3.5 h-3.5" />
-                              {formatDate(form.date_created)}
+                              {formatDate(form.submitted_at)}
                             </div>
                           </div>
                         </div>
@@ -152,25 +202,38 @@ const PatientIVRHistoryModal = ({ open, onClose, patientId, patientName }) => {
                             <p className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">
                               Status
                             </p>
-                            {getStatusBadge(form.ivr_status)}
+                            {getStatusBadge(form.status)}
                           </div>
                           
-                          {form.primary_insurance && (
+                          {form.reviewed_at && (
                             <div>
                               <p className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">
-                                Primary Insurance
+                                Reviewed
                               </p>
-                              <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
-                                {form.primary_insurance}
+                              <p className="text-xs text-gray-900 dark:text-gray-100">
+                                {formatDate(form.reviewed_at)}
                               </p>
+                              {form.reviewed_by_name && (
+                                <p className="text-xs text-gray-500 dark:text-gray-400">
+                                  by {form.reviewed_by_name}
+                                </p>
+                              )}
                             </div>
                           )}
                         </div>
 
                         {/* Additional Info */}
-                        {form.form_data?.physicianName && (
-                          <div className="text-xs text-gray-600 dark:text-gray-400">
-                            <span className="font-semibold">Physician:</span> {form.form_data.physicianName}
+                        {form.physician_name && (
+                          <div className="text-xs text-gray-600 dark:text-gray-400 mb-1">
+                            <span className="font-semibold">Physician:</span> {form.physician_name}
+                          </div>
+                        )}
+                        
+                        {form.admin_notes && (
+                          <div className="mt-2 p-2 bg-blue-50 dark:bg-blue-900/20 rounded border border-blue-200 dark:border-blue-800">
+                            <p className="text-xs text-blue-900 dark:text-blue-300">
+                              <span className="font-semibold">Note:</span> {form.admin_notes}
+                            </p>
                           </div>
                         )}
                       </div>
@@ -227,6 +290,18 @@ const PatientIVRHistoryModal = ({ open, onClose, patientId, patientName }) => {
           <div className="flex items-center justify-between p-6 border-t border-gray-200 dark:border-gray-700">
             <p className="text-sm text-gray-600 dark:text-gray-400">
               Total Forms: <span className="font-semibold">{ivrForms.length}</span>
+              {ivrForms.length > 0 && (
+                <>
+                  {' | '}
+                  <span className="text-green-600 dark:text-green-400">
+                    Approved: {ivrForms.filter(f => f.status === 'approved').length}
+                  </span>
+                  {' | '}
+                  <span className="text-yellow-600 dark:text-yellow-400">
+                    Pending: {ivrForms.filter(f => f.status === 'pending').length}
+                  </span>
+                </>
+              )}
             </p>
             <button
               onClick={onClose}

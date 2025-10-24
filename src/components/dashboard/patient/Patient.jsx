@@ -8,13 +8,10 @@ import { format } from "date-fns";
 import { FaSearch, FaSlidersH, FaPlus } from "react-icons/fa";
 import FillablePdf from "../documemts/FillablePdf";
 import PatientCard from "./PatientCard";
-import toast from "react-hot-toast";
-import { states } from "../../../utils/data";
 import NewPatientForm from "./NewPatientForm";
+import toast from "react-hot-toast";
 
-
-// --- (Unchanged Component/Config Blocks) ---
-
+// Animation variants
 const modalVariants = {
   hidden: { opacity: 0, scale: 0.95 },
   visible: {
@@ -37,25 +34,7 @@ const buttonTap = {
   scale: 0.95,
 };
 
-const IVRStatusBadge = ({ status }) => {
-  const colors = {
-    Approved:
-      "bg-green-100 dark:bg-green-800 text-green-700 dark:text-green-200",
-    Pending:
-      "bg-yellow-100 dark:bg-yellow-800 text-yellow-700 dark:text-yellow-200",
-    Denied: "bg-red-100 dark:bg-red-800 text-red-700 dark:text-red-200",
-  };
-  return (
-    <span
-      className={`px-2 py-1 text-xs font-semibold rounded ${colors[status]}`}
-    >
-      {status}
-    </span>
-  );
-};
-
-// 💥 FilterCommandCenter - Only needs props for its *local* state (ivrFilter, patientsPerPage)
-// It will consume activationFilter from context internally.
+// Filter Command Center Modal Component
 const FilterCommandCenter = ({
   open,
   handleClose,
@@ -64,7 +43,6 @@ const FilterCommandCenter = ({
   patientsPerPage,
   setPatientsPerPage,
 }) => {
-  // 💥 CONTEXT: Consume activationFilter and setActivationFilter
   const { activationFilter, setActivationFilter } = useContext(FilterContext);
 
   const filterModalStyle = {
@@ -79,12 +57,6 @@ const FilterCommandCenter = ({
     boxShadow: "none",
     outline: "none",
   };
-
-  const handlePatientsPerPageChange = (e) => {
-    setPatientsPerPage(Number(e.target.value));
-  };
-
-  
 
   return (
     <Modal
@@ -102,6 +74,7 @@ const FilterCommandCenter = ({
           exit="exit"
           variants={modalVariants}
         >
+          {/* Close Button */}
           <button
             onClick={handleClose}
             className="absolute top-3 right-3 text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-100 transition"
@@ -122,10 +95,12 @@ const FilterCommandCenter = ({
               />
             </svg>
           </button>
+
           <h3 className="text-xl font-bold text-gray-800 dark:text-gray-100 mb-6 border-b border-gray-200 dark:border-gray-700 pb-2 text-center">
             Patient Filters
           </h3>
 
+          {/* IVR Status Filter */}
           <div className="mb-6">
             <label
               htmlFor="ivr-filter"
@@ -143,62 +118,53 @@ const FilterCommandCenter = ({
               <option value="Approved">Approved</option>
               <option value="Pending">Pending</option>
               <option value="Denied">Denied</option>
+              <option value="No IVR Submitted">No IVR Submitted</option>
             </select>
           </div>
 
+          {/* Activation Filter */}
           <div className="mb-6">
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
               Filter by Activation:
             </label>
             <div className="flex space-x-4 p-2 border border-gray-300 dark:border-gray-600 rounded-md bg-gray-50 dark:bg-gray-700">
-              <label
-                htmlFor="active-all"
-                className="flex items-center text-sm text-gray-700 dark:text-gray-200"
-              >
+              <label className="flex items-center text-sm text-gray-700 dark:text-gray-200">
                 <input
                   type="radio"
-                  id="active-all"
                   name="activation-filter"
                   value=""
                   checked={activationFilter === ""}
                   onChange={(e) => setActivationFilter(e.target.value)}
-                  className="mr-2 text-teal-500 focus:ring-teal-500 dark:focus:ring-teal-400"
+                  className="mr-2 text-teal-500 focus:ring-teal-500"
                 />
                 All
               </label>
-              <label
-                htmlFor="active-activated"
-                className="flex items-center text-sm text-gray-700 dark:text-gray-200"
-              >
+              <label className="flex items-center text-sm text-gray-700 dark:text-gray-200">
                 <input
                   type="radio"
-                  id="active-activated"
                   name="activation-filter"
                   value="Activated"
                   checked={activationFilter === "Activated"}
                   onChange={(e) => setActivationFilter(e.target.value)}
-                  className="mr-2 text-teal-500 focus:ring-teal-500 dark:focus:ring-teal-400 "
+                  className="mr-2 text-teal-500 focus:ring-teal-500"
                 />
                 Activated
               </label>
-              <label
-                htmlFor="active-deactivated"
-                className="flex items-center text-sm text-gray-700 dark:text-gray-200"
-              >
+              <label className="flex items-center text-sm text-gray-700 dark:text-gray-200">
                 <input
                   type="radio"
-                  id="active-deactivated"
                   name="activation-filter"
                   value="Deactivated"
                   checked={activationFilter === "Deactivated"}
                   onChange={(e) => setActivationFilter(e.target.value)}
-                  className="mr-2 text-teal-500 focus:ring-teal-500 dark:focus:ring-teal-400"
+                  className="mr-2 text-teal-500 focus:ring-teal-500"
                 />
                 Deactivated
               </label>
             </div>
           </div>
 
+          {/* Patients Per Page */}
           <div>
             <label
               htmlFor="patients-per-page"
@@ -209,10 +175,10 @@ const FilterCommandCenter = ({
             <select
               id="patients-per-page"
               value={patientsPerPage}
-              onChange={handlePatientsPerPageChange}
+              onChange={(e) => setPatientsPerPage(Number(e.target.value))}
               className="w-full bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 border border-gray-300 dark:border-gray-600 rounded-md px-3 py-2 text-sm focus:ring-teal-500 focus:border-teal-500 transition"
             >
-              {[5, 10, 15, 25].map((num) => (
+              {[5, 10, 15, 25, 50].map((num) => (
                 <option key={num} value={num}>
                   {num}
                 </option>
@@ -232,16 +198,14 @@ const FilterCommandCenter = ({
     </Modal>
   );
 };
-// ----------------------------------------------------------------------
 
-// 💥 Patients component no longer accepts activationFilter as a prop
+// Main Patients Component
 const Patients = () => {
   const { user, getPatients, postPatient, updatePatient, deletePatient } =
     useContext(AuthContext);
-
-  // 💥 CONTEXT: Consume activationFilter from the global state
   const { activationFilter } = useContext(FilterContext);
 
+  // State management
   const [patients, setPatients] = useState([]);
   const [loading, setLoading] = useState(true);
   const [errors, setErrors] = useState({});
@@ -255,7 +219,9 @@ const Patients = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [savePage, setSavePage] = useState(1);
   const [editingPatient, setEditingPatient] = useState(null);
-  const [formData, setFormData] = useState({
+
+  // Initial form state
+  const initialFormState = {
     first_name: "",
     last_name: "",
     middle_initial: "",
@@ -273,21 +239,13 @@ const Patients = () => {
     tertiary_insurance: "",
     tertiary_insurance_number: "",
     medical_record_number: "",
-    ivrStatus: "Pending",
-    date_created: "",
-    date_updated: "",
     wound_size_length: "",
     wound_size_width: "",
-  });
-
-  const listContainerVariants = {
-    visible: {
-      transition: {
-        staggerChildren: 0.08,
-      },
-    },
   };
 
+  const [formData, setFormData] = useState(initialFormState);
+
+  // Phone number formatter
   const formatPhoneNumberToE164 = (phone) => {
     if (!phone) return "";
     const digitsOnly = phone.replace(/\D/g, "");
@@ -301,27 +259,34 @@ const Patients = () => {
     return `+${digitsOnly}`;
   };
 
-  const ValidateForm = () => {
+  // Form validation
+  const validateForm = () => {
     const newErrors = {};
-    if (!formData.first_name.trim())
+    
+    if (!formData.first_name.trim()) {
       newErrors.first_name = "First name is required";
-    if (!formData.last_name.trim())
+    }
+    
+    if (!formData.last_name.trim()) {
       newErrors.last_name = "Last name is required";
-    if (!formData.date_of_birth)
+    }
+    
+    if (!formData.date_of_birth) {
       newErrors.date_of_birth = "Date of birth is required";
+    }
+    
     if (formData.phone_number) {
       const digitsOnly = formData.phone_number.replace(/\D/g, "");
       if (digitsOnly.length !== 10) {
         newErrors.phone_number = "Phone number must be 10 digits (US format)";
       }
     }
+    
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
-  // ----------------------------------------------------------------------
-  // Patient Fetching Hook (Unchanged)
-  // ----------------------------------------------------------------------
+  // Fetch patients from API
   const fetchPatients = useCallback(async () => {
     if (!user || !getPatients) {
       setLoading(true);
@@ -335,38 +300,33 @@ const Patients = () => {
       if (result.success) {
         setPatients(result.data);
       } else {
-        console.error(
-          "Fetch returned a non-success status. Error:",
-          result.error
-        );
+        console.error("Fetch returned non-success status:", result.error);
+        toast.error("Failed to load patients.");
       }
     } catch (error) {
-      console.error("Error during patient fetch:", error);
+      console.error("Error fetching patients:", error);
       toast.error("An error occurred while loading patients.");
     } finally {
       setLoading(false);
     }
   }, [user, getPatients]);
 
+  // Load patients on mount
   useEffect(() => {
     fetchPatients();
   }, [fetchPatients]);
 
-  // ----------------------------------------------------------------------
-  // Pagination/Filter Effect (NOW DEPENDS ON CONTEXT VALUE)
-  // ----------------------------------------------------------------------
+  // Reset pagination when filters change
   useEffect(() => {
-    // This effect runs whenever a filtering criteria changes
     if (searchTerm || ivrFilter || activationFilter) {
       setSavePage(currentPage);
       setCurrentPage(1);
     } else {
       setCurrentPage(savePage);
     }
-  }, [searchTerm, ivrFilter, activationFilter, patientsPerPage]); // activationFilter is now reactive
+  }, [searchTerm, ivrFilter, activationFilter]);
 
-  // ... (All other functions remain unchanged) ...
-
+  // Handle input changes
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({
@@ -375,63 +335,46 @@ const Patients = () => {
     }));
   };
 
-const handlePatientUpdate = useCallback(async (patientId) => {
-    const currentPatients = patients;
-    const patientIndex = currentPatients.findIndex(p => p.id === patientId);
-
-    if (patientIndex === -1) {
+  // Handle patient update after IVR submission
+  const handlePatientUpdate = useCallback(
+    async (patientId) => {
+      try {
         await fetchPatients();
-        return;
-    }
-    try {
-        await fetchPatients();
-        toast.success(`Patient ${patientId} updated successfully.`);
-    } catch (error) {
-        console.error("Error refreshing patient after VR submission:", error);
-        toast.error("Failed to refresh patient data after submission.");
-    }
-}, [patients, fetchPatients]); // Depend on `patients` and the `fetchPatients` hook
+        toast.success("Patient information updated successfully.");
+      } catch (error) {
+        console.error("Error refreshing patient after update:", error);
+        toast.error("Failed to refresh patient data.");
+      }
+    },
+    [fetchPatients]
+  );
 
+  // Reset form to initial state
   const resetForm = () => {
-    setFormData({
-      first_name: "",
-      last_name: "",
-      middle_initial: "",
-      date_of_birth: "",
-      email: "",
-      address: "",
-      city: "",
-      state: "",
-      zip_code: "",
-      phone_number: "",
-      primary_insurance: "",
-      primary_insurance_number: "",
-      secondary_insurance: "",
-      secondary_insurance_number: "",
-      tertiary_insurance: "",
-      tertiary_insurance_number: "",
-      medical_record_number: "",
-      ivrStatus: "Pending",
-      wound_size_length: "",
-      wound_size_width: "",
-    });
+    setFormData(initialFormState);
     setErrors({});
     setEditingPatient(null);
     setOpen(false);
   };
 
+  // Save patient (create or update)
   const handleSavePatient = async () => {
     setErrors({});
-    if (!ValidateForm()) return;
+    
+    if (!validateForm()) {
+      return;
+    }
 
-    const newPatientData = {
+    const patientData = {
       ...formData,
       phone_number: formatPhoneNumberToE164(formData.phone_number),
     };
 
     try {
       if (editingPatient) {
-        const res = await updatePatient(editingPatient.id, newPatientData);
+        // Update existing patient
+        const res = await updatePatient(editingPatient.id, patientData);
+        
         if (res.success) {
           setPatients((prev) =>
             prev.map((p) => (p.id === editingPatient.id ? res.data : p))
@@ -439,38 +382,42 @@ const handlePatientUpdate = useCallback(async (patientId) => {
           toast.success("Patient profile updated successfully!");
         } else {
           console.error("Failed to update patient:", res.error);
-          toast.error("Failed to update patient.");
+          toast.error(res.error || "Failed to update patient.");
         }
       } else {
-        const res = await postPatient(newPatientData);
-        console.log("🔍 POST Patient Response:", res);
-        console.log("🔍 Success:", res.success);
-        console.log("🔍 Data:", res.data);
+        // Create new patient
+        const res = await postPatient(patientData);
+        
         if (res.success) {
-          // ✅ ADD: Force refresh by fetching all patients again
-          await fetchPatients();
+          await fetchPatients(); // Refresh list to get all IVR data
           toast.success("New patient added successfully!");
         } else {
           console.error("Failed to add patient:", res.error);
-          toast.error("Failed to add new patient.");
+          toast.error(res.error || "Failed to add new patient.");
         }
       }
+      
+      resetForm();
     } catch (error) {
-      console.log("Error saving patient:", error);
+      console.error("Error saving patient:", error);
       toast.error("Error saving patient data.");
     }
-    resetForm();
   };
 
+  // Edit patient
   const handleEditPatient = (patient) => {
     try {
       if (!patient || typeof patient !== "object") {
         console.error("Invalid patient data:", patient);
+        toast.error("Invalid patient data.");
         return;
       }
+
       const sanitizedPatient = {};
-      Object.entries(formData).forEach(([key, _]) => {
+      
+      Object.entries(initialFormState).forEach(([key]) => {
         let value = patient[key];
+        
         if (key === "date_of_birth") {
           try {
             sanitizedPatient[key] = value
@@ -484,6 +431,7 @@ const handlePatientUpdate = useCallback(async (patientId) => {
           sanitizedPatient[key] = value ?? "";
         }
       });
+
       setFormData(sanitizedPatient);
       setEditingPatient(patient);
       setOpen(true);
@@ -493,55 +441,61 @@ const handlePatientUpdate = useCallback(async (patientId) => {
     }
   };
 
+  // Delete patient
   const handleDeletePatient = async (patientId) => {
     if (
-      window.confirm(
+      !window.confirm(
         "Are you sure you want to delete this patient? This action cannot be undone."
       )
     ) {
-      try {
-        const res = await deletePatient(patientId);
-        if (res.success) {
-          setPatients((prev) => prev.filter((p) => p.id !== patientId));
-          toast.success("Patient deleted successfully!");
-        } else {
-          console.error("Failed to delete patient:", res.error);
-          toast.error("Failed to delete patient.");
-        }
-      } catch (error) {
-        console.error("Error deleting patient:", error);
-        toast.error("Error deleting patient.");
+      return;
+    }
+
+    try {
+      const res = await deletePatient(patientId);
+      
+      if (res.success) {
+        setPatients((prev) => prev.filter((p) => p.id !== patientId));
+        toast.success("Patient deleted successfully!");
+      } else {
+        console.error("Failed to delete patient:", res.error);
+        toast.error(res.error || "Failed to delete patient.");
       }
+    } catch (error) {
+      console.error("Error deleting patient:", error);
+      toast.error("Error deleting patient.");
     }
   };
 
-  // ----------------------------------------------------------------------
-  // Patient Filtering Logic (Unchanged)
-  // ----------------------------------------------------------------------
+  // Filter patients based on search and filters
   const filteredPatients = patients.filter((patient) => {
-    const fullName =
-      `${patient.first_name} ${patient.last_name} ${patient.middle_initial}`.toLowerCase();
+    const fullName = `${patient.first_name || ""} ${patient.last_name || ""} ${
+      patient.middle_initial || ""
+    }`.toLowerCase();
+    
     const medRecord = patient.medical_record_number?.toLowerCase() || "";
-    const matchesIvrFilter = ivrFilter ? patient.ivrStatus === ivrFilter : true;
+    
+    const searchMatch =
+      fullName.includes(searchTerm.toLowerCase()) ||
+      medRecord.includes(searchTerm.toLowerCase());
 
-    // activationFilter is now consumed from context
+    const ivrStatusDisplay = patient.latest_ivr_status_display || "No IVR Submitted";
+    const ivrMatch = ivrFilter ? ivrStatusDisplay === ivrFilter : true;
+
     const activationMatch =
       !activationFilter || patient.activate_Account === activationFilter;
 
-    return (
-      (fullName.includes(searchTerm.toLowerCase()) ||
-        medRecord.includes(searchTerm.toLowerCase())) &&
-      matchesIvrFilter &&
-      activationMatch
-    );
+    return searchMatch && ivrMatch && activationMatch;
   });
-  // ... (Pagination and PDF functions remain unchanged) ...
 
+  // Sort patients (active first)
   const sortedPatients = [...filteredPatients].sort((a, b) => {
-    const active = (status) => ["Approved", "Pending"].includes(status);
-    return active(b.ivrStatus) - active(a.ivrStatus);
+    const aActive = a.activate_Account === "Activated" ? 1 : 0;
+    const bActive = b.activate_Account === "Activated" ? 1 : 0;
+    return bActive - aActive;
   });
 
+  // Pagination
   const indexOfLastPatient = currentPage * patientsPerPage;
   const indexOfFirstPatient = indexOfLastPatient - patientsPerPage;
   const currentPatients = sortedPatients.slice(
@@ -550,11 +504,13 @@ const handlePatientUpdate = useCallback(async (patientId) => {
   );
   const totalPages = Math.ceil(sortedPatients.length / patientsPerPage);
 
+  // View PDF handler
   const handleViewPdf = (patient) => {
     setSelectedPatient(patient);
     setViewPdfModalOpen(true);
   };
 
+  // Modal styles
   const modalStyle = {
     position: "absolute",
     top: "50%",
@@ -567,6 +523,7 @@ const handlePatientUpdate = useCallback(async (patientId) => {
     outline: "none",
   };
 
+  // Loading state
   if (loading || !user) {
     return (
       <div className="flex justify-center items-center min-h-[400px]">
@@ -575,11 +532,12 @@ const handlePatientUpdate = useCallback(async (patientId) => {
     );
   }
 
-  // ----------------------------------------------------------------------
-  // Render
-  // ----------------------------------------------------------------------
+  // Active filter count
+  const activeFilterCount = [ivrFilter, activationFilter].filter(Boolean).length;
+
   return (
     <div className="max-w-5xl mx-auto mt-10 p-6 bg-white dark:bg-gray-900 shadow-lg rounded-lg transition-colors duration-300">
+      {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between sm:items-center mb-6 space-y-3 sm:space-y-0">
         <h2 className="text-2xl font-semibold text-gray-800 dark:text-gray-100">
           Patient Management
@@ -588,50 +546,53 @@ const handlePatientUpdate = useCallback(async (patientId) => {
         <motion.button
           onClick={() => {
             setEditingPatient(null);
+            setFormData(initialFormState);
             setOpen(true);
           }}
-          className="w-full sm:w-auto border border-teal-500 text-teal-500 hover:bg-teal-500 hover:text-white dark:hover:text-white dark:text-teal-400 dark:border-teal-400 dark:hover:bg-teal-500 px-2 py-1 rounded-full transition-all text-xs flex items-center justify-center gap-1"
+          className="w-full sm:w-auto border border-teal-500 text-teal-500 hover:bg-teal-500 hover:text-white dark:text-teal-400 dark:border-teal-400 dark:hover:bg-teal-500 px-4 py-2 rounded-full transition-all text-sm flex items-center justify-center gap-2"
           whileTap={buttonTap}
         >
           <FaPlus className="w-3 h-3" /> New Patient
         </motion.button>
       </div>
 
-      {/* Search and Filter Control Block */}
+      {/* Search and Filter Controls */}
       <div className="flex flex-col sm:flex-row items-center justify-between mb-5 gap-3">
         {/* Search Input */}
         <div className="relative flex items-center w-full sm:max-w-xs md:max-w-md">
           <input
             type="text"
             placeholder="Search by Name or Med Record No."
-            className="w-full px-2 py-1 pl-10 text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-full focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent transition-all duration-300 text-sm"
+            className="w-full px-4 py-2 pl-10 text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-full focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent transition-all duration-300 text-sm"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
-          <div className="absolute inset-y-0 left-0 flex items-center justify-center w-8 h-8 bg-teal-500 rounded-full">
-            <FaSearch className="text-white text-sm" />
+          <div className="absolute inset-y-0 left-0 flex items-center justify-center w-10 h-full">
+            <FaSearch className="text-teal-500 text-sm ml-3" />
           </div>
         </div>
 
-        {/* Filter/Command Center Button */}
+        {/* Filter Button */}
         <motion.button
           onClick={() => setFilterModalOpen(true)}
-          className="flex items-center gap-2 px-4 py-1 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 bg-gray-50 dark:bg-gray-700 rounded-full text-sm font-medium hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors duration-300 w-full sm:w-auto"
+          className="flex items-center gap-2 px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 bg-gray-50 dark:bg-gray-700 rounded-full text-sm font-medium hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors duration-300 w-full sm:w-auto"
           whileTap={buttonTap}
         >
           <FaSlidersH className="w-4 h-4" />
           <span className="flex items-center space-x-1">
             <span>Filters</span>
-            <span className="text-xs font-semibold text-teal-500 dark:text-teal-400">
-              ({[ivrFilter, activationFilter].filter(Boolean).length})
-            </span>
+            {activeFilterCount > 0 && (
+              <span className="text-xs font-semibold text-teal-500 dark:text-teal-400">
+                ({activeFilterCount})
+              </span>
+            )}
           </span>
         </motion.button>
       </div>
 
       {/* Patient Cards List */}
       <motion.div
-        className="space-y-6"
+        className="space-y-4"
         variants={listContainerVariants}
         initial="hidden"
         animate="visible"
@@ -659,57 +620,63 @@ const handlePatientUpdate = useCallback(async (patientId) => {
           )}
         </AnimatePresence>
       </motion.div>
-      <div className="flex justify-center items-center mt-6 space-x-2 sm:space-x-4">
-        <motion.button
-          onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
-          disabled={currentPage === 1}
-          className="px-2 py-1 sm:px-3 sm:py-2 rounded-full border bg-gray-100 dark:bg-gray-700 dark:border-gray-600 disabled:opacity-50 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors duration-300"
-          whileTap={currentPage !== 1 ? buttonTap : {}}
-        >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            fill="none"
-            viewBox="0 0 24 24"
-            strokeWidth={2}
-            stroke="currentColor"
-            className="w-4 h-4 sm:w-5 sm:h-5"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              d="M15.75 19.5L8.25 12l7.5-7.5"
-            />
-          </svg>
-        </motion.button>
-        <span className="text-sm font-medium text-gray-600 dark:text-gray-300 px-3 py-1 sm:px-4 sm:py-2 rounded-full border border-gray-300 dark:border-gray-600">
-          Page {currentPage} of {totalPages}
-        </span>
-        <motion.button
-          onClick={() =>
-            setCurrentPage((prev) => Math.min(prev + 1, totalPages))
-          }
-          disabled={currentPage === totalPages}
-          className="px-2 py-1 sm:px-3 sm:py-2 rounded-full border bg-gray-100 dark:bg-gray-700 dark:border-gray-600 disabled:opacity-50 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors duration-300"
-          whileTap={currentPage !== totalPages ? buttonTap : {}}
-        >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            fill="none"
-            viewBox="0 0 24 24"
-            strokeWidth={2}
-            stroke="currentColor"
-            className="w-4 h-4 sm:w-5 sm:h-5"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              d="M8.25 4.5l7.5 7.5-7.5 7.5"
-            />
-          </svg>
-        </motion.button>
-      </div>
 
-      {/* MODAL 2: Filter Command Center */}
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <div className="flex justify-center items-center mt-6 space-x-2 sm:space-x-4">
+          <motion.button
+            onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+            disabled={currentPage === 1}
+            className="px-3 py-2 rounded-full border bg-gray-100 dark:bg-gray-700 dark:border-gray-600 disabled:opacity-50 disabled:cursor-not-allowed text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors duration-300"
+            whileTap={currentPage !== 1 ? buttonTap : {}}
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+              strokeWidth={2}
+              stroke="currentColor"
+              className="w-5 h-5"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M15.75 19.5L8.25 12l7.5-7.5"
+              />
+            </svg>
+          </motion.button>
+
+          <span className="text-sm font-medium text-gray-600 dark:text-gray-300 px-4 py-2 rounded-full border border-gray-300 dark:border-gray-600">
+            Page {currentPage} of {totalPages}
+          </span>
+
+          <motion.button
+            onClick={() =>
+              setCurrentPage((prev) => Math.min(prev + 1, totalPages))
+            }
+            disabled={currentPage === totalPages}
+            className="px-3 py-2 rounded-full border bg-gray-100 dark:bg-gray-700 dark:border-gray-600 disabled:opacity-50 disabled:cursor-not-allowed text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors duration-300"
+            whileTap={currentPage !== totalPages ? buttonTap : {}}
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+              strokeWidth={2}
+              stroke="currentColor"
+              className="w-5 h-5"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M8.25 4.5l7.5 7.5-7.5 7.5"
+              />
+            </svg>
+          </motion.button>
+        </div>
+      )}
+
+      {/* Filter Command Center Modal */}
       <AnimatePresence>
         {filterModalOpen && (
           <FilterCommandCenter
@@ -719,13 +686,15 @@ const handlePatientUpdate = useCallback(async (patientId) => {
             setIvrFilter={setIvrFilter}
             patientsPerPage={patientsPerPage}
             setPatientsPerPage={setPatientsPerPage}
-            // 💥 activationFilter and setActivationFilter are now handled by Context!
           />
         )}
       </AnimatePresence>
 
-      {/* MODAL 3: PDF Viewer (Unchanged) */}
-      <Modal open={viewPdfModalOpen} onClose={() => setViewPdfModalOpen(false)}>
+      {/* PDF Viewer Modal */}
+      <Modal
+        open={viewPdfModalOpen}
+        onClose={() => setViewPdfModalOpen(false)}
+      >
         <Box sx={{ ...modalStyle, maxWidth: 900 }}>
           <FillablePdf
             patient={selectedPatient}
@@ -733,7 +702,8 @@ const handlePatientUpdate = useCallback(async (patientId) => {
           />
         </Box>
       </Modal>
-      {/* MODAL 1: Patient Details (Unchanged) */}
+
+      {/* Patient Form Modal */}
       <Modal open={open} onClose={resetForm}>
         <Box
           sx={{

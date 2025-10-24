@@ -21,15 +21,27 @@ import PatientIVRHistoryModal from "./PatientIVRHistoryModal";
 
 const IVRStatusBadge = ({ status }) => {
   const colors = {
-    Approved: "bg-green-50 text-green-700 border border-green-200 dark:bg-green-900/20 dark:text-green-400 dark:border-green-800",
-    Pending: "bg-yellow-50 text-yellow-700 border border-yellow-200 dark:bg-yellow-900/20 dark:text-yellow-400 dark:border-yellow-800",
-    Denied: "bg-red-50 text-red-700 border border-red-200 dark:bg-red-900/20 dark:text-red-400 dark:border-red-800",
+    Approved:
+      "bg-green-50 text-green-700 border border-green-200 dark:bg-green-900/20 dark:text-green-400 dark:border-green-800",
+    Pending:
+      "bg-yellow-50 text-yellow-700 border border-yellow-200 dark:bg-yellow-900/20 dark:text-yellow-400 dark:border-yellow-800",
+    Denied:
+      "bg-red-50 text-red-700 border border-red-200 dark:bg-red-900/20 dark:text-red-400 dark:border-red-800",
   };
   return (
-    <span className={`px-2.5 py-1 text-[11px] font-semibold rounded-md ${colors[status] || colors.Pending}`}>
+    <span
+      className={`px-2.5 py-1 text-[11px] font-semibold rounded-md ${
+        colors[status] || colors.Pending
+      }`}
+    >
       {status || "Pending"}
     </span>
   );
+};
+
+const getPatientIvrStatus = (patient) => {
+  const status = patient?.latest_ivr_status || "pending";
+  return status.toLowerCase();
 };
 
 const InfoRow = ({ icon: Icon, label, value }) => (
@@ -49,7 +61,9 @@ const InfoRow = ({ icon: Icon, label, value }) => (
 const Section = ({ title, icon: Icon, children }) => (
   <div>
     <div className="flex items-center gap-2 mb-2 pb-1.5 border-b border-gray-200 dark:border-gray-700">
-      {Icon && <Icon className="w-3.5 h-3.5 text-gray-500 dark:text-gray-400" />}
+      {Icon && (
+        <Icon className="w-3.5 h-3.5 text-gray-500 dark:text-gray-400" />
+      )}
       <h4 className="text-[10px] font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
         {title}
       </h4>
@@ -64,7 +78,13 @@ const listItemVariants = {
   exit: { opacity: 0, x: -50, transition: { duration: 0.2 } },
 };
 
-const PatientCard = ({ patient, onViewPdf, onEdit, onDelete, onPatientUpdate }) => {
+const PatientCard = ({
+  patient,
+  onViewPdf,
+  onEdit,
+  onDelete,
+  onPatientUpdate,
+}) => {
   const [openOrderModal, setOpenOrderModal] = useState(false);
   const [openNotesModal, setOpenNotesModal] = useState(false);
   const [openIvrModal, setOpenIvrModal] = useState(false);
@@ -76,12 +96,12 @@ const PatientCard = ({ patient, onViewPdf, onEdit, onDelete, onPatientUpdate }) 
 
   // Fetch IVR count when component mounts or patient ID changes
   useEffect(() => {
-    console.log('🔍 PatientCard useEffect triggered for patient:', patient?.id);
+    console.log("🔍 PatientCard useEffect triggered for patient:", patient?.id);
     if (patient?.id) {
-      console.log('✅ Calling fetchIvrCount for patient:', patient.id);
+      console.log("✅ Calling fetchIvrCount for patient:", patient.id);
       fetchIvrCount();
     } else {
-      console.log('❌ No patient ID found:', patient);
+      console.log("❌ No patient ID found:", patient);
     }
   }, [patient?.id]);
 
@@ -90,48 +110,79 @@ const PatientCard = ({ patient, onViewPdf, onEdit, onDelete, onPatientUpdate }) 
     setIvrPdfUrl(patient.latestIvrPdfUrl || null);
   }, [patient.latestIvrPdfUrl]);
 
+  // PatientCard.jsx
+  // ... (around line 160)
+
   const fetchIvrCount = async () => {
     if (!patient?.id) return;
-    
+
     try {
       setIvrLoading(true);
-      const token = localStorage.getItem('accessToken'); // ← FIXED: Changed from 'access_token'
-      
-      console.log(`Fetching IVRs for patient ${patient.id}...`);
-      console.log('Token exists:', !!token);
-      
-      // Try multiple authentication formats
-      const headers = {
-        'Content-Type': 'application/json',
-      };
-      
-      // Add authorization header if token exists
-      if (token) {
-        // Try Bearer format first
-        headers['Authorization'] = `Bearer ${token}`;
+      const token = localStorage.getItem("accessToken");
+      console.log('TOKEN: ', token)
+
+      if (!token) {
+        console.error(
+          "❌ No authentication token found. Cannot fetch IVR count."
+        );
+        setIvrCount(0);
+        return;
       }
-      
-      console.log('Request headers:', headers);
-      
-      const response = await fetch(`/api/v1/patients/${patient.id}/ivr-forms/`, {
-        method: 'GET',
-        headers: headers,
-        credentials: 'include', // Include cookies
-      });
-      
-      console.log('IVR fetch response status:', response.status);
-      
-      if (response.ok) {
+
+      // ... (fetch call is correct) ...
+      const response = await fetch(
+        `https://promedhealth-frontdoor-h4c4bkcxfkduezec.z02.azurefd.net/api/v1/patients/${patient.id}/ivr-forms/`,
+        {
+          method: "GET",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+          credentials: "include",
+        }
+      );
+      console.log("📋 IVR fetch response status:", response.status);
+
+      // 🛑 CRITICAL FIX: Handle potential HTML response from server
+      const contentType = response.headers.get("content-type");
+
+      if (
+        response.ok &&
+        contentType &&
+        contentType.includes("application/json")
+      ) {
         const data = await response.json();
-        console.log('IVR forms data:', data);
+        console.log("✅ IVR forms data:", data);
+
+        const approvedCount = data.filter(
+          (f) => f.status === "approved"
+        ).length;
+        const pendingCount = data.filter((f) => f.status === "pending").length;
+
+        console.log(
+          `📊 IVR Stats - Total: ${data.length}, Approved: ${approvedCount}, Pending: ${pendingCount}`
+        );
+
         setIvrCount(data.length);
+      } else if (response.status === 401 || response.status === 403) {
+        // Explicitly handle authentication failures
+        console.error(
+          `❌ Authentication failed (${response.status}). Token might be expired.`
+        );
+        setIvrCount(0);
       } else {
-        const errorData = await response.json().catch(() => ({}));
-        console.error('Failed to fetch IVR forms:', response.status, errorData);
+        // Catch all other non-JSON responses (likely the HTML error page)
+        const text = await response.text();
+        console.error(
+          "❌ Failed to fetch IVR forms. Received non-JSON content (Status: " +
+            response.status +
+            "):",
+          text.substring(0, 50) + "..."
+        );
         setIvrCount(0);
       }
     } catch (error) {
-      console.error('Error fetching IVR count:', error);
+      console.error("❌ Error fetching IVR count:", error);
       setIvrCount(0);
     } finally {
       setIvrLoading(false);
@@ -170,7 +221,9 @@ const PatientCard = ({ patient, onViewPdf, onEdit, onDelete, onPatientUpdate }) 
     contactName: `${patient.first_name} ${patient.last_name}`,
     phone: patient.phone_number,
     facilityAddress: patient.address,
-    facilityCityStateZip: `${patient.city || ""}, ${patient.state || ""} ${patient.zip_code || ""}`,
+    facilityCityStateZip: `${patient.city || ""}, ${patient.state || ""} ${
+      patient.zip_code || ""
+    }`,
   });
 
   const handleIvrFormComplete = (result) => {
@@ -211,7 +264,10 @@ const PatientCard = ({ patient, onViewPdf, onEdit, onDelete, onPatientUpdate }) 
                   {patient.first_name} {patient.last_name}
                 </h3>
                 <p className="text-[10px] text-gray-500 dark:text-gray-400">
-                  MRN: <span className="font-mono font-medium">{patient.medical_record_number}</span>
+                  MRN:{" "}
+                  <span className="font-mono font-medium">
+                    {patient.medical_record_number}
+                  </span>
                 </p>
               </div>
             </div>
@@ -236,9 +292,9 @@ const PatientCard = ({ patient, onViewPdf, onEdit, onDelete, onPatientUpdate }) 
               </motion.button>
             </div>
           </div>
-          
+
           <div className="mt-2">
-            <IVRStatusBadge status={patient.ivrStatus} />
+            <IVRStatusBadge status={getPatientIvrStatus()} />
           </div>
         </div>
 
@@ -252,11 +308,17 @@ const PatientCard = ({ patient, onViewPdf, onEdit, onDelete, onPatientUpdate }) 
                 label="Address"
                 value={`${patient.address}, ${patient.city}, ${patient.state} ${patient.zip_code}`}
               />
-              <InfoRow icon={IoCallOutline} label="Phone" value={formattedPhoneNumber} />
+              <InfoRow
+                icon={IoCallOutline}
+                label="Phone"
+                value={formattedPhoneNumber}
+              />
               <InfoRow
                 icon={IoCalendarOutline}
                 label="Date of Birth"
-                value={`${formattedDate} (${calculateAge(patient.date_of_birth)} yrs)`}
+                value={`${formattedDate} (${calculateAge(
+                  patient.date_of_birth
+                )} yrs)`}
               />
             </div>
           </Section>
@@ -342,23 +404,26 @@ const PatientCard = ({ patient, onViewPdf, onEdit, onDelete, onPatientUpdate }) 
                       )}
                     </div>
                     <p className="text-[10px] text-gray-500 dark:text-gray-400">
-                      {ivrLoading ? 'Loading...' :
-                       ivrCount === 0 ? 'No forms submitted' : 
-                       ivrCount === 1 ? '1 form submitted' : 
-                       `${ivrCount} forms submitted`}
+                      {ivrLoading
+                        ? "Loading..."
+                        : ivrCount === 0
+                        ? "No forms submitted"
+                        : ivrCount === 1
+                        ? "1 form submitted"
+                        : `${ivrCount} forms submitted`}
                     </p>
                   </div>
                 </div>
-                
+
                 <div className="flex items-center gap-1">
                   {/* Show checkmark if any IVR exists */}
                   {!ivrLoading && ivrCount > 0 && (
-                    <IoCheckmarkCircle 
-                      className="w-4 h-4 text-green-500 dark:text-green-400" 
-                      title="Forms Submitted" 
+                    <IoCheckmarkCircle
+                      className="w-4 h-4 text-green-500 dark:text-green-400"
+                      title="Forms Submitted"
                     />
                   )}
-                  
+
                   {/* View All IVRs Button */}
                   {!ivrLoading && ivrCount > 0 && (
                     <motion.button
@@ -370,13 +435,15 @@ const PatientCard = ({ patient, onViewPdf, onEdit, onDelete, onPatientUpdate }) 
                       <IoListOutline className="w-4 h-4" />
                     </motion.button>
                   )}
-                  
+
                   {/* Create New IVR Button */}
                   <motion.button
                     onClick={() => setOpenIvrModal(true)}
                     whileTap={{ scale: 0.95 }}
                     className="p-1.5 rounded-lg hover:bg-teal-100 dark:hover:bg-teal-900/30 text-teal-600 dark:text-teal-400 transition-colors"
-                    title={ivrCount > 0 ? "Create New IVR Form" : "Create IVR Form"}
+                    title={
+                      ivrCount > 0 ? "Create New IVR Form" : "Create IVR Form"
+                    }
                   >
                     <IoDocumentsOutline className="w-4 h-4" />
                   </motion.button>
@@ -401,7 +468,9 @@ const PatientCard = ({ patient, onViewPdf, onEdit, onDelete, onPatientUpdate }) 
                 <div className="flex items-start gap-2 text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-2.5">
                   <IoInformationCircleOutline className="w-4 h-4 flex-shrink-0 mt-0.5" />
                   <div>
-                    <p className="text-xs font-semibold">IVR Approval Required</p>
+                    <p className="text-xs font-semibold">
+                      IVR Approval Required
+                    </p>
                     <p className="text-[10px] mt-0.5">
                       Orders require an approved IVR first.
                     </p>

@@ -26,13 +26,35 @@ const PRODUCT_CHECKBOXES = [
   "Revoshield+ Q4289",
 ];
 
-const POS_OPTIONS = ["Hospital Inpatient (21)", "Hospital Outpatient (22)", "Physician's Office (11)", "ASC (24)", "Home Health (12)"];
+const POS_OPTIONS = [
+  "Hospital Inpatient (21)",
+  "Hospital Outpatient (22)",
+  "Physician's Office (11)",
+  "ASC (24)",
+  "Home Health (12)",
+];
 const WOUND_BILLING_CODES = [
   { label: "Skin substitute procedure", code: "15271" },
   { label: "Wound care debridement (small)", code: "11042" },
   { label: "Wound care debridement (large)", code: "11045" },
 ];
 
+const formStyles = `
+  .ivr-form-container input:not([type="checkbox"]):not([type="radio"]) {
+    background-color: transparent !important;
+    color: #1f2937 !important;
+  }
+  
+  .ivr-form-container textarea {
+    background-color: transparent !important;
+    color: #1f2937 !important;
+  }
+  
+  .ivr-form-container input:disabled {
+    background-color: #f3f4f6 !important;
+    color: #6b7280 !important;
+  }
+`;
 
 // --- Initial State Function ---
 
@@ -84,59 +106,80 @@ const getInitialState = (data) => ({
 
 // --- Helper Components ---
 
-const InputLine = ({ label, name, value, onChange, className = "", type = "text", disabled = false }) => (
-    <div className={`flex flex-col ${className}`}>
-        <label className="text-sm font-bold text-gray-700 uppercase mb-1">
-            {label}
-        </label>
-        <input
-            type={type}
-            name={name}
-            value={value || ''}
-            onChange={onChange}
-            disabled={disabled}
-            className={`border-b-2 border-gray-600 h-8 px-1 text-sm outline-none transition-colors 
-            ${
-                // 💡 FIX APPLIED: Explicitly set text-gray-800 for the input value
-                disabled ? 'bg-gray-100 border-dashed text-gray-500' : 'focus:border-blue-500 text-gray-800'
-            }`}
-        />
-    </div>
+const InputLine = ({
+  label,
+  name,
+  value,
+  onChange,
+  className = "",
+  type = "text",
+  disabled = false,
+}) => (
+  <div className={`flex flex-col ${className}`}>
+    <label className="text-sm font-bold text-gray-700 uppercase mb-1">
+      {label}
+    </label>
+    <input
+      type={type}
+      name={name}
+      value={value || ""}
+      onChange={onChange}
+      disabled={disabled}
+      className={`border-b-2 border-gray-600 h-8 px-1 text-sm outline-none transition-colors bg-transparent
+    ${
+      disabled
+        ? "bg-gray-100 border-dashed text-gray-500"
+        : "focus:border-blue-500 text-gray-800"
+    }`}
+    />
+  </div>
 );
 
-const CheckboxItem = ({ label, name, value, checked, onChange, type = "checkbox" }) => (
-    <label className="flex items-center text-xs font-medium text-gray-800">
-        <input
-            type={type}
-            name={name}
-            value={value}
-            checked={checked}
-            onChange={onChange}
-            className={`mr-2 h-4 w-4 border-gray-400 ${type === 'radio' ? 'form-radio' : 'form-checkbox'} accent-blue-600`}
-        />
-        {label}
-    </label>
+const CheckboxItem = ({
+  label,
+  name,
+  value,
+  checked,
+  onChange,
+  type = "checkbox",
+}) => (
+  <label className="flex items-center text-xs font-medium text-gray-800">
+    <input
+      type={type}
+      name={name}
+      value={value}
+      checked={checked}
+      onChange={onChange}
+      className={`mr-2 h-4 w-4 border-gray-400 ${
+        type === "radio" ? "form-radio" : "form-checkbox"
+      } accent-blue-600`}
+    />
+    {label}
+  </label>
 );
 
 const RadioGroup = ({ label, name, value, options, onChange }) => (
-    <div className="flex flex-wrap items-center gap-4">
-        <label className="text-sm font-bold text-gray-700 uppercase flex-shrink-0 mr-2">
-            {label}:
-        </label>
-        {options.map(option => (
-            <label key={option.value} className="flex items-center text-sm font-medium text-gray-800">
-                <input
-                    type="radio"
-                    name={name}
-                    value={option.value}
-                    checked={value === option.value}
-                    onChange={onChange}
-                    className="form-radio h-4 w-4 text-blue-600 border-gray-400 mr-2 accent-blue-600"
-                />
-                {option.label}
-            </label>
-        ))}
-    </div>
+  <div className="flex flex-wrap items-center gap-4">
+    <label className="text-sm font-bold text-gray-700 uppercase flex-shrink-0 mr-2">
+      {label}:
+    </label>
+    {options.map((option) => (
+      <label
+        key={option.value}
+        className="flex items-center text-sm font-medium text-gray-800"
+      >
+        <input
+          type="radio"
+          name={name}
+          value={option.value}
+          checked={value === option.value}
+          onChange={onChange}
+          className="form-radio h-4 w-4 text-blue-600 border-gray-400 mr-2 accent-blue-600"
+        />
+        {option.label}
+      </label>
+    ))}
+  </div>
 );
 
 const SuccessToast = ({ t, sasUrl, onClose }) => (
@@ -184,40 +227,42 @@ export default function IvrFormModal({
   const [formData, setFormData] = useState(() => getInitialState(initialData));
   const [isSubmitting, setIsSubmitting] = useState(false);
   const patientIdRef = useRef(initialData?.id || initialData?.patientId);
-  
-  const formRef = useRef(null); 
+
+  const formRef = useRef(null);
 
   const handleChange = useCallback((e) => {
     const { name, value, type, checked } = e.target;
 
-    setFormData(prevData => {
-        if (type === 'checkbox') {
-            const currentArray = prevData[name] || [];
-            if (checked) {
-                return { ...prevData, [name]: [...currentArray, value] };
-            } else {
-                return { ...prevData, [name]: currentArray.filter(item => item !== value) };
-            }
-        }
-        
-        if (type === 'radio') {
-            return { ...prevData, [name]: value };
-        }
-
-        return {
+    setFormData((prevData) => {
+      if (type === "checkbox") {
+        const currentArray = prevData[name] || [];
+        if (checked) {
+          return { ...prevData, [name]: [...currentArray, value] };
+        } else {
+          return {
             ...prevData,
-            [name]: value,
-        };
+            [name]: currentArray.filter((item) => item !== value),
+          };
+        }
+      }
+
+      if (type === "radio") {
+        return { ...prevData, [name]: value };
+      }
+
+      return {
+        ...prevData,
+        [name]: value,
+      };
     });
   }, []);
 
   useEffect(() => {
     if (initialData) {
-        setFormData(getInitialState(initialData));
-        patientIdRef.current = initialData.id || initialData.patientId;
+      setFormData(getInitialState(initialData));
+      patientIdRef.current = initialData.id || initialData.patientId;
     }
   }, [initialData]);
-
 
   const validateForm = useCallback(() => {
     const errors = [];
@@ -238,7 +283,7 @@ export default function IvrFormModal({
     }
 
     if (!formData.facilityName || formData.facilityName.trim() === "") {
-        errors.push("Facility Name is required.");
+      errors.push("Facility Name is required.");
     }
 
     return errors;
@@ -249,28 +294,31 @@ export default function IvrFormModal({
     const validationErrors = validateForm();
 
     if (validationErrors.length > 0) {
-        if (formRef.current) {
-            formRef.current.scrollTop = 0; 
-        }
-        validationErrors.forEach((err) => toast.error(err));
-        return;
+      if (formRef.current) {
+        formRef.current.scrollTop = 0;
+      }
+      validationErrors.forEach((err) => toast.error(err));
+      return;
     }
 
     setIsSubmitting(true);
     let toastId = toast.loading("Verifying data and generating PDF...");
 
     try {
-      const response = await fetch("https://promedhealth-frontdoor-h4c4bkcxfkduezec.z02.azurefd.net/api/v1/forms/save-vr/", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
-        },
-        body: JSON.stringify({
-          patient_id: patientId,
-          form_data: formData,
-        }),
-      });
+      const response = await fetch(
+        "https://promedhealth-frontdoor-h4c4bkcxfkduezec.z02.azurefd.net/api/v1/forms/save-vr/",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
+          },
+          body: JSON.stringify({
+            patient_id: patientId,
+            form_data: formData,
+          }),
+        }
+      );
 
       if (!response.ok) {
         const errorData = await response.json();
@@ -306,8 +354,8 @@ export default function IvrFormModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-2 sm:p-4 overflow-y-auto print:p-0">
+      <style>{formStyles}</style>
       <div className="bg-white rounded-xl shadow-2xl w-full max-w-6xl max-h-[98vh] overflow-y-auto print:max-w-full print:shadow-none print:max-h-full print:rounded-none">
-        
         {/* Modal Header */}
         <div className="sticky top-0 bg-blue-900 p-4 flex justify-between items-center z-10 print:hidden rounded-t-xl">
           <h2 className="text-xl font-bold text-white">
@@ -323,53 +371,55 @@ export default function IvrFormModal({
         </div>
 
         <div className="p-4 sm:p-6 md:p-8 print:p-0">
-          
           {/* --- MAIN FORM CONTENT CONTAINER (With visibility fix) --- */}
           <div
             ref={formRef}
-            // 💡 FIX APPLIED: Ensure the content container has a white background and dark text.
             className="space-y-6 text-xs border border-gray-300 p-4 sm:p-6 print:border-none print:p-0 bg-white text-gray-800"
+            style={{ backgroundColor: "white", color: "#1f2937" }} // Force white background
           >
-            
             {/* 1. Header Section */}
             <div className="grid grid-cols-1 sm:grid-cols-3 border-b-4 border-gray-800 pb-3 mb-4 gap-4">
-                {/* Left Column (Service Details) */}
-                <div className="text-xs text-left sm:pr-4 order-2 sm:order-1">
-                    <p className="font-bold">SERVICED BY:</p>
-                    <p>ProMed Health Plus</p>
-                    <p>30839 Thousand Oaks Blvd</p>
-                    <p>West Lake Village, CA 91362</p>
-                    <p>(888)338 - 0490</p>
-                    <p>www.promedhealthplus.com</p>
-                </div>
+              {/* Left Column (Service Details) */}
+              <div className="text-xs text-left sm:pr-4 order-2 sm:order-1">
+                <p className="font-bold">SERVICED BY:</p>
+                <p>ProMed Health Plus</p>
+                <p>30839 Thousand Oaks Blvd</p>
+                <p>West Lake Village, CA 91362</p>
+                <p>(888)338 - 0490</p>
+                <p>www.promedhealthplus.com</p>
+              </div>
 
-                {/* Center Column (Title) */}
-                <div className="flex flex-col items-center justify-center sm:border-l sm:border-r border-gray-300 px-2 sm:px-4 order-1 sm:order-2">
-                    <h1 className="text-lg sm:text-xl font-extrabold text-center text-gray-800 tracking-wider flex justify-center items-center">
-                        <img src={logo} alt="ProMed Logo" style={{height: 30, width: 30}} className="mr-2"/>
-                        ProMed Health Plus
-                    </h1>
-                    <h3 className="text-md font-bold text-center text-blue-800 tracking-widest mt-1 border-t border-b border-blue-800 px-2 py-0.5">
-                        INSURANCE VERIFICATION REQUEST
-                    </h3>
-                </div>
+              {/* Center Column (Title) */}
+              <div className="flex flex-col items-center justify-center sm:border-l sm:border-r border-gray-300 px-2 sm:px-4 order-1 sm:order-2">
+                <h1 className="text-lg sm:text-xl font-extrabold text-center text-gray-800 tracking-wider flex justify-center items-center">
+                  <img
+                    src={logo}
+                    alt="ProMed Logo"
+                    style={{ height: 30, width: 30 }}
+                    className="mr-2"
+                  />
+                  ProMed Health Plus
+                </h1>
+                <h3 className="text-md font-bold text-center text-blue-800 tracking-widest mt-1 border-t border-b border-blue-800 px-2 py-0.5">
+                  INSURANCE VERIFICATION REQUEST
+                </h3>
+              </div>
 
-                {/* Right Column (Sales Rep) */}
-                <div className="text-sm text-left sm:text-right sm:pl-4 flex flex-col justify-end order-3 sm:order-3">
-                    <div className="flex items-center justify-start sm:justify-end font-semibold text-gray-800">
-                        <label className="flex-shrink-0 mr-1">Sales Rep:</label>
-                        <input
-                            type="text"
-                            name="salesRepresentative"
-                            value={formData.salesRepresentative}
-                            onChange={handleChange}
-                            className="border-b border-gray-600 w-full sm:w-3/5 text-sm outline-none focus:border-blue-500 text-gray-800"
-                        />
-                    </div>
+              {/* Right Column (Sales Rep) */}
+              <div className="text-sm text-left sm:text-right sm:pl-4 flex flex-col justify-end order-3 sm:order-3">
+                <div className="flex items-center justify-start sm:justify-end font-semibold text-gray-800">
+                  <label className="flex-shrink-0 mr-1">Sales Rep:</label>
+                  <input
+                    type="text"
+                    name="salesRepresentative"
+                    value={formData.salesRepresentative}
+                    onChange={handleChange}
+                    className="border-b border-gray-600 w-full sm:w-3/5 text-sm outline-none focus:border-blue-500 text-gray-800 bg-transparent"
+                  />
                 </div>
+              </div>
             </div>
             {/* END 1. Header Section */}
-
 
             {/* 2. Product Checkboxes */}
             <div className="p-3 border border-gray-300 bg-blue-50/50">
@@ -529,10 +579,10 @@ export default function IvrFormModal({
                     value={formData.otherPosSpecify}
                     onChange={handleChange}
                     disabled={formData.placeOfService !== "OTHER"}
-                    className={`flex-1 min-w-0 border-b-2 border-gray-600 h-8 px-1 text-sm outline-none transition-colors mt-1 sm:mt-0 ${
+                    className={`flex-1 min-w-0 border-b-2 border-gray-600 h-8 px-1 text-sm outline-none transition-colors mt-1 sm:mt-0 bg-transparent ${
                       formData.placeOfService !== "OTHER"
                         ? "bg-gray-100 border-dashed"
-                        : "focus:border-blue-500 text-gray-800" // 💡 FIX APPLIED
+                        : "focus:border-blue-500 text-gray-800"
                     }`}
                   />
                 </div>
@@ -759,7 +809,7 @@ export default function IvrFormModal({
                   value={formData.physicianSignatureName}
                   onChange={handleChange}
                   // 💡 FIX APPLIED: Ensure input content is dark
-                  className="border-b-2 border-gray-600 h-8 px-1 text-base focus:border-blue-500 outline-none font-semibold text-gray-800"
+                 className="border-b-2 border-gray-600 h-8 px-1 text-base focus:border-blue-500 outline-none font-semibold text-gray-800 bg-transparent" 
                 />
               </div>
             </div>
