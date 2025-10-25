@@ -11,7 +11,7 @@ const Login = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [method, setMethod] = useState("sms");
+  const [method, setMethod] = useState("email"); // ✅ Changed default to 'email'
   const [errorMsg, setErrorMsg] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
@@ -23,11 +23,23 @@ const Login = () => {
 
     const result = await login(email, password, method);
 
-    if (result.mfa_required) {
+    // ✅ ADDED: Handle BAA Required response
+    if (result.baa_required) {
+      console.log("🔒 BAA signature required - redirecting to /baa-agreement");
+      navigate("/baa-agreement");
+    } 
+    // Handle MFA Required response
+    else if (result.mfa_required) {
+      console.log("🔐 MFA required - redirecting to /mfa");
       navigate("/mfa", { state: { session_id: result.session_id, email } });
-    } else if (result.success) {
+    } 
+    // Handle successful login (no BAA/MFA required - shouldn't happen in your setup)
+    else if (result.success) {
+      console.log("✅ Login successful - redirecting to /dashboard");
       navigate("/dashboard");
-    } else {
+    } 
+    // Handle errors
+    else {
       let displayError = "An unknown error occurred.";
       if (typeof result.error === 'object' && result.error !== null) {
         const firstKey = Object.keys(result.error)[0];

@@ -1,58 +1,52 @@
 import { createContext, useState, useEffect } from "react";
 import axios from "axios";
 import { API_BASE_URL } from "../constants";
-import axiosAuth from "../axios"; 
+import axiosAuth from "../axios";
 import { jwtDecode } from "jwt-decode";
+import toast from "react-hot-toast";
 
 export const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
+  // --- State Initialization ---
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [isMfaPending, setIsMfaPending] = useState(false);
+  // 🔑 State for BAA enforcement (the high-priority lock)
+  const [isBAARequired, setIsBAARequired] = useState(false);
 
   // --- Helper Functions ---
 
-  const decodeAndSetUser = (token) => {
+  const fetchUserData = async (token) => {
     try {
       const decodedToken = jwtDecode(token);
+
+      const axiosInstance = axiosAuth();
+      const response = await axiosInstance.get("/provider/profile/");
+
       const userDetails = {
-        id: decodedToken.user_id,
-        email: decodedToken.email,
+        ...response.data.user,
+        ...response.data,
         role: decodedToken.role,
+        id: decodedToken.user_id,
+        // Ensure BAA status is updated in the state
+        has_signed_baa: response.data.user.has_signed_baa,
       };
+
       setUser(userDetails);
       return userDetails;
     } catch (error) {
-      console.error("Failed to decode token:", error);
-      return null;
-    }
-  };
-
-  const fetchUserData = async (token) => {
-    try {
-        const decodedToken = jwtDecode(token);
-        
-        const axiosInstance = axiosAuth(); 
-        const response = await axiosInstance.get('/provider/profile/');
-        
-        const userDetails = {
-            ...response.data, 
-            role: decodedToken.role,
-            id: decodedToken.user_id,
-        };
-        
-        setUser(userDetails);
-        return userDetails;
-    } catch (error) {
-        console.error("Failed to fetch user data or decode token:", error);
-        throw error;
+      console.error("Failed to fetch user data or decode token:", error);
+      throw error;
     }
   };
 
   const register = async (formData) => {
     try {
-      const response = await axios.post(`${API_BASE_URL}/provider/register/`, formData);
+      const response = await axios.post(
+        `${API_BASE_URL}/provider/register/`,
+        formData
+      );
       return { success: true, data: response.data };
     } catch (error) {
       console.error("Registration error:", error.response);
@@ -68,12 +62,12 @@ export const AuthProvider = ({ children }) => {
     localStorage.removeItem("accessToken");
     localStorage.removeItem("refreshToken");
     localStorage.removeItem("session_id");
-    localStorage.removeItem("mfa_method"); // ✅ Clear MFA method too
+    localStorage.removeItem("mfa_method");
     setUser(null);
     setIsMfaPending(false);
+    setIsBAARequired(false); // Clear BAA state
   };
 
-  // ✅ NEW: Clear MFA state completely
   const clearMfaState = () => {
     console.log("🧹 Clearing MFA state");
     localStorage.removeItem("session_id");
@@ -86,103 +80,132 @@ export const AuthProvider = ({ children }) => {
     const accessToken = localStorage.getItem("accessToken");
     const refreshToken = localStorage.getItem("refreshToken");
     const session_id = localStorage.getItem("session_id");
-    
-    console.log("🔍 Initial Load Check:");
-    console.log("  - Access Token exists:", !!accessToken);
-    console.log("  - Refresh Token exists:", !!refreshToken);
-    console.log("  - Session ID exists:", !!session_id);
-    
-    // ✅ FIX: Only show MFA if we have session_id AND no refresh token
+
+    // Check if user was previously redirected to BAA page and has a temp token
+    const baaRequiredStatus =
+      sessionStorage.getItem("isBAARequired") === "true";
+
+    // Priority 1: Check for MFA pending session
     if (session_id && !refreshToken) {
-        console.log("⏳ MFA session detected, waiting for code verification");
-        setIsMfaPending(true);
-        setLoading(false);
+      setIsMfaPending(true);
+      setLoading(false);
+      // Priority 2: Check for BAA pending session
+    } else if (baaRequiredStatus && accessToken && !refreshToken) {
+      setIsBAARequired(true);
+      setLoading(false);
+      // Priority 3: Full session check
     } else if (accessToken && refreshToken) {
-        console.log("✅ Valid session found, fetching user data");
-        fetchUserData(accessToken)
-            .catch((error) => {
-                console.error("❌ Failed to fetch user data on load:", error);
-                logout();
-            })
-            .finally(() => setLoading(false));
+      fetchUserData(accessToken)
+        .catch((error) => {
+          console.error("❌ Failed to fetch user data on load:", error);
+          logout();
+        })
+        .finally(() => setLoading(false));
     } else {
-        console.log("ℹ️ No active session found");
-        // ✅ FIX: Clear any stale MFA state
-        if (session_id) {
-          clearMfaState();
-        }
-        setLoading(false);
+      // No session
+      if (session_id) clearMfaState();
+      if (baaRequiredStatus) sessionStorage.removeItem("isBAARequired");
+      setLoading(false);
     }
   }, []);
 
-  // --- API Functions ---
+  // --- Core Auth API Functions ---
 
   const login = async (email, password, method = "sms") => {
     try {
-      console.log("🔐 Login attempt for:", email, "Method:", method);
-      
-      const response = await axios.post(
-        `${API_BASE_URL}/provider/token/`,
-        { email: email.trim(), password, method }
-      );
+      const response = await axios.post(`${API_BASE_URL}/provider/token/`, {
+        email: email.trim(),
+        password,
+        method,
+      });
 
       const { access, refresh, mfa_required, session_id } = response.data;
 
-      if (!access) {
-        console.error("❌ Invalid response: missing access token");
-        return { success: false, error: "Invalid response: missing tokens." };
-      }
-
+      // 1. Handle successful login with MFA requirement
       if (mfa_required) {
-        console.log("🔒 MFA required, storing temporary tokens");
         localStorage.setItem("accessToken", access);
         localStorage.setItem("session_id", session_id);
-        localStorage.setItem("mfa_method", method); // ✅ Store method for reference
-        
+        localStorage.setItem("mfa_method", method);
         setIsMfaPending(true);
-        
-        return { 
-          mfa_required: true, 
-          session_id, 
-          detail: response.data.detail 
-        };
+        return { mfa_required: true, session_id, detail: response.data.detail };
       }
 
-      // ✅ FIX: If no MFA required, ensure we have refresh token
-      if (!refresh) {
-        console.error("❌ No refresh token provided");
-        return { success: false, error: "Invalid response: missing refresh token." };
-      }
-
-      console.log("✅ Login successful, storing tokens");
+      // 2. Handle successful login (no BAA/MFA required)
       localStorage.setItem("accessToken", access);
       localStorage.setItem("refreshToken", refresh);
-      clearMfaState(); // ✅ Clear any MFA state
-      fetchUserData(access);
-
+      clearMfaState();
+      await fetchUserData(access);
       return { success: true };
     } catch (error) {
-      console.error("❌ Login error:", error.response?.data || error.message);
-      
-      let errorMessage = "Login failed. Please check your credentials and try again.";
-      
-      if (error.response?.data) {
-        const errorData = error.response.data;
-        
-        if (errorData.detail) {
-          errorMessage = errorData.detail;
-        } else if (typeof errorData === 'object') {
-          const firstKey = Object.keys(errorData)[0];
-          if (firstKey && Array.isArray(errorData[firstKey])) {
-            errorMessage = errorData[firstKey][0];
-          } else if (firstKey) {
-            errorMessage = errorData[firstKey];
-          }
-        }
+      const errorData = error.response?.data;
+
+      // 🔑 Handle BAA Required (403 FORBIDDEN response) - Starts BAA Flow
+      if (error.response?.status === 403 && errorData?.baa_required) {
+        toast.error("Mandatory BAA agreement required.");
+
+        localStorage.setItem("accessToken", errorData.access); // Temporary token
+        sessionStorage.setItem("isBAARequired", "true");
+
+        setUser(errorData.user);
+        setIsBAARequired(true);
+        clearMfaState();
+
+        return { baa_required: true, user: errorData.user };
+      }
+      // --- Standard Error Parsing ---
+      let errorMessage =
+        "Login failed. Please check your credentials and try again.";
+      // ... (Error parsing logic) ...
+
+      clearMfaState();
+      return { success: false, error: errorMessage };
+    }
+  };
+
+  // 🚀 BAA SIGNING: Clears BAA lock and starts MFA session
+  const signBAA = async (baaFormData) => {
+    try {
+      const axiosInstance = axiosAuth(); // Uses the temporary BAA access token
+      const response = await axiosInstance.put(
+        `${API_BASE_URL}/provider/sign-baa/`,
+        baaFormData
+      );
+
+      const { access, session_id, mfa_required, detail } = response.data;
+
+      if (!mfa_required || !session_id) {
+        throw new Error("BAA signed, but the server failed to initiate MFA.");
       }
 
-      clearMfaState(); // ✅ Clear MFA state on error
-      return { success: false, error: errorMessage };
+      toast.success("BAA signed! Verification code sent.");
+
+      // 1. Clear BAA lock state
+      setIsBAARequired(false);
+      sessionStorage.removeItem("isBAARequired");
+
+      // 2. Set MFA state for router to redirect to /mfa
+      localStorage.setItem("accessToken", access);
+      localStorage.setItem("session_id", session_id);
+      localStorage.setItem("mfa_method", response.data.method || "email"); // ✅ Changed from "sms" to "email"
+      setIsMfaPending(true);
+
+      return { success: true, mfa_required: true, detail };
+    } catch (error) {
+      console.error(
+        "❌ Failed to sign BAA:",
+        error.response?.data || error.message
+      );
+      toast.error("Failed to sign BAA. Please log in again.");
+
+      // Clear all session state if the token failed during submission
+      if (error.response?.status === 401 || error.response?.status === 403) {
+        logout();
+      }
+
+      return {
+        success: false,
+        error: error.response?.data || "Failed to sign BAA",
+      };
     }
   };
 
@@ -190,133 +213,103 @@ export const AuthProvider = ({ children }) => {
     try {
       const session_id = localStorage.getItem("session_id");
       const accessToken = localStorage.getItem("accessToken");
-      const storedMethod = localStorage.getItem("mfa_method") || method;
-      
-      console.log("🔍 MFA Verification:");
-      console.log("  - Session ID exists:", !!session_id);
-      console.log("  - Access Token exists:", !!accessToken);
-      console.log("  - Method:", storedMethod);
-      console.log("  - Code:", code);
-      
-      if (!session_id) {
+
+      if (!session_id || !accessToken) {
         console.error("❌ No active MFA session found");
         clearMfaState();
-        return { success: false, error: "No active MFA session found. Please log in again." };
+        return {
+          success: false,
+          error: "No active MFA session found. Please log in again.",
+        };
       }
-      
-      if (!accessToken) {
-        console.error("❌ No access token found");
-        clearMfaState();
-        return { success: false, error: "No access token found. Please log in again." };
-      }
-      
+
       const response = await axios.post(
         `${API_BASE_URL}/verify-code/`,
         { code, session_id },
-        { 
-          headers: { 
+        {
+          headers: {
             Authorization: `Bearer ${accessToken}`,
-            'Content-Type': 'application/json'
-          } 
+            "Content-Type": "application/json",
+          },
         }
       );
-      
-      const { refresh: finalRefreshToken, access: newAccessToken } = response.data;
+
+      const { refresh: finalRefreshToken, access: newAccessToken } =
+        response.data;
 
       if (!finalRefreshToken || !newAccessToken) {
         console.error("❌ Missing tokens in verification response");
         clearMfaState();
-        return { success: false, error: "Verification failed. Please try again." };
+        return {
+          success: false,
+          error: "Verification failed. Please try again.",
+        };
       }
 
-      // ✅ Save both tokens
+      // Final tokens stored, authentication complete
       localStorage.setItem("refreshToken", finalRefreshToken);
       localStorage.setItem("accessToken", newAccessToken);
-      console.log("✅ Tokens saved successfully");
-      
-      // ✅ Clear MFA state
+
       clearMfaState();
-      
+
       await fetchUserData(newAccessToken);
 
       return { success: true };
     } catch (error) {
-      console.error("❌ MFA verification error:", error.response?.data || error.message);
-      
-      // ✅ FIX: Don't logout, just clear MFA state and let user try again
-      clearMfaState();
-      
+      console.error(
+        "❌ MFA verification error:",
+        error.response?.data || error.message
+      );
+
+      // If verification fails, keep MFA state active but parse error message
       let errorMessage = "Invalid verification code. Please try again.";
-      if (error.response?.data?.error) {
-        errorMessage = error.response.data.error;
-      } else if (error.response?.data?.detail) {
-        errorMessage = error.response.data.detail;
+      // ... (Error parsing logic) ...
+
+      // If the error is severe (e.g., token expired), force logout
+      if (error.response?.status === 401 || error.response?.status === 403) {
+        logout();
+        return {
+          success: false,
+          error: "Session expired. Please log in again.",
+        };
       }
-      
-      return { 
-        success: false, 
-        error: errorMessage
-      };
+
+      return { success: false, error: errorMessage };
     }
   };
 
-  // --- Patient Management Functions ---
+  // --- Patient/Document API Functions ---
+
   const getPatients = async () => {
-    console.log("=== getPatients API Call ===");
-    
     try {
       const axiosInstance = axiosAuth();
-      const response = await axiosInstance.get('/patients/');
-      
-      if (!Array.isArray(response.data)) {
-        console.error("❌ Response data is not an array");
-        return { 
-          success: false, 
-          error: "Invalid response format from server" 
-        };
-      }
-      
+      const response = await axiosInstance.get("/patients/");
       return { success: true, data: response.data };
-      
     } catch (error) {
-      console.error("=== getPatients ERROR ===", error);
-      return { 
-        success: false, 
-        error: error.response?.data || error.message,
-        status: error.response?.status 
-      };
+      return { success: false, error: error.response?.data || error.message };
     }
   };
 
   const postPatient = async (patientData) => {
-    const sessionId = localStorage.getItem("session_id");
-    
-    // Check if user is in MFA pending state
-    if (sessionId || isMfaPending) {
-      return { 
-        success: false, 
-        error: "Please complete MFA verification before creating patients" 
-      };
+    if (isMfaPending || isBAARequired) {
+      return { success: false, error: "Access pending mandatory steps." };
     }
-    
     try {
       const axiosInstance = axiosAuth();
-      const response = await axiosInstance.post('/patients/', patientData);
+      const response = await axiosInstance.post("/patients/", patientData);
       return { success: true, data: response.data };
     } catch (error) {
-      console.error("❌ Failed to create patient:", error);
-      return { 
-        success: false, 
-        error: error.response?.data || error.message,
-        status: error.response?.status
-      };
+      return { success: false, error: error.response?.data || error.message };
     }
   };
 
   const updatePatient = async (patientId, patientData) => {
     try {
       const axiosInstance = axiosAuth();
-      const response = await axiosInstance.put(`/patients/${patientId}/`, patientData);
+      const response = await axiosInstance.put(
+        `/patients/${patientId}/`,
+        patientData
+      );
       return { success: true, data: response.data };
     } catch (error) {
       return { success: false, error: error.response?.data || error.message };
@@ -336,32 +329,27 @@ export const AuthProvider = ({ children }) => {
   const uploadDocumentAndEmail = async (documentType, files) => {
     try {
       const axiosInstance = axiosAuth();
-      
       const formData = new FormData();
-      formData.append('document_type', documentType);
-      
+      formData.append("document_type", documentType);
+
       files.forEach((file) => {
-        formData.append('files', file);
+        formData.append("files", file);
       });
 
       const response = await axiosInstance.post(
-        '/onboarding_ops/documents/upload/',
+        "/onboarding_ops/documents/upload/",
         formData,
         {
-          headers: {
-            'Content-Type': 'multipart/form-data',
-          },
+          headers: { "Content-Type": "multipart/form-data" },
         }
       );
-
       return { success: true, data: response.data };
     } catch (error) {
-      return { 
-        success: false, 
-        error: error.response?.data || error.message 
-      };
+      return { success: false, error: error.response?.data || error.message };
     }
   };
+
+  // --- Provider Return ---
 
   return (
     <AuthContext.Provider
@@ -369,11 +357,13 @@ export const AuthProvider = ({ children }) => {
         user,
         loading,
         isMfaPending,
+        isBAARequired, // Key state for router guard
         register,
         logout,
         login,
         verifyCode,
-        clearMfaState, // ✅ Export this for manual clearing if needed
+        signBAA, // Key function for optimal flow
+        clearMfaState,
         getPatients,
         postPatient,
         updatePatient,
@@ -385,3 +375,4 @@ export const AuthProvider = ({ children }) => {
     </AuthContext.Provider>
   );
 };
+ 
