@@ -252,13 +252,17 @@ export const AuthProvider = ({ children }) => {
 
       clearMfaState();
 
-      // ✅ CRITICAL: Wait for user data to be fetched before returning success
+      // ✅ CRITICAL FIX: Don't proceed if user data fetch fails
       try {
         await fetchUserData(newAccessToken);
       } catch (fetchError) {
         console.error("❌ Failed to fetch user data after MFA:", fetchError);
-        // Even if fetch fails, we should still try to continue
-        // The user data might be cached or will be refetched on next page load
+        // ❌ Remove the "continue anyway" logic
+        logout(); // Clear everything
+        return {
+          success: false,
+          error: "Failed to load user data. Please log in again.",
+        };
       }
 
       return { success: true };
@@ -274,7 +278,6 @@ export const AuthProvider = ({ children }) => {
         errorMessage = error.response.data.error;
       }
 
-      // If the error is severe (e.g., token expired), force logout
       if (error.response?.status === 401 || error.response?.status === 403) {
         logout();
         return {
@@ -286,6 +289,7 @@ export const AuthProvider = ({ children }) => {
       return { success: false, error: errorMessage };
     }
   };
+
   // --- Patient/Document API Functions ---
 
   const getPatients = async () => {

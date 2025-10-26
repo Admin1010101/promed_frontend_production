@@ -44,7 +44,7 @@ const ContactRepModal = ({ open, onClose }) => {
 
     try {
       const response = await axiosInstance.post(
-        `${process.env.REACT_APP_API_URL}/provider/contact-rep/`,
+        'https://promedhealth-frontdoor-h4c4bkcxfkduezec.z02.azurefd.net/api/v1/provider/contact-rep/',
         formData
       );
       console.log("Message sent successfully:", response.data);
