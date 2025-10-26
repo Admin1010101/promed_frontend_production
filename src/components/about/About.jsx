@@ -68,7 +68,7 @@ const About = () => {
     try {
       // API Call to your Django endpoint
       await axios.post(
-        `${process.env.REACT_APP_API_URL}/contact-us/`, 
+        'https://promedhealth-frontdoor-h4c4bkcxfkduezec.z02.azurefd.net/api/v1/contact-us/', 
         formData
       );
       
