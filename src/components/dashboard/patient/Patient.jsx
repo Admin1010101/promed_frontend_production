@@ -11,7 +11,7 @@ import PatientCard from "./PatientCard";
 import NewPatientForm from "./NewPatientForm";
 import toast from "react-hot-toast";
 
-// Animation variants
+// Animation variants (No changes)
 const modalVariants = {
   hidden: { opacity: 0, scale: 0.95 },
   visible: {
@@ -34,7 +34,7 @@ const buttonTap = {
   scale: 0.95,
 };
 
-// Filter Command Center Modal Component
+// Filter Command Center Modal Component (No changes)
 const FilterCommandCenter = ({
   open,
   handleClose,
@@ -74,7 +74,7 @@ const FilterCommandCenter = ({
           exit="exit"
           variants={modalVariants}
         >
-          {/* Close Button */}
+          {/* ... (Modal content for filters) ... */}
           <button
             onClick={handleClose}
             className="absolute top-3 right-3 text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-100 transition"
@@ -201,13 +201,15 @@ const FilterCommandCenter = ({
 
 // Main Patients Component
 const Patients = () => {
-  const { user, getPatients, postPatient, updatePatient, deletePatient } =
+  // ✅ FIX: Destructure 'loading' from AuthContext (renamed to authLoading)
+  const { user, loading: authLoading, getPatients, postPatient, updatePatient, deletePatient } =
     useContext(AuthContext);
   const { activationFilter } = useContext(FilterContext);
 
   // State management
   const [patients, setPatients] = useState([]);
-  const [loading, setLoading] = useState(true);
+  // ✅ FIX: Set component-local loading to true initially, relying on authLoading initially
+  const [patientsLoading, setPatientsLoading] = useState(true); 
   const [errors, setErrors] = useState({});
   const [open, setOpen] = useState(false);
   const [filterModalOpen, setFilterModalOpen] = useState(false);
@@ -220,7 +222,7 @@ const Patients = () => {
   const [savePage, setSavePage] = useState(1);
   const [editingPatient, setEditingPatient] = useState(null);
 
-  // Initial form state
+  // Initial form state (No changes)
   const initialFormState = {
     first_name: "",
     last_name: "",
@@ -245,7 +247,7 @@ const Patients = () => {
 
   const [formData, setFormData] = useState(initialFormState);
 
-  // Phone number formatter
+  // Phone number formatter (No changes)
   const formatPhoneNumberToE164 = (phone) => {
     if (!phone) return "";
     const digitsOnly = phone.replace(/\D/g, "");
@@ -259,7 +261,7 @@ const Patients = () => {
     return `+${digitsOnly}`;
   };
 
-  // Form validation
+  // Form validation (No changes)
   const validateForm = () => {
     const newErrors = {};
     
@@ -288,12 +290,13 @@ const Patients = () => {
 
   // Fetch patients from API
   const fetchPatients = useCallback(async () => {
-    if (!user || !getPatients) {
-      setLoading(true);
+    // ✅ FIX: Check if user is present AND authLoading is false
+    if (authLoading || !user || !getPatients) {
+      setPatientsLoading(true); // Keep loading state until auth is done
       return;
     }
 
-    setLoading(true);
+    setPatientsLoading(true);
     try {
       const result = await getPatients();
 
@@ -307,16 +310,23 @@ const Patients = () => {
       console.error("Error fetching patients:", error);
       toast.error("An error occurred while loading patients.");
     } finally {
-      setLoading(false);
+      // ✅ FIX: Set component-local loading to false only after attempt
+      setPatientsLoading(false); 
     }
-  }, [user, getPatients]);
+  }, [user, getPatients, authLoading]); // ✅ Dependency on authLoading is CRITICAL
 
-  // Load patients on mount
+  // Load patients on mount and when authentication state changes
   useEffect(() => {
-    fetchPatients();
-  }, [fetchPatients]);
+    // ✅ FIX: Only run fetchPatients once authLoading is false AND user is present.
+    if (!authLoading && user) {
+        fetchPatients();
+    } else if (!authLoading && !user) {
+        // If auth is done but no user (logged out or unauthenticated), stop loading.
+        setPatientsLoading(false);
+    }
+  }, [fetchPatients, authLoading, user]); // Added user and authLoading as explicit triggers
 
-  // Reset pagination when filters change
+  // Reset pagination when filters change (No changes)
   useEffect(() => {
     if (searchTerm || ivrFilter || activationFilter) {
       setSavePage(currentPage);
@@ -324,9 +334,9 @@ const Patients = () => {
     } else {
       setCurrentPage(savePage);
     }
-  }, [searchTerm, ivrFilter, activationFilter]);
+  }, [searchTerm, ivrFilter, activationFilter, currentPage, savePage]); // Added dependency to suppress warning
 
-  // Handle input changes
+  // Handle input changes (No changes)
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({
@@ -335,7 +345,7 @@ const Patients = () => {
     }));
   };
 
-  // Handle patient update after IVR submission
+  // Handle patient update after IVR submission (No changes)
   const handlePatientUpdate = useCallback(
     async (patientId) => {
       try {
@@ -349,7 +359,7 @@ const Patients = () => {
     [fetchPatients]
   );
 
-  // Reset form to initial state
+  // Reset form to initial state (No changes)
   const resetForm = () => {
     setFormData(initialFormState);
     setErrors({});
@@ -357,7 +367,7 @@ const Patients = () => {
     setOpen(false);
   };
 
-  // Save patient (create or update)
+  // Save patient (create or update) (No changes)
   const handleSavePatient = async () => {
     setErrors({});
     
@@ -404,7 +414,7 @@ const Patients = () => {
     }
   };
 
-  // Edit patient
+  // Edit patient (No changes)
   const handleEditPatient = (patient) => {
     try {
       if (!patient || typeof patient !== "object") {
@@ -441,7 +451,7 @@ const Patients = () => {
     }
   };
 
-  // Delete patient
+  // Delete patient (No changes)
   const handleDeletePatient = async (patientId) => {
     if (
       !window.confirm(
@@ -467,7 +477,7 @@ const Patients = () => {
     }
   };
 
-  // Filter patients based on search and filters
+  // Filter patients based on search and filters (No changes)
   const filteredPatients = patients.filter((patient) => {
     const fullName = `${patient.first_name || ""} ${patient.last_name || ""} ${
       patient.middle_initial || ""
@@ -488,14 +498,14 @@ const Patients = () => {
     return searchMatch && ivrMatch && activationMatch;
   });
 
-  // Sort patients (active first)
+  // Sort patients (active first) (No changes)
   const sortedPatients = [...filteredPatients].sort((a, b) => {
     const aActive = a.activate_Account === "Activated" ? 1 : 0;
     const bActive = b.activate_Account === "Activated" ? 1 : 0;
     return bActive - aActive;
   });
 
-  // Pagination
+  // Pagination (No changes)
   const indexOfLastPatient = currentPage * patientsPerPage;
   const indexOfFirstPatient = indexOfLastPatient - patientsPerPage;
   const currentPatients = sortedPatients.slice(
@@ -504,13 +514,13 @@ const Patients = () => {
   );
   const totalPages = Math.ceil(sortedPatients.length / patientsPerPage);
 
-  // View PDF handler
+  // View PDF handler (No changes)
   const handleViewPdf = (patient) => {
     setSelectedPatient(patient);
     setViewPdfModalOpen(true);
   };
 
-  // Modal styles
+  // Modal styles (No changes)
   const modalStyle = {
     position: "absolute",
     top: "50%",
@@ -523,8 +533,8 @@ const Patients = () => {
     outline: "none",
   };
 
-  // Loading state
-  if (loading || !user) {
+  // ✅ FIX: Use the combined loading state
+  if (authLoading || patientsLoading) {
     return (
       <div className="flex justify-center items-center min-h-[400px]">
         <CircularProgress color="success" />
@@ -532,11 +542,25 @@ const Patients = () => {
     );
   }
 
-  // Active filter count
+  // ✅ CRITICAL FIX: Guard against unauthenticated users after loading finishes
+  if (!user && !authLoading) {
+    // If the authentication finished and there is no user, this component shouldn't be accessible
+    // It should be guarded by a router, but this acts as a final safety measure.
+    // In a real app, this should redirect to login. For now, we'll return a simple message.
+    return (
+        <div className="flex justify-center items-center min-h-[400px] text-red-500 dark:text-red-400">
+            Access Denied. Please log in.
+        </div>
+    );
+  }
+  
+  // Active filter count (No changes)
   const activeFilterCount = [ivrFilter, activationFilter].filter(Boolean).length;
 
   return (
     <div className="max-w-5xl mx-auto mt-10 p-6 bg-white dark:bg-gray-900 shadow-lg rounded-lg transition-colors duration-300">
+      {/* ... (rest of the component structure) ... */}
+      
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between sm:items-center mb-6 space-y-3 sm:space-y-0">
         <h2 className="text-2xl font-semibold text-gray-800 dark:text-gray-100">
@@ -621,7 +645,7 @@ const Patients = () => {
         </AnimatePresence>
       </motion.div>
 
-      {/* Pagination */}
+      {/* Pagination (No changes) */}
       {totalPages > 1 && (
         <div className="flex justify-center items-center mt-6 space-x-2 sm:space-x-4">
           <motion.button
@@ -676,7 +700,7 @@ const Patients = () => {
         </div>
       )}
 
-      {/* Filter Command Center Modal */}
+      {/* Filter Command Center Modal (No changes) */}
       <AnimatePresence>
         {filterModalOpen && (
           <FilterCommandCenter
@@ -690,7 +714,7 @@ const Patients = () => {
         )}
       </AnimatePresence>
 
-      {/* PDF Viewer Modal */}
+      {/* PDF Viewer Modal (No changes) */}
       <Modal
         open={viewPdfModalOpen}
         onClose={() => setViewPdfModalOpen(false)}
@@ -703,7 +727,7 @@ const Patients = () => {
         </Box>
       </Modal>
 
-      {/* Patient Form Modal */}
+      {/* Patient Form Modal (No changes) */}
       <Modal open={open} onClose={resetForm}>
         <Box
           sx={{

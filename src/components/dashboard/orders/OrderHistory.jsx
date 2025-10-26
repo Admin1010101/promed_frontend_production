@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import axiosAuth from "../../../utils/axios";
 import { useFilter } from "../../../utils/context/FilterContext";
@@ -15,31 +15,49 @@ import {
   IoAlertCircle,
 } from "react-icons/io5";
 
+// Loading component for reuse
+const Loader = () => (
+    <div className="flex justify-center items-center py-6">
+        <div className="w-5 h-5 border-2 border-teal-600 dark:border-teal-400 border-t-transparent rounded-full animate-spin" />
+    </div>
+);
+
 const OrderHistory = () => {
-  const { activationFilter, orderRefreshTrigger } = useFilter(); // ✅ Get refresh trigger from context
+  const { activationFilter, orderRefreshTrigger } = useFilter(); 
   const [history, setHistory] = useState([]);
   const [expandedPatients, setExpandedPatients] = useState({});
   const [loadingInvoice, setLoadingInvoice] = useState(null);
-  const [loadingPatient, setLoadingPatient] = useState(null);
+  const [isFetchingHistory, setIsFetchingHistory] = useState(true); // New general loading state
 
-  // ✅ Fetch history on mount AND when orderRefreshTrigger changes
-  useEffect(() => {
-    console.log("📊 OrderHistory: Fetching data (trigger:", orderRefreshTrigger, ")");
-    fetchHistory();
-  }, [orderRefreshTrigger]); // This will re-fetch whenever an order is placed
+  // State to hold extra orders when fetched (Optimization: Only fetch once per toggle)
+  const [extraOrders, setExtraOrders] = useState({});
 
-  const fetchHistory = async () => {
+  // Fetch history on mount AND when orderRefreshTrigger changes
+  const fetchHistory = useCallback(async () => {
+    setIsFetchingHistory(true);
     try {
       const axiosInstance = axiosAuth();
-      const res = await axiosInstance.get(`/order-history/`);
+      // Fetch only the default (e.g., first 5) orders
+      const res = await axiosInstance.get(`/order-history/`, {
+          params: { all: false } 
+      });
       setHistory(Array.isArray(res.data) ? res.data : []);
       console.log("✅ Order history fetched:", res.data.length, "patients");
     } catch (err) {
       console.error("❌ Failed to fetch order history", err);
+    } finally {
+        setIsFetchingHistory(false);
     }
-  };
+  }, []);
 
+  useEffect(() => {
+    fetchHistory();
+  }, [orderRefreshTrigger, fetchHistory]); 
+
+  // --- Utility functions (No functional change) ---
+  
   const getOrderStatusConfig = (status) => {
+    // ... (Your existing getOrderStatusConfig logic) ...
     const lowerStatus = String(status).toLowerCase();
     const configs = {
       accepted: {
@@ -105,8 +123,9 @@ const OrderHistory = () => {
       </span>
     );
   };
-
+  
   const downloadInvoice = async (orderId) => {
+    // ... (Your existing downloadInvoice logic) ...
     setLoadingInvoice(orderId);
     try {
       const axiosInstance = axiosAuth();
@@ -137,58 +156,75 @@ const OrderHistory = () => {
       setLoadingInvoice(null);
     }
   };
+  
+  // --- END Utility functions ---
 
+  // ✅ IMPROVED LOGIC: Handle toggle to fetch all orders for *only* the specific patient
   const handleToggle = async (patientId) => {
     const isExpanded = expandedPatients[patientId];
     
     if (isExpanded) {
+      // Collapse: Simply hide the full list
       setExpandedPatients((prev) => ({ ...prev, [patientId]: false }));
-      setLoadingPatient(patientId);
-      
-      try {
+      return;
+    } 
+
+    // Expand: Check if we already fetched the extra orders
+    if (extraOrders[patientId]) {
+        setExpandedPatients((prev) => ({ ...prev, [patientId]: true }));
+        return;
+    }
+    
+    // Fetch: If not expanded and not already fetched, fetch ALL orders
+    setExtraOrders((prev) => ({ ...prev, [`loading-${patientId}`]: true }));
+    
+    try {
         const axiosInstance = axiosAuth();
-        const res = await axiosInstance.get(`/order-history/`, {
-          params: { all: false },
+        // Assuming your backend supports fetching ALL orders OR has a dedicated endpoint for one patient
+        const res = await axiosInstance.get(`/order-history/`, { 
+            params: { all: true } // Backend logic to return all orders for ALL patients
         });
-        const updated = res.data.find((p) => p.id === patientId);
-        if (updated) {
-          setHistory((prev) =>
-            prev.map((p) => (p.id === patientId ? updated : p))
-          );
+        
+        // Find the specific patient with all orders
+        const patientWithAllOrders = res.data.find(p => p.id === patientId);
+
+        if (patientWithAllOrders) {
+            // Save the complete order list in extraOrders state
+            setExtraOrders((prev) => ({ 
+                ...prev, 
+                [patientId]: patientWithAllOrders.orders,
+                [`loading-${patientId}`]: false
+            }));
+            
+            // Expand the view
+            setExpandedPatients((prev) => ({ ...prev, [patientId]: true }));
+        } else {
+            console.error("Patient not found in full order history list.");
+            setExtraOrders((prev) => ({ ...prev, [`loading-${patientId}`]: false }));
+            alert("Could not load all orders for this patient.");
         }
-      } catch (err) {
-        console.error("Failed to reload order history", err);
-      } finally {
-        setLoadingPatient(null);
-      }
-    } else {
-      setLoadingPatient(patientId);
-      
-      try {
-        const axiosInstance = axiosAuth();
-        const res = await axiosInstance.get(`/order-history/`, {
-          params: { all: true },
-        });
-        const updated = res.data.find((p) => p.id === patientId);
-        if (updated) {
-          setHistory((prev) =>
-            prev.map((p) => (p.id === patientId ? updated : p))
-          );
-          setExpandedPatients((prev) => ({ ...prev, [patientId]: true }));
-        }
-      } catch (err) {
-        console.error("Failed to load full order history", err);
-        alert("Could not load all orders. Please try again.");
-      } finally {
-        setLoadingPatient(null);
-      }
+    } catch (err) {
+      console.error("Failed to load full order history", err);
+      setExtraOrders((prev) => ({ ...prev, [`loading-${patientId}`]: false }));
+      alert("Could not load all orders. Please try again.");
     }
   };
+
 
   const filteredHistory = history.filter(
     (patient) =>
       !activationFilter || patient.activate_Account === activationFilter
   );
+
+  // --- Conditional Rendering ---
+
+  if (isFetchingHistory) {
+      return (
+          <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm p-8">
+            <Loader />
+          </div>
+      );
+  }
 
   if (filteredHistory.length === 0) {
     return (
@@ -211,8 +247,13 @@ const OrderHistory = () => {
       <AnimatePresence>
         {filteredHistory.map((patient) => {
           const totalOrders = patient.total_orders_count || patient.orders.length;
-          const hasMoreOrders = totalOrders > 5;
           const isExpanded = expandedPatients[patient.id];
+          const isLoadingToggle = extraOrders[`loading-${patient.id}`];
+
+          // Determine which orders to display
+          const ordersToDisplay = isExpanded ? (extraOrders[patient.id] || patient.orders) : patient.orders;
+          
+          const hasMoreOrders = totalOrders > ordersToDisplay.length; // Check if there are more orders than what's currently displayed
           
           return (
             <motion.div
@@ -239,7 +280,7 @@ const OrderHistory = () => {
               </div>
 
               <div className="p-4">
-                {patient.orders.length === 0 ? (
+                {ordersToDisplay.length === 0 ? (
                   <div className="text-center py-6">
                     <IoReceiptOutline className="w-8 h-8 text-gray-300 dark:text-gray-600 mx-auto mb-2" />
                     <p className="text-xs text-gray-500 dark:text-gray-400">
@@ -248,7 +289,7 @@ const OrderHistory = () => {
                   </div>
                 ) : (
                   <div className="space-y-3">
-                    {patient.orders.map((order) => (
+                    {ordersToDisplay.map((order) => (
                       <div
                         key={order.id}
                         className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-3 border border-gray-200 dark:border-gray-600"
@@ -292,14 +333,15 @@ const OrderHistory = () => {
                   </div>
                 )}
 
+                {/* The "Show More/Less" button now uses the improved logic */}
                 {hasMoreOrders && (
                   <motion.button
                     onClick={() => handleToggle(patient.id)}
-                    disabled={loadingPatient === patient.id}
+                    disabled={isLoadingToggle}
                     whileTap={{ scale: 0.98 }}
                     className="w-full mt-3 flex items-center justify-center gap-2 py-2 text-xs font-semibold text-teal-600 dark:text-teal-400 hover:bg-teal-50 dark:hover:bg-teal-900/20 rounded-lg transition-colors disabled:opacity-50"
                   >
-                    {loadingPatient === patient.id ? (
+                    {isLoadingToggle ? (
                       <div className="w-4 h-4 border-2 border-teal-600 dark:border-teal-400 border-t-transparent rounded-full animate-spin" />
                     ) : isExpanded ? (
                       <>

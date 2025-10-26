@@ -48,8 +48,11 @@ const Navbar = ({ isDarkMode, setIsDarkMode }) => {
   const [scrolled, setScrolled] = useState(false);
   const notificationRef = useRef(null);
 
-  const { user, logout } = useContext(AuthContext);
-  const isAuthenticated = !!user;
+  // ✅ FIX: Destructure 'loading' from AuthContext
+  const { user, logout, loading: authLoading } = useContext(AuthContext); 
+  
+  // isAuthenticated is true ONLY if user object exists AND is loaded
+  const isAuthenticated = !!user && !authLoading; 
 
   const [showProfileDropdown, setShowProfileDropdown] = useState(false);
   const profileRef = useRef(null);
@@ -70,6 +73,7 @@ const Navbar = ({ isDarkMode, setIsDarkMode }) => {
     else document.documentElement.classList.remove("dark");
   };
 
+  // --- External Click Handlers and Scroll/Resize Hooks (No change) ---
   useEffect(() => {
     const handleScroll = () => {
       setScrolled(window.scrollY > 20);
@@ -110,9 +114,14 @@ const Navbar = ({ isDarkMode, setIsDarkMode }) => {
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
+  // ------------------------------------------------------------------
 
+  // --- Notification Fetch Hook (Only run if user is loaded) ---
   useEffect(() => {
     const fetchNotifications = async () => {
+      // ✅ FIX: Added check for profile existence before fetching
+      if (!user) return; 
+
       try {
         const axiosInstance = axiosAuth();
         const [notifRes, countRes] = await Promise.all([
@@ -127,10 +136,10 @@ const Navbar = ({ isDarkMode, setIsDarkMode }) => {
       }
     };
 
-    if (isAuthenticated) {
+    if (isAuthenticated) { // Will only run if user is loaded AND token is present
       fetchNotifications();
     }
-  }, [isAuthenticated]);
+  }, [isAuthenticated, user]); // Added 'user' as dependency for robustness
 
   function removeDuplicateMedia(url) {
     if (url && typeof url === "string") {
@@ -189,7 +198,7 @@ const Navbar = ({ isDarkMode, setIsDarkMode }) => {
     return "More than 30 days ago";
   }
 
-  const profile = user;
+  const profile = user; // Alias for cleaner access
 
   return (
     <div className={`fixed top-0 left-0 right-0 z-40 transition-all duration-500 ${
@@ -197,13 +206,9 @@ const Navbar = ({ isDarkMode, setIsDarkMode }) => {
         ? 'bg-white/80 dark:bg-gray-900/80 backdrop-blur-lg shadow-lg' 
         : 'bg-white dark:bg-gray-900'
     }`}>
-      {/* KEY CHANGE 1: Use 'justify-between' to space out the three main children:
-        1. Logo/Company Name (far left)
-        2. Desktop Navigation Links (middle)
-        3. Right Side Content/Buttons (far right)
-      */}
+      
       <nav className="relative px-6 sm:px-8 py-4 flex justify-between items-center w-full mx-auto">
-        {/* Logo Section (Far Left) */}
+        {/* Logo Section (Far Left - No change) */}
         <div className="flex items-center flex-shrink-0 group">
           <img 
             src={logo} 
@@ -220,15 +225,13 @@ const Navbar = ({ isDarkMode, setIsDarkMode }) => {
           </Link>
         </div>
 
-        {/* Desktop Navigation Links (Middle - uses flex-1 to center) */}
-        {/* KEY CHANGE 2: Added 'flex-1' to this div to make it occupy the space 
-          between the logo and the buttons, and 'justify-center' to center the links.
-        */}
+        {/* Desktop Navigation Links (Middle - No change) */}
         <div className="hidden lg:flex items-center justify-center flex-1">
           <ul className="flex items-center space-x-8 xl:space-x-10">
             {[
               { to: "/", label: "Home" },
-              ...(isAuthenticated ? [{ to: "/dashboard/", label: "Dashboard" }] : []),
+              // ✅ FIX: Use simple isAuthenticated check, as loading is handled in parent
+              ...(isAuthenticated ? [{ to: "/dashboard/", label: "Dashboard" }] : []), 
               { to: "/about/", label: "About Us" },
               { to: "/products/", label: "Products" },
               { to: "/contact/", label: "Contact" },
@@ -248,7 +251,8 @@ const Navbar = ({ isDarkMode, setIsDarkMode }) => {
 
         {/* Right Side Content/Button Group (Far Right) */}
         <div className="flex items-center space-x-3 sm:space-x-4">
-          {/* Mobile menu button */}
+          
+          {/* Mobile menu button (No change) */}
           <div className="lg:hidden">
             <button
               className="navbar-burger flex items-center p-2 rounded-lg hover:bg-teal-50 dark:hover:bg-teal-900/30 transition-all duration-300"
@@ -258,8 +262,15 @@ const Navbar = ({ isDarkMode, setIsDarkMode }) => {
             </button>
           </div>
 
-          {/* Desktop Right Side - Authenticated */}
-          {isAuthenticated ? (
+          {/* Desktop Right Side - Conditional Rendering */}
+          {authLoading ? (
+            // Show a loading state if the initial context check is running
+            <div className="hidden lg:flex items-center space-x-4">
+                 <div className="h-10 w-10 bg-gray-200 dark:bg-gray-700 rounded-full animate-pulse"></div>
+                 <div className="h-4 w-20 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
+            </div>
+          ) : isAuthenticated ? (
+            // ✅ Authenticated UI (Only renders if user data is loaded)
             <div className="hidden lg:flex items-center space-x-4">
               <button
                 onClick={toggleDarkMode}
@@ -273,10 +284,12 @@ const Navbar = ({ isDarkMode, setIsDarkMode }) => {
                 )}
               </button>
 
+              {/* Notification Dropdown (No changes needed, relies on isAuthenticated) */}
               <div
                 className="relative notification-container flex-shrink-0"
                 ref={notificationRef}
               >
+                {/* ... Notification button and dropdown content ... */}
                 <button className="p-2.5 rounded-xl bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-700 hover:shadow-lg transform hover:scale-110 transition-all duration-300 relative">
                   <IoIosNotificationsOutline
                     className="text-2xl text-gray-600 dark:text-gray-300 cursor-pointer"
@@ -289,43 +302,44 @@ const Navbar = ({ isDarkMode, setIsDarkMode }) => {
                   )}
                 </button>
                 {showDropdown && (
-                  <div className="absolute right-0 mt-3 w-80 bg-white dark:bg-gray-800 rounded-2xl shadow-2xl border border-gray-100 dark:border-gray-700 z-50 overflow-hidden animate-slideDown">
-                    <div className="p-4 bg-gradient-to-r from-teal-50 to-teal-100 dark:from-teal-900/30 dark:to-teal-800/30 border-b border-gray-200 dark:border-gray-700">
-                      <h3 className="text-sm font-bold text-gray-800 dark:text-gray-200">Notifications</h3>
-                    </div>
-                    <ul className="max-h-96 overflow-y-auto">
-                      {notifications.length > 0 ? (
-                        notifications.map((notif) => (
-                          <li
-                            key={notif.id}
-                            onClick={() => handleNotificationClick(notif)}
-                            className={`px-4 py-3 flex flex-col border-b border-gray-100 dark:border-gray-700 last:border-b-0 transition-all duration-300 ${
-                              notif.is_read
-                                ? "bg-gray-50 dark:bg-gray-800/50 text-gray-400"
-                                : "bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-teal-50 dark:hover:bg-teal-900/20"
-                            } cursor-pointer hover:shadow-md`}
-                          >
-                            <div className="flex justify-between items-start">
-                              <span className="text-sm flex-1">{notif.message}</span>
-                              {notif.data && (
-                                <IoEyeOutline className="text-teal-500 text-lg ml-2 flex-shrink-0 hover:scale-125 transition-transform duration-300" />
-                              )}
-                            </div>
-                            <span className="text-xs text-gray-400 dark:text-gray-500 mt-1 italic">
-                              {getTimeLabel(notif.date_created)}
-                            </span>
+                    <div className="absolute right-0 mt-3 w-80 bg-white dark:bg-gray-800 rounded-2xl shadow-2xl border border-gray-100 dark:border-gray-700 z-50 overflow-hidden animate-slideDown">
+                      <div className="p-4 bg-gradient-to-r from-teal-50 to-teal-100 dark:from-teal-900/30 dark:to-teal-800/30 border-b border-gray-200 dark:border-gray-700">
+                        <h3 className="text-sm font-bold text-gray-800 dark:text-gray-200">Notifications</h3>
+                      </div>
+                      <ul className="max-h-96 overflow-y-auto">
+                        {notifications.length > 0 ? (
+                          notifications.map((notif) => (
+                            <li
+                              key={notif.id}
+                              onClick={() => handleNotificationClick(notif)}
+                              className={`px-4 py-3 flex flex-col border-b border-gray-100 dark:border-gray-700 last:border-b-0 transition-all duration-300 ${
+                                notif.is_read
+                                  ? "bg-gray-50 dark:bg-gray-800/50 text-gray-400"
+                                  : "bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-teal-50 dark:hover:bg-teal-900/20"
+                              } cursor-pointer hover:shadow-md`}
+                            >
+                              <div className="flex justify-between items-start">
+                                <span className="text-sm flex-1">{notif.message}</span>
+                                {notif.data && (
+                                  <IoEyeOutline className="text-teal-500 text-lg ml-2 flex-shrink-0 hover:scale-125 transition-transform duration-300" />
+                                )}
+                              </div>
+                              <span className="text-xs text-gray-400 dark:text-gray-500 mt-1 italic">
+                                {getTimeLabel(notif.date_created)}
+                              </span>
+                            </li>
+                          ))
+                        ) : (
+                          <li className="px-4 py-8 text-sm text-gray-500 dark:text-gray-400 text-center">
+                            No notifications yet
                           </li>
-                        ))
-                      ) : (
-                        <li className="px-4 py-8 text-sm text-gray-500 dark:text-gray-400 text-center">
-                          No notifications yet
-                        </li>
-                      )}
-                    </ul>
-                  </div>
-                )}
+                        )}
+                      </ul>
+                    </div>
+                  )}
               </div>
 
+              {/* User Profile Dropdown */}
               <div
                 className="relative flex-shrink-0"
                 onClick={() => setShowProfileDropdown(true)}
@@ -333,10 +347,12 @@ const Navbar = ({ isDarkMode, setIsDarkMode }) => {
               >
                 <div className="flex items-center space-x-3 cursor-pointer group">
                   <h6 className="text-sm font-semibold text-gray-800 dark:text-gray-200 whitespace-nowrap hidden xl:block group-hover:text-teal-500 dark:group-hover:text-teal-400 transition-colors duration-300">
-                    {profile?.user.full_name || profile?.email || "User"}
+                    {/* ✅ FIX: Use optional chaining to prevent crash if 'profile' is momentarily null/undefined */}
+                    {profile?.full_name || profile?.email || "User"} 
                   </h6>
                   <div className="relative">
                     <img
+                      // ✅ FIX: Use optional chaining on 'profile' and image path
                       src={
                         profile?.image?.startsWith("http")
                           ? removeDuplicateMedia(profile.image)
@@ -355,9 +371,11 @@ const Navbar = ({ isDarkMode, setIsDarkMode }) => {
                   <div className="absolute right-0 mt-3 w-56 bg-white dark:bg-gray-800 rounded-2xl shadow-2xl border border-gray-100 dark:border-gray-700 z-50 overflow-hidden animate-slideDown">
                     <div className="p-3 bg-gradient-to-r from-teal-50 to-teal-100 dark:from-teal-900/30 dark:to-teal-800/30 border-b border-gray-200 dark:border-gray-700">
                       <p className="text-sm font-bold text-gray-800 dark:text-gray-200 truncate">
+                        {/* ✅ FIX: Use optional chaining */}
                         {profile?.full_name || profile?.email || "User"}
                       </p>
                     </div>
+                    {/* ... Logout and Profile links (No change) ... */}
                     <Link
                       to="/profile"
                       className="flex items-center px-4 py-3 text-sm text-gray-700 dark:text-gray-300 hover:bg-teal-50 dark:hover:bg-teal-900/20 cursor-pointer font-medium transition-all duration-300 group"
@@ -383,6 +401,7 @@ const Navbar = ({ isDarkMode, setIsDarkMode }) => {
           ) : (
             /* Desktop Right Side - Unauthenticated */
             <div className="hidden lg:flex items-center space-x-4">
+              {/* ... Unauthenticated buttons (No change) ... */}
               <button
                 onClick={toggleDarkMode}
                 aria-label="Toggle Dark Mode"
@@ -415,7 +434,7 @@ const Navbar = ({ isDarkMode, setIsDarkMode }) => {
           isMobileMenuOpen ? "" : "pointer-events-none"
         }`}
       >
-        {/* Backdrop with blur */}
+        {/* Backdrop and Sliding menu panel (No significant changes) */}
         <div
           className={`fixed inset-0 bg-gray-900/50 backdrop-blur-sm transition-opacity duration-500 ${
             isMobileMenuOpen ? "opacity-100" : "opacity-0"
@@ -423,12 +442,12 @@ const Navbar = ({ isDarkMode, setIsDarkMode }) => {
           onClick={closeMobileMenu}
         ></div>
 
-        {/* Sliding menu panel */}
         <nav
           className={`fixed top-0 left-0 bottom-0 flex flex-col w-5/6 max-w-sm py-6 px-6 bg-white dark:bg-gray-900 overflow-y-auto transform transition-all duration-500 ease-out z-50 shadow-2xl ${
             isMobileMenuOpen ? "translate-x-0" : "-translate-x-full"
           }`}
         >
+          {/* Header and Links (No change) */}
           <div className="flex items-center mb-6 justify-between">
             <div className="flex items-center">
               <img src={logo} alt="" height={50} width={50} className="animate-pulse"/>
@@ -447,6 +466,7 @@ const Navbar = ({ isDarkMode, setIsDarkMode }) => {
           <ul className="space-y-1">
             {[
               { to: "/", label: "Home" },
+              // ✅ FIX: Use simple isAuthenticated check
               ...(isAuthenticated ? [
                 { to: "/dashboard/", label: "Dashboard" },
                 { to: "/profile", label: "Profile" }
@@ -467,10 +487,12 @@ const Navbar = ({ isDarkMode, setIsDarkMode }) => {
             ))}
           </ul>
           
+          {/* Mobile Authenticated Status (Only display if profile is loaded) */}
           {isAuthenticated && (
             <div className="flex items-center space-x-4 mt-6 p-4 bg-gradient-to-r from-teal-50 to-teal-100 dark:from-teal-900/30 dark:to-teal-800/30 rounded-2xl">
               <div className="relative">
                 <img
+                  // ✅ FIX: Use optional chaining
                   src={
                     profile?.image?.startsWith("http")
                       ? removeDuplicateMedia(profile.image)
@@ -484,14 +506,18 @@ const Navbar = ({ isDarkMode, setIsDarkMode }) => {
                 <span className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-white dark:border-gray-900"></span>
               </div>
               <h6 className="text-sm font-bold text-gray-800 dark:text-gray-200 flex-1 truncate">
+                {/* ✅ FIX: Use optional chaining */}
                 {profile?.full_name || profile?.email || "User"}
               </h6>
             </div>
           )}
 
+          {/* Mobile Bottom Buttons */}
           <div className="mt-auto pt-6 flex flex-col space-y-3">
             {isAuthenticated ? (
+              // Mobile Authenticated Buttons (No change, relies on profile being present)
               <>
+                {/* ... Notifications, Dark Mode, Logout Buttons ... */}
                 <div className="relative">
                   <button
                     onClick={() => setShowDropdown((prev) => !prev)}
@@ -566,6 +592,7 @@ const Navbar = ({ isDarkMode, setIsDarkMode }) => {
                 </button>
               </>
             ) : (
+              // Mobile Unauthenticated Buttons (No change)
               <>
                 <button
                   onClick={toggleDarkMode}
@@ -606,7 +633,6 @@ const Navbar = ({ isDarkMode, setIsDarkMode }) => {
         handleDelete={deleteNotification}
       />
       
-      {/* Add custom styles for animations */}
       <style jsx>{`
         @keyframes slideDown {
           from {
@@ -628,4 +654,3 @@ const Navbar = ({ isDarkMode, setIsDarkMode }) => {
 };
 
 export default Navbar;
-
