@@ -85,7 +85,7 @@ const Contact = () => {
       // ✅ Use the existing backend URL and Axios logic
       await axios.post(
         // NOTE: Ensure REACT_APP_API_URL is correctly defined in your .env
-        `${process.env.REACT_APP_API_URL}/contact-us/`, 
+        'https://promedhealth-frontdoor-h4c4bkcxfkduezec.z02.azurefd.net/api/v1/contact-us/', 
         formData
       );
       toast.success("Your message has been sent. We'll get back to you soon!");
