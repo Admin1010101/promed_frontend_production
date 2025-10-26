@@ -11,6 +11,7 @@ import {
 import toast from "react-hot-toast";
 import register_bg_img_2 from "../../assets/images/register_bg_img.jpg";
 import { countryCodesList } from "../../utils/data";
+import {states} from '../../utils/data/index'
 
 // --- START: MOVED COMPONENTS OUTSIDE REGISTER ---
 
@@ -404,6 +405,7 @@ const Register = () => {
                         required
                       />
                       <div className="grid grid-cols-2 gap-4">
+                        {/* Existing City Input */}
                         <InputField
                           label="City"
                           type="text"
@@ -412,16 +414,49 @@ const Register = () => {
                           placeholder="Chicago"
                           required
                         />
-                        <InputField
-                          label="State"
-                          type="text"
-                          value={formData.state}
-                          onChange={(e) =>
-                            handleChange("state", e.target.value)
-                          }
-                          placeholder="IL"
-                          required
-                        />
+
+                        {/* --- State Dropdown Replacement --- */}
+                        <div>
+                          <label
+                            htmlFor="state-select"
+                            className="block text-sm font-semibold text-gray-300 mb-2"
+                          >
+                            State
+                          </label>
+                          {/* The 'relative group' div is kept to maintain the styling context from your other components */}
+                          <div className="relative group">
+                            <select
+                              id="state-select"
+                              value={formData.state}
+                              onChange={(e) =>
+                                handleChange("state", e.target.value)
+                              }
+                              className="w-full pl-4 pr-4 py-4 bg-white/5 border border-white/10 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-teal-500/50 focus:border-teal-500 transition-all duration-300"
+                              required
+                            >
+                              {/* Default/Placeholder Option */}
+                              <option
+                                value=""
+                                disabled
+                                className="bg-slate-900 text-gray-500"
+                              >
+                                Select State
+                              </option>
+
+                              {/* Map over the states array to create options */}
+                              {states.map((state) => (
+                                <option
+                                  key={state}
+                                  value={state}
+                                  className="bg-slate-900 text-white"
+                                >
+                                  {state}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+                        </div>
+                        {/* ---------------------------------- */}
                       </div>
                       <InputField
                         label="Country"

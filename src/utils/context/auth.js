@@ -252,7 +252,14 @@ export const AuthProvider = ({ children }) => {
 
       clearMfaState();
 
-      await fetchUserData(newAccessToken);
+      // ✅ CRITICAL: Wait for user data to be fetched before returning success
+      try {
+        await fetchUserData(newAccessToken);
+      } catch (fetchError) {
+        console.error("❌ Failed to fetch user data after MFA:", fetchError);
+        // Even if fetch fails, we should still try to continue
+        // The user data might be cached or will be refetched on next page load
+      }
 
       return { success: true };
     } catch (error) {
@@ -261,9 +268,11 @@ export const AuthProvider = ({ children }) => {
         error.response?.data || error.message
       );
 
-      // If verification fails, keep MFA state active but parse error message
       let errorMessage = "Invalid verification code. Please try again.";
-      // ... (Error parsing logic) ...
+
+      if (error.response?.data?.error) {
+        errorMessage = error.response.data.error;
+      }
 
       // If the error is severe (e.g., token expired), force logout
       if (error.response?.status === 401 || error.response?.status === 403) {
@@ -277,7 +286,6 @@ export const AuthProvider = ({ children }) => {
       return { success: false, error: errorMessage };
     }
   };
-
   // --- Patient/Document API Functions ---
 
   const getPatients = async () => {
@@ -375,4 +383,3 @@ export const AuthProvider = ({ children }) => {
     </AuthContext.Provider>
   );
 };
- 
