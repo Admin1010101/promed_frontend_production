@@ -10,7 +10,6 @@ export default function NewAccountFormModal({
 }) {
   // Function to get the first name from the full name
   const getFirstName = (fullName) => fullName?.split(" ")[0] || "";
-
   // Function to set initial form state based on provided data
   const getInitialState = (data) => ({
     distributor: "",
@@ -47,6 +46,8 @@ export default function NewAccountFormModal({
     signatureName: getFirstName(data?.providerName),
     signatureDate: new Date().toISOString().split("T")[0],
   });
+
+  console.log('Init Data: ', initialData)
 
   const [formData, setFormData] = useState(getInitialState(initialData));
   const [isSubmitting, setIsSubmitting] = useState(false);

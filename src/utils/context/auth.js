@@ -7,8 +7,8 @@ import axiosAuth from "../axios";
 // --- Configuration ---
 // Assuming API_BASE_URL is a constant imported from elsewhere (e.g., constants.js)
 // If not, you may need to define it here or import it from your config file.
-const API_BASE_URL = 'https://promedhealth-frontdoor-h4c4bkcxfkduezec.z02.azurefd.net/api/v1'; 
-
+const API_BASE_URL =
+  "https://promedhealth-frontdoor-h4c4bkcxfkduezec.z02.azurefd.net/api/v1";
 
 export const AuthContext = createContext();
 
@@ -29,14 +29,14 @@ export const AuthProvider = ({ children }) => {
     setIsMfaPending(false);
     setIsBAARequired(false);
   };
-  
+
   const clearMfaState = () => {
     console.log("🧹 Clearing temporary MFA state");
     localStorage.removeItem("session_id");
     localStorage.removeItem("mfa_method");
     setIsMfaPending(false);
   };
-  
+
   /**
    * Fetches full provider profile and merges essential data.
    * Ensures the returned object is the single source of user data for the context state.
@@ -51,11 +51,11 @@ export const AuthProvider = ({ children }) => {
       const unifiedUser = {
         // Base authentication details (from token)
         id: decodedToken.user_id,
-        role: decodedToken.role, 
-        
+        role: decodedToken.role,
+
         // Profile and related details (from API response)
         ...response.data, // Contains profile info (image, full_name, email, etc.)
-        
+
         // Critical flags
         has_signed_baa: response.data.has_signed_baa,
       };
@@ -74,7 +74,8 @@ export const AuthProvider = ({ children }) => {
     const accessToken = localStorage.getItem("accessToken");
     const refreshToken = localStorage.getItem("refreshToken");
     const session_id = localStorage.getItem("session_id");
-    const baaRequiredStatus = sessionStorage.getItem("isBAARequired") === "true";
+    const baaRequiredStatus =
+      sessionStorage.getItem("isBAARequired") === "true";
 
     if (session_id && !refreshToken) {
       // MFA in progress
@@ -125,7 +126,7 @@ export const AuthProvider = ({ children }) => {
       });
 
       const { access, refresh, mfa_required, session_id } = response.data;
-      
+
       // 1. Handle MFA requirement
       if (mfa_required) {
         localStorage.setItem("accessToken", access);
@@ -139,30 +140,30 @@ export const AuthProvider = ({ children }) => {
       localStorage.setItem("accessToken", access);
       localStorage.setItem("refreshToken", refresh);
       clearMfaState(); // ensure any lingering MFA state is gone
-      
+
       await fetchUserData(access); // Populate user state immediately
       return { success: true };
-
     } catch (error) {
       const errorData = error.response?.data;
-      
+
       // 🔑 Handle BAA Required (403)
       if (error.response?.status === 403 && errorData?.baa_required) {
         toast.error("Mandatory BAA agreement required.");
-        
+
         localStorage.setItem("accessToken", errorData.access); // Temp token
         sessionStorage.setItem("isBAARequired", "true"); // Flag for router
 
         // Note: The backend should return enough data for the profile to function temporarily
-        setUser(errorData.user || { email: email.trim() }); 
+        setUser(errorData.user || { email: email.trim() });
         setIsBAARequired(true);
         clearMfaState();
 
         return { baa_required: true, user: errorData.user };
       }
-      
+
       // --- Standard Error Parsing ---
-      let errorMessage = "Login failed. Please check your credentials and try again.";
+      let errorMessage =
+        "Login failed. Please check your credentials and try again.";
       // ... (Add your detailed error parsing logic here) ...
 
       clearMfaState();
@@ -178,7 +179,8 @@ export const AuthProvider = ({ children }) => {
         baaFormData
       );
 
-      const { access, session_id, mfa_required, method, detail } = response.data;
+      const { access, session_id, mfa_required, method, detail } =
+        response.data;
 
       if (!mfa_required || !session_id) {
         throw new Error("BAA signed, but the server failed to initiate MFA.");
@@ -198,13 +200,19 @@ export const AuthProvider = ({ children }) => {
 
       return { success: true, mfa_required: true, detail };
     } catch (error) {
-      console.error("❌ Failed to sign BAA:", error.response?.data || error.message);
+      console.error(
+        "❌ Failed to sign BAA:",
+        error.response?.data || error.message
+      );
       toast.error("Failed to sign BAA. Please log in again.");
 
       if (error.response?.status === 401 || error.response?.status === 403) {
         logout();
       }
-      return { success: false, error: error.response?.data || "Failed to sign BAA" };
+      return {
+        success: false,
+        error: error.response?.data || "Failed to sign BAA",
+      };
     }
   };
 
@@ -229,7 +237,8 @@ export const AuthProvider = ({ children }) => {
         }
       );
 
-      const { refresh: finalRefreshToken, access: newAccessToken } = response.data;
+      const { refresh: finalRefreshToken, access: newAccessToken } =
+        response.data;
 
       if (!finalRefreshToken || !newAccessToken) {
         throw new Error("Missing final tokens in verification response.");
@@ -241,40 +250,227 @@ export const AuthProvider = ({ children }) => {
       clearMfaState();
 
       // 2. Await full user data fetch and state update (PREVENTS RACE CONDITION)
-      await fetchUserData(newAccessToken); 
-      
+      await fetchUserData(newAccessToken);
+
       // 3. Return success only after state is guaranteed to be updated
       return { success: true };
-      
     } catch (error) {
       // Unified error handling block
-      console.error("❌ MFA verification error:", error.response?.data || error.message);
+      console.error(
+        "❌ MFA verification error:",
+        error.response?.data || error.message
+      );
 
-      let errorMessage = error.message || "Invalid verification code. Please try again.";
+      let errorMessage =
+        error.message || "Invalid verification code. Please try again.";
 
       if (error.response?.data?.error) {
         errorMessage = error.response.data.error;
       }
-      
-      if (error.response?.status === 401 || error.response?.status === 403 || errorMessage.includes("session")) {
+
+      if (
+        error.response?.status === 401 ||
+        error.response?.status === 403 ||
+        errorMessage.includes("session")
+      ) {
         logout();
-        return { success: false, error: "Session expired. Please log in again." };
+        return {
+          success: false,
+          error: "Session expired. Please log in again.",
+        };
       }
-      
+
       // IMPORTANT: If fetchUserData failed, it will also throw/be caught here, and we log out.
-      // If we made it past token exchange but fetchUserData failed, the throw inside the try block 
+      // If we made it past token exchange but fetchUserData failed, the throw inside the try block
       // is caught here, and we'll hit the logout if the error is session-related.
 
       return { success: false, error: errorMessage };
     }
   };
 
-  // --- Patient/Document API Functions (No Change) ---
-  const getPatients = async () => { /* ... */ };
-  const postPatient = async (patientData) => { /* ... */ };
-  const updatePatient = async (patientId, patientData) => { /* ... */ };
-  const deletePatient = async (patientId) => { /* ... */ };
-  const uploadDocumentAndEmail = async (documentType, files) => { /* ... */ };
+  const getPatients = async () => {
+    try {
+      // ✅ Guard against calling before user is ready
+      if (!user) {
+        console.warn("getPatients called before user authentication completed");
+        return { success: false, error: "Authentication not complete" };
+      }
+
+      const axiosInstance = axiosAuth();
+      const response = await axiosInstance.get("/patients/");
+      return { success: true, data: response.data };
+    } catch (error) {
+      console.error("Error fetching patients:", error);
+      return {
+        success: false,
+        error:
+          error.response?.data?.error ||
+          error.response?.data?.detail ||
+          "Failed to fetch patients",
+      };
+    }
+  };
+
+  const postPatient = async (patientData) => {
+    try {
+      // ✅ Guard against calling before user is ready
+      if (!user) {
+        console.warn("postPatient called before user authentication completed");
+        return { success: false, error: "Authentication not complete" };
+      }
+
+      const axiosInstance = axiosAuth();
+      const response = await axiosInstance.post("/patients/", patientData);
+      return { success: true, data: response.data };
+    } catch (error) {
+      console.error("Error creating patient:", error);
+      return {
+        success: false,
+        error:
+          error.response?.data?.error ||
+          error.response?.data?.detail ||
+          "Failed to create patient",
+      };
+    }
+  };
+
+  const updatePatient = async (patientId, patientData) => {
+    console.log("🔵 AuthContext.updatePatient called");
+    console.log("🔵 patientId:", patientId);
+    console.log("🔵 patientData:", patientData);
+    console.log("🔵 user:", user);
+
+    try {
+      // ✅ Guard against calling before user is ready
+      if (!user) {
+        console.warn(
+          "⚠️ updatePatient called before user authentication completed"
+        );
+        return { success: false, error: "Authentication not complete" };
+      }
+
+      console.log("✅ User authenticated, creating axios instance");
+      const axiosInstance = axiosAuth();
+
+      const url = `/patients/${patientId}/`;
+      console.log("📤 Making PUT request to:", url);
+      console.log("📤 Request payload:", patientData);
+
+      const response = await axiosInstance.put(url, patientData);
+
+      console.log("📥 Response received:", response);
+      console.log("📥 Response status:", response.status);
+      console.log("📥 Response data:", response.data);
+
+      return { success: true, data: response.data };
+    } catch (error) {
+      console.error("💥 Error in updatePatient:", error);
+      console.error("💥 Error response:", error.response);
+      console.error("💥 Error request:", error.request);
+      console.error("💥 Error message:", error.message);
+
+      return {
+        success: false,
+        error:
+          error.response?.data?.error ||
+          error.response?.data?.detail ||
+          error.message ||
+          "Failed to update patient",
+      };
+    }
+  };
+
+  // const updatePatient = async (patientId, patientData) => {
+  //   try {
+  //     // ✅ Guard against calling before user is ready
+  //     if (!user) {
+  //       console.warn(
+  //         "updatePatient called before user authentication completed"
+  //       );
+  //       return { success: false, error: "Authentication not complete" };
+  //     }
+
+  //     const axiosInstance = axiosAuth();
+  //     const response = await axiosInstance.put(
+  //       `/patients/${patientId}/`,
+  //       patientData
+  //     );
+  //     return { success: true, data: response.data };
+  //   } catch (error) {
+  //     console.error("Error updating patient:", error);
+  //     return {
+  //       success: false,
+  //       error:
+  //         error.response?.data?.error ||
+  //         error.response?.data?.detail ||
+  //         "Failed to update patient",
+  //     };
+  //   }
+  // };
+
+  const deletePatient = async (patientId) => {
+    try {
+      // ✅ Guard against calling before user is ready
+      if (!user) {
+        console.warn(
+          "deletePatient called before user authentication completed"
+        );
+        return { success: false, error: "Authentication not complete" };
+      }
+
+      const axiosInstance = axiosAuth();
+      await axiosInstance.delete(`/patients/${patientId}/`);
+      return { success: true };
+    } catch (error) {
+      console.error("Error deleting patient:", error);
+      return {
+        success: false,
+        error:
+          error.response?.data?.error ||
+          error.response?.data?.detail ||
+          "Failed to delete patient",
+      };
+    }
+  };
+
+  const uploadDocumentAndEmail = async (documentType, files) => {
+    try {
+      // ✅ Guard against calling before user is ready
+      if (!user) {
+        console.warn(
+          "uploadDocumentAndEmail called before user authentication completed"
+        );
+        return { success: false, error: "Authentication not complete" };
+      }
+
+      const axiosInstance = axiosAuth();
+      const formData = new FormData();
+      formData.append("document_type", documentType);
+      files.forEach((file) => {
+        formData.append("files", file);
+      });
+
+      const response = await axiosInstance.post(
+        "/documents/upload/",
+        formData,
+        {
+          headers: {
+            "Content-Type": "multipart/form-data",
+          },
+        }
+      );
+      return { success: true, data: response.data };
+    } catch (error) {
+      console.error("Error uploading documents:", error);
+      return {
+        success: false,
+        error:
+          error.response?.data?.error ||
+          error.response?.data?.detail ||
+          "Failed to upload documents",
+      };
+    }
+  };
 
   // --- Provider Return ---
 

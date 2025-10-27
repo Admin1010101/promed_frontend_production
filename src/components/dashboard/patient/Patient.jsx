@@ -368,6 +368,7 @@ const Patients = () => {
   };
 
   // Save patient (create or update) (No changes)
+  // Save patient (create or update)
   const handleSavePatient = async () => {
     setErrors({});
     
@@ -375,42 +376,68 @@ const Patients = () => {
       return;
     }
 
+    // ✅ FIX: Exclude read-only timestamp fields from the payload
+    const { created_at, updated_at, date_created, date_updated, ...cleanFormData } = formData;
+    
     const patientData = {
-      ...formData,
-      phone_number: formatPhoneNumberToE164(formData.phone_number),
+      ...cleanFormData,
+      // Ensure phone number is formatted correctly before saving
+      phone_number: formatPhoneNumberToE164(formData.phone_number || cleanFormData.phone_number),
     };
 
     try {
+      // 1. Set component state to reflect loading
+      setPatientsLoading(true);
+      let res;
+
       if (editingPatient) {
         // Update existing patient
-        const res = await updatePatient(editingPatient.id, patientData);
-        
-        if (res.success) {
-          setPatients((prev) =>
-            prev.map((p) => (p.id === editingPatient.id ? res.data : p))
-          );
-          toast.success("Patient profile updated successfully!");
-        } else {
-          console.error("Failed to update patient:", res.error);
-          toast.error(res.error || "Failed to update patient.");
-        }
+        res = await updatePatient(editingPatient.id, patientData);
       } else {
         // Create new patient
-        const res = await postPatient(patientData);
-        
-        if (res.success) {
-          await fetchPatients(); // Refresh list to get all IVR data
-          toast.success("New patient added successfully!");
-        } else {
-          console.error("Failed to add patient:", res.error);
-          toast.error(res.error || "Failed to add new patient.");
-        }
+        res = await postPatient(patientData);
       }
       
-      resetForm();
+      // ✅ GUARD: Ensure res exists before accessing properties
+      if (!res) {
+        throw new Error("No response received from server");
+      }
+      
+      // 🟢 SUCCESS PATH (Executed only if API returns 2xx)
+      if (res.success) {
+        await fetchPatients(); // Refresh list to get all latest data
+        toast.success(editingPatient ? "Patient profile updated successfully!" : "New patient added successfully!");
+        resetForm();
+      } else {
+        // This handles cases where the API returns 2xx but business logic failed
+        console.error("API returned success status but failed business logic:", res.error);
+        toast.error(res.error || "Operation failed due to missing data.");
+      }
+      
     } catch (error) {
+      // 🛑 ERROR PATH (Executed when API returns 4xx, 5xx, or network error)
       console.error("Error saving patient:", error);
-      toast.error("Error saving patient data.");
+      
+      // ✅ COMPREHENSIVE ERROR HANDLING: Handle all error scenarios
+      let displayMessage = "An unexpected error occurred while saving patient data.";
+      
+      if (error.response) {
+        // Server responded with error status
+        const serverError = error.response.data?.error || error.response.data?.detail;
+        displayMessage = serverError || `Server error: ${error.response.status}`;
+      } else if (error.request) {
+        // Request made but no response received (network error)
+        displayMessage = "Network error: Unable to reach the server. Please check your connection.";
+      } else if (error.message) {
+        // Something else happened
+        displayMessage = error.message;
+      }
+      
+      toast.error(displayMessage);
+      
+    } finally {
+      // 2. Clear loading state
+      setPatientsLoading(false); 
     }
   };
 

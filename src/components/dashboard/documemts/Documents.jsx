@@ -52,11 +52,14 @@ const Documents = () => {
 
   const profile = user;
 
+  console.log('user', user)
+
   // --- Derived State/Helpers ---
   const isFormCompleted = jotformStatus === "completed";
   const providerInfo = {
     providerName: user?.full_name || "",
-    contactEmail: user?.email || "",
+    contactEmail: user?.user.email || "",
+    contactPhone: user?.user.phone_number || "",
     // ... (rest of providerInfo remains the same)
   };
 

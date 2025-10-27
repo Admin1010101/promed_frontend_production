@@ -29,7 +29,9 @@ const NewPatientForm = ({
   editingPatient,
 }) => {
   const isEditing = !!editingPatient;
-  const title = isEditing ? "Edit Patient Profile" : "Add New Patient Application";
+  const title = isEditing
+    ? "Edit Patient Profile"
+    : "Add New Patient Application";
   const submitText = isEditing ? "Update Patient" : "Add Patient";
 
   const renderError = (field) => {
@@ -40,7 +42,10 @@ const NewPatientForm = ({
 
   const handleWrapperClose = (e) => {
     // Only close if click is outside the form content or on the dedicated close button
-    if (e.target.id === "patient-form-wrapper" || e.target.closest("#close-btn")) {
+    if (
+      e.target.id === "patient-form-wrapper" ||
+      e.target.closest("#close-btn")
+    ) {
       resetForm();
     }
   };
@@ -75,23 +80,24 @@ const NewPatientForm = ({
           handleSavePatient();
         }}
         // The inner form content is now scrollable up to the max height of the container minus header/footer space.
-        className="space-y-6 overflow-y-auto pr-2" 
+        className="space-y-6 overflow-y-auto pr-2"
         initial="hidden"
         animate="visible"
         variants={formContainerVariants}
         // Simplified max height calculation since the parent now controls it with max-h-[90vh]
-        style={{ maxHeight: "calc(90vh - 120px)" }} 
+        style={{ maxHeight: "calc(90vh - 120px)" }}
       >
-        
         {/* === PATIENT IDENTIFICATION === */}
         <h4 className="text-lg font-semibold text-teal-600 dark:text-teal-400 border-b border-teal-600/50 pb-1">
           Patient Identification
         </h4>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          
           {/* First Name (Required) */}
           <motion.div variants={formItemVariants}>
-            <label htmlFor="first_name" className="block mb-1 text-sm font-medium text-gray-700 dark:text-gray-300">
+            <label
+              htmlFor="first_name"
+              className="block mb-1 text-sm font-medium text-gray-700 dark:text-gray-300"
+            >
               First Name <span className="text-red-500">*</span>
             </label>
             <input
@@ -101,7 +107,11 @@ const NewPatientForm = ({
               placeholder="John"
               value={formData.first_name}
               onChange={handleInputChange}
-              className={`block w-full px-3 py-2 text-sm text-gray-800 dark:text-gray-200 bg-white dark:bg-gray-700 border ${errors.first_name ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'} rounded-lg focus:border-teal-500 focus:ring-teal-500 focus:outline-none transition`}
+              className={`block w-full px-3 py-2 text-sm text-gray-800 dark:text-gray-200 bg-white dark:bg-gray-700 border ${
+                errors.first_name
+                  ? "border-red-500"
+                  : "border-gray-300 dark:border-gray-600"
+              } rounded-lg focus:border-teal-500 focus:ring-teal-500 focus:outline-none transition`}
               required
             />
             {renderError("first_name")}
@@ -109,7 +119,10 @@ const NewPatientForm = ({
 
           {/* Last Name (Required) */}
           <motion.div variants={formItemVariants}>
-            <label htmlFor="last_name" className="block mb-1 text-sm font-medium text-gray-700 dark:text-gray-300">
+            <label
+              htmlFor="last_name"
+              className="block mb-1 text-sm font-medium text-gray-700 dark:text-gray-300"
+            >
               Last Name <span className="text-red-500">*</span>
             </label>
             <input
@@ -119,15 +132,22 @@ const NewPatientForm = ({
               placeholder="Doe"
               value={formData.last_name}
               onChange={handleInputChange}
-              className={`block w-full px-3 py-2 text-sm text-gray-800 dark:text-gray-200 bg-white dark:bg-gray-700 border ${errors.last_name ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'} rounded-lg focus:border-teal-500 focus:ring-teal-500 focus:outline-none transition`}
+              className={`block w-full px-3 py-2 text-sm text-gray-800 dark:text-gray-200 bg-white dark:bg-gray-700 border ${
+                errors.last_name
+                  ? "border-red-500"
+                  : "border-gray-300 dark:border-gray-600"
+              } rounded-lg focus:border-teal-500 focus:ring-teal-500 focus:outline-none transition`}
               required
             />
             {renderError("last_name")}
           </motion.div>
-          
+
           {/* Middle Initial */}
           <motion.div variants={formItemVariants}>
-            <label htmlFor="middle_initial" className="block mb-1 text-sm font-medium text-gray-700 dark:text-gray-300">
+            <label
+              htmlFor="middle_initial"
+              className="block mb-1 text-sm font-medium text-gray-700 dark:text-gray-300"
+            >
               Middle Initial
             </label>
             <input
@@ -146,7 +166,10 @@ const NewPatientForm = ({
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {/* Date of Birth (Required) */}
           <motion.div variants={formItemVariants} className="md:col-span-1">
-            <label htmlFor="date_of_birth" className="block mb-1 text-sm font-medium text-gray-700 dark:text-gray-300">
+            <label
+              htmlFor="date_of_birth"
+              className="block mb-1 text-sm font-medium text-gray-700 dark:text-gray-300"
+            >
               Date of Birth <span className="text-red-500">*</span>
             </label>
             <input
@@ -155,7 +178,11 @@ const NewPatientForm = ({
               name="date_of_birth"
               value={formData.date_of_birth}
               onChange={handleInputChange}
-              className={`block w-full px-3 py-2 text-sm text-gray-800 dark:text-gray-200 bg-white dark:bg-gray-700 border ${errors.date_of_birth ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'} rounded-lg focus:border-teal-500 focus:ring-teal-500 focus:outline-none transition`}
+              className={`block w-full px-3 py-2 text-sm text-gray-800 dark:text-gray-200 bg-white dark:bg-gray-700 border ${
+                errors.date_of_birth
+                  ? "border-red-500"
+                  : "border-gray-300 dark:border-gray-600"
+              } rounded-lg focus:border-teal-500 focus:ring-teal-500 focus:outline-none transition`}
               required
             />
             {renderError("date_of_birth")}
@@ -163,7 +190,10 @@ const NewPatientForm = ({
 
           {/* Phone Number */}
           <motion.div variants={formItemVariants} className="md:col-span-1">
-            <label htmlFor="phone_number" className="block mb-1 text-sm font-medium text-gray-700 dark:text-gray-300">
+            <label
+              htmlFor="phone_number"
+              className="block mb-1 text-sm font-medium text-gray-700 dark:text-gray-300"
+            >
               Phone Number
             </label>
             <input
@@ -173,14 +203,21 @@ const NewPatientForm = ({
               placeholder="e.g., (555) 555-5555"
               value={formData.phone_number}
               onChange={handleInputChange}
-              className={`block w-full px-3 py-2 text-sm text-gray-800 dark:text-gray-200 bg-white dark:bg-gray-700 border ${errors.phone_number ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'} rounded-lg focus:border-teal-500 focus:ring-teal-500 focus:outline-none transition`}
+              className={`block w-full px-3 py-2 text-sm text-gray-800 dark:text-gray-200 bg-white dark:bg-gray-700 border ${
+                errors.phone_number
+                  ? "border-red-500"
+                  : "border-gray-300 dark:border-gray-600"
+              } rounded-lg focus:border-teal-500 focus:ring-teal-500 focus:outline-none transition`}
             />
             {renderError("phone_number")}
           </motion.div>
 
           {/* Email */}
           <motion.div variants={formItemVariants} className="md:col-span-1">
-            <label htmlFor="email" className="block mb-1 text-sm font-medium text-gray-700 dark:text-gray-300">
+            <label
+              htmlFor="email"
+              className="block mb-1 text-sm font-medium text-gray-700 dark:text-gray-300"
+            >
               Email
             </label>
             <input
@@ -194,22 +231,25 @@ const NewPatientForm = ({
             />
           </motion.div>
         </div>
-        
+
         {/* Medical Record Number */}
         <motion.div variants={formItemVariants}>
-            <label htmlFor="medical_record_number" className="block mb-1 text-sm font-medium text-gray-700 dark:text-gray-300">
-              Medical Record Number
-            </label>
-            <input
-              type="text"
-              id="medical_record_number"
-              name="medical_record_number"
-              placeholder="MRN-123456"
-              value={formData.medical_record_number}
-              onChange={handleInputChange}
-              className="block w-full px-3 py-2 text-sm text-gray-800 dark:text-gray-200 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg focus:border-teal-500 focus:ring-teal-500 focus:outline-none transition"
-            />
-          </motion.div>
+          <label
+            htmlFor="medical_record_number"
+            className="block mb-1 text-sm font-medium text-gray-700 dark:text-gray-300"
+          >
+            Medical Record Number
+          </label>
+          <input
+            type="text"
+            id="medical_record_number"
+            name="medical_record_number"
+            placeholder="MRN-123456"
+            value={formData.medical_record_number}
+            onChange={handleInputChange}
+            className="block w-full px-3 py-2 text-sm text-gray-800 dark:text-gray-200 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg focus:border-teal-500 focus:ring-teal-500 focus:outline-none transition"
+          />
+        </motion.div>
 
         {/* === ADDRESS DETAILS === */}
         <h4 className="text-lg font-semibold text-teal-600 dark:text-teal-400 border-b border-teal-600/50 pb-1 pt-4">
@@ -218,7 +258,10 @@ const NewPatientForm = ({
 
         {/* Address */}
         <motion.div variants={formItemVariants}>
-          <label htmlFor="address" className="block mb-1 text-sm font-medium text-gray-700 dark:text-gray-300">
+          <label
+            htmlFor="address"
+            className="block mb-1 text-sm font-medium text-gray-700 dark:text-gray-300"
+          >
             Street Address
           </label>
           <input
@@ -233,10 +276,12 @@ const NewPatientForm = ({
         </motion.div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          
           {/* City */}
           <motion.div variants={formItemVariants}>
-            <label htmlFor="city" className="block mb-1 text-sm font-medium text-gray-700 dark:text-gray-300">
+            <label
+              htmlFor="city"
+              className="block mb-1 text-sm font-medium text-gray-700 dark:text-gray-300"
+            >
               City
             </label>
             <input
@@ -252,7 +297,10 @@ const NewPatientForm = ({
 
           {/* State */}
           <motion.div variants={formItemVariants}>
-            <label htmlFor="state" className="block mb-1 text-sm font-medium text-gray-700 dark:text-gray-300">
+            <label
+              htmlFor="state"
+              className="block mb-1 text-sm font-medium text-gray-700 dark:text-gray-300"
+            >
               State
             </label>
             <select
@@ -270,10 +318,13 @@ const NewPatientForm = ({
               ))}
             </select>
           </motion.div>
-          
+
           {/* Zip Code */}
           <motion.div variants={formItemVariants}>
-            <label htmlFor="zip_code" className="block mb-1 text-sm font-medium text-gray-700 dark:text-gray-300">
+            <label
+              htmlFor="zip_code"
+              className="block mb-1 text-sm font-medium text-gray-700 dark:text-gray-300"
+            >
               Zip Code
             </label>
             <input
@@ -296,7 +347,10 @@ const NewPatientForm = ({
         {/* Primary Insurance */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <motion.div variants={formItemVariants}>
-            <label htmlFor="primary_insurance" className="block mb-1 text-sm font-medium text-gray-700 dark:text-gray-300">
+            <label
+              htmlFor="primary_insurance"
+              className="block mb-1 text-sm font-medium text-gray-700 dark:text-gray-300"
+            >
               Primary Insurance Provider
             </label>
             <input
@@ -310,7 +364,10 @@ const NewPatientForm = ({
             />
           </motion.div>
           <motion.div variants={formItemVariants}>
-            <label htmlFor="primary_insurance_number" className="block mb-1 text-sm font-medium text-gray-700 dark:text-gray-300">
+            <label
+              htmlFor="primary_insurance_number"
+              className="block mb-1 text-sm font-medium text-gray-700 dark:text-gray-300"
+            >
               Primary Insurance Number
             </label>
             <input
@@ -328,7 +385,10 @@ const NewPatientForm = ({
         {/* Secondary Insurance */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <motion.div variants={formItemVariants}>
-            <label htmlFor="secondary_insurance" className="block mb-1 text-sm font-medium text-gray-700 dark:text-gray-300">
+            <label
+              htmlFor="secondary_insurance"
+              className="block mb-1 text-sm font-medium text-gray-700 dark:text-gray-300"
+            >
               Secondary Insurance Provider
             </label>
             <input
@@ -342,7 +402,10 @@ const NewPatientForm = ({
             />
           </motion.div>
           <motion.div variants={formItemVariants}>
-            <label htmlFor="secondary_insurance_number" className="block mb-1 text-sm font-medium text-gray-700 dark:text-gray-300">
+            <label
+              htmlFor="secondary_insurance_number"
+              className="block mb-1 text-sm font-medium text-gray-700 dark:text-gray-300"
+            >
               Secondary Insurance Number
             </label>
             <input
@@ -360,7 +423,10 @@ const NewPatientForm = ({
         {/* Tertiary Insurance */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <motion.div variants={formItemVariants}>
-            <label htmlFor="tertiary_insurance" className="block mb-1 text-sm font-medium text-gray-700 dark:text-gray-300">
+            <label
+              htmlFor="tertiary_insurance"
+              className="block mb-1 text-sm font-medium text-gray-700 dark:text-gray-300"
+            >
               Tertiary Insurance Provider
             </label>
             <input
@@ -374,7 +440,10 @@ const NewPatientForm = ({
             />
           </motion.div>
           <motion.div variants={formItemVariants}>
-            <label htmlFor="tertiary_insurance_number" className="block mb-1 text-sm font-medium text-gray-700 dark:text-gray-300">
+            <label
+              htmlFor="tertiary_insurance_number"
+              className="block mb-1 text-sm font-medium text-gray-700 dark:text-gray-300"
+            >
               Tertiary Insurance Number
             </label>
             <input
@@ -388,17 +457,19 @@ const NewPatientForm = ({
             />
           </motion.div>
         </div>
-        
+
         {/* === WOUND INFORMATION === */}
         <h4 className="text-lg font-semibold text-teal-600 dark:text-teal-400 border-b border-teal-600/50 pb-1 pt-4">
           Wound Information
         </h4>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          
           {/* Wound Size Length */}
           <motion.div variants={formItemVariants}>
-            <label htmlFor="wound_size_length" className="block mb-1 text-sm font-medium text-gray-700 dark:text-gray-300">
-              Wound Size Length (mm)
+            <label
+              htmlFor="wound_size_length"
+              className="block mb-1 text-sm font-medium text-gray-700 dark:text-gray-300"
+            >
+              Wound Size Length (cm)
             </label>
             <input
               type="number"
@@ -414,8 +485,11 @@ const NewPatientForm = ({
 
           {/* Wound Size Width */}
           <motion.div variants={formItemVariants}>
-            <label htmlFor="wound_size_width" className="block mb-1 text-sm font-medium text-gray-700 dark:text-gray-300">
-              Wound Size Width (mm)
+            <label
+              htmlFor="wound_size_width"
+              className="block mb-1 text-sm font-medium text-gray-700 dark:text-gray-300"
+            >
+              Wound Size Width (cm)
             </label>
             <input
               type="number"
@@ -434,6 +508,12 @@ const NewPatientForm = ({
         <motion.div className="pt-6" variants={formItemVariants}>
           <motion.button
             type="submit"
+            onClick={(e) => {
+              console.log("🔴 BUTTON CLICKED");
+              console.log("🔴 Button type:", e.currentTarget.type);
+              console.log("🔴 Event target:", e.target);
+              // Don't call preventDefault here - let the form handle it
+            }}
             className="w-full px-4 py-3 tracking-wide text-white font-bold transition-colors duration-200 transform bg-teal-600 rounded-lg hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2 uppercase shadow-lg"
             whileHover={{ scale: 1.01 }}
             whileTap={{ scale: 0.98 }}
@@ -441,7 +521,6 @@ const NewPatientForm = ({
             {submitText}
           </motion.button>
         </motion.div>
-
       </motion.form>
     </motion.div>
   );

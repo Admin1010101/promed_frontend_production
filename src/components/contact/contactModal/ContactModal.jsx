@@ -33,6 +33,8 @@ const ContactRepModal = ({ open, onClose }) => {
     message: "",
   });
 
+  console.log('contact user', user)
+
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
@@ -51,8 +53,8 @@ const ContactRepModal = ({ open, onClose }) => {
       toast.success("Your message has been sent to your representative.");
       setFormData({
         name: user?.full_name || "",
-        phone: user?.phone_number || "",
-        email: user?.email || "",
+        phone: user?.user.phone_number || "",
+        email: user?.user.email || "",
         message: "",
       });
       onClose();
@@ -84,8 +86,8 @@ const ContactRepModal = ({ open, onClose }) => {
       setFormData((prev) => ({
         ...prev,
         name: user.full_name || "",
-        phone: user.phone_number || "",
-        email: user.email || "",
+        phone: user.user.phone_number || "",
+        email: user.user.email || "",
       }));
     }
   }, [user]);

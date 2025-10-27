@@ -353,9 +353,9 @@ const NewOrderForm = ({ open, onClose, patient }) => {
     if (open && user && patient) {
       setFormData({
         providerName: user?.full_name || "",
-        facilityName: user?.profile?.facility || "",
-        providerPhoneNumber: user?.profile?.phone_number || "",
-        providerAddress: user?.profile?.street || "",
+        facilityName: user?.facility || "",
+        providerPhoneNumber: user?.phone_number || "",
+        providerAddress: user?.street || "",
         patientName: `${patient?.first_name || ""} ${
           patient?.last_name || ""
         }`.trim(),
