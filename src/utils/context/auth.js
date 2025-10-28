@@ -380,34 +380,6 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  // const updatePatient = async (patientId, patientData) => {
-  //   try {
-  //     // ✅ Guard against calling before user is ready
-  //     if (!user) {
-  //       console.warn(
-  //         "updatePatient called before user authentication completed"
-  //       );
-  //       return { success: false, error: "Authentication not complete" };
-  //     }
-
-  //     const axiosInstance = axiosAuth();
-  //     const response = await axiosInstance.put(
-  //       `/patients/${patientId}/`,
-  //       patientData
-  //     );
-  //     return { success: true, data: response.data };
-  //   } catch (error) {
-  //     console.error("Error updating patient:", error);
-  //     return {
-  //       success: false,
-  //       error:
-  //         error.response?.data?.error ||
-  //         error.response?.data?.detail ||
-  //         "Failed to update patient",
-  //     };
-  //   }
-  // };
-
   const deletePatient = async (patientId) => {
     try {
       // ✅ Guard against calling before user is ready
@@ -472,6 +444,33 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  const completeTour = async () => {
+  try {
+    if (!user) {
+      console.warn("completeTour called before user authentication completed");
+      return { success: false, error: "Authentication not complete" };
+    }
+
+    const axiosInstance = axiosAuth();
+    const response = await axiosInstance.put("/provider/complete-tour/");
+    
+    // Update local user state to reflect tour completion
+    setUser(prev => ({
+      ...prev,
+      has_completed_tour: true,
+      tour_completed_at: new Date().toISOString()
+    }));
+    
+    return { success: true, data: response.data };
+  } catch (error) {
+    console.error("Error marking tour complete:", error);
+    return {
+      success: false,
+      error: error.response?.data?.error || "Failed to complete tour",
+    };
+  }
+};
+
   // --- Provider Return ---
 
   return (
@@ -492,6 +491,7 @@ export const AuthProvider = ({ children }) => {
         updatePatient,
         deletePatient,
         uploadDocumentAndEmail,
+        completeTour
       }}
     >
       {/* Renders children only when loading is complete */}

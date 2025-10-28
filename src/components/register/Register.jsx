@@ -11,7 +11,7 @@ import {
 import toast from "react-hot-toast";
 import register_bg_img_2 from "../../assets/images/register_bg_img.jpg";
 import { countryCodesList } from "../../utils/data";
-import {states} from '../../utils/data/index'
+import { states } from "../../utils/data/index";
 
 // --- START: MOVED COMPONENTS OUTSIDE REGISTER ---
 
@@ -89,7 +89,7 @@ const Register = () => {
   const navigate = useNavigate();
 
   // Password validation
-  const hasMinLength = formData.password.length >= 12;
+  const hasMinLength = formData.password.length >= 8; // Changed from 12 to 8
   const hasUppercase = (formData.password.match(/[A-Z]/g) || []).length >= 2;
   const hasLowercase = (formData.password.match(/[a-z]/g) || []).length >= 2;
   const hasNumbers = (formData.password.match(/[0-9]/g) || []).length >= 2;
@@ -97,13 +97,13 @@ const Register = () => {
     (formData.password.match(/[^A-Za-z0-9]/g) || []).length >= 2;
 
   const passwordRequirements = [
-    { met: hasMinLength, text: "Minimum 12 characters" },
+    { met: hasMinLength, text: "Minimum 8 characters" }, // Changed from 12 to 8
     { met: hasUppercase, text: "At least two uppercase letters" },
     { met: hasLowercase, text: "At least two lowercase letters" },
     { met: hasNumbers, text: "At least two numbers" },
     { met: hasSpecialChars, text: "At least two special characters" },
   ];
-
+  
   const handleChange = (field, value) => {
     // This correctly updates the state
     setFormData((prev) => ({ ...prev, [field]: value }));

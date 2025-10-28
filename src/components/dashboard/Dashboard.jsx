@@ -7,12 +7,12 @@ import { IoChatbubblesOutline } from "react-icons/io5";
 import ContactModal from "../contact/contactModal/ContactModal";
 import { AuthContext } from "../../utils/context/auth"; 
 import { FilterProvider } from '../../utils/context/FilterContext';
+import DashboardTour from "./DashboardTour"; // ✅ IMPORT TOUR
 
 const SPLASH_DURATION = 1000; 
 const FADE_OUT_TIME = 500;    
 
 const Dashboard = () => {
-
   const { user } = useContext(AuthContext); 
   const [openModal, setOpenModal] = useState(false);
 
@@ -34,11 +34,12 @@ const Dashboard = () => {
 
   if (!user) {
     return (
-        <div className="flex justify-center items-center min-h-screen bg-gray-100 dark:bg-gray-900">
-            <PropagateLoader color={"#10B981"} loading={true} size={15} />
-        </div>
+      <div className="flex justify-center items-center min-h-screen bg-gray-100 dark:bg-gray-900">
+        <PropagateLoader color={"#10B981"} loading={true} size={15} />
+      </div>
     );
   }
+
   if (showSplash) {
     return (
       <div 
@@ -52,7 +53,9 @@ const Dashboard = () => {
         `}
       >
         <div className="text-white text-3xl font-extrabold flex flex-col items-center">
-          <h1 className="text-5xl font-bold mb-8 drop-shadow-lg text-white">ProMed Health <span className="text-teal-500">Plus</span></h1>
+          <h1 className="text-5xl font-bold mb-8 drop-shadow-lg text-white">
+            ProMed Health <span className="text-teal-500">Plus</span>
+          </h1>
           <div className="mb-10">
             <PropagateLoader 
               color={"#FFFFFF"} 
@@ -70,49 +73,45 @@ const Dashboard = () => {
 
   return (
     <FilterProvider>
-        {/* 🚀 FIX: Used responsive padding classes:
-            - pt-16 (64px) for small screens (default).
-            - md:pt-24 (96px) for medium/desktop screens, assuming the navbar is taller there. 
-        */}
-        <div className="flex-1 bg-white dark:bg-gray-900 pt-24">
-          
-          {/* Note: Moved the chat button down to ensure it is visible immediately after the navbar. 
-             The ml-11 on the px container seems odd for mobile, but I left it for now. */}
-          <div className="px-4 sm:px-6 ml-11 font-bold mb-6">
-            <button
-              onClick={() => setOpenModal(true)}
-              className="
-                bg-red-500 text-white 
-                py-1.5 px-3 md:py-2 md:px-4 lg:py-3 lg:px-6 
-                rounded-full shadow-lg 
-                hover:bg-red-600 
-                transition duration-300 
-                flex items-center text-sm 
-                font-semibold'
-              "
-            >
-              <IoChatbubblesOutline className="text-lg mr-2" />
-              Chat With Your Rep
-            </button>
-          </div>
-          
-          <ContactModal open={openModal} onClose={() => setOpenModal(false)} />
-
-          <div
-            className="px-4 sm:px-6 lg:px-12 grid gap-6
-                    grid-cols-1 md:grid-cols-2 lg:grid-cols-3"
+      {/* ✅ ADD TOUR COMPONENT */}
+      <DashboardTour />
+      
+      <div className="flex-1 bg-white dark:bg-gray-900 pt-24">
+        
+        {/* ✅ ADD data-tour ATTRIBUTE */}
+        <div className="px-4 sm:px-6 ml-11 font-bold mb-6" data-tour="chat-button">
+          <button
+            onClick={() => setOpenModal(true)}
+            className="
+              bg-red-500 text-white 
+              py-1.5 px-3 md:py-2 md:px-4 lg:py-3 lg:px-6 
+              rounded-full shadow-lg 
+              hover:bg-red-600 
+              transition duration-300 
+              flex items-center text-sm 
+              font-semibold
+            "
           >
-            <div className="h-full">
-              <Patients /> 
-            </div>
-            <div className="h-full">
-              <Documents />
-            </div>
-            <div className="h-full">
-              <OrderManagement />
-            </div>
+            <IoChatbubblesOutline className="text-lg mr-2" />
+            Chat With Your Rep
+          </button>
+        </div>
+        
+        <ContactModal open={openModal} onClose={() => setOpenModal(false)} />
+
+        <div className="px-4 sm:px-6 lg:px-12 grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+          {/* ✅ ADD data-tour ATTRIBUTES */}
+          <div className="h-full" data-tour="patients-section">
+            <Patients /> 
+          </div>
+          <div className="h-full" data-tour="documents-section">
+            <Documents />
+          </div>
+          <div className="h-full" data-tour="orders-section">
+            <OrderManagement />
           </div>
         </div>
+      </div>
     </FilterProvider>
   );
 };

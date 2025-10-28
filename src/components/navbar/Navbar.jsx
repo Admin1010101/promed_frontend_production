@@ -344,6 +344,7 @@ const Navbar = ({ isDarkMode, setIsDarkMode }) => {
                 className="relative flex-shrink-0"
                 onClick={() => setShowProfileDropdown(true)}
                 ref={profileRef}
+                data-tour='profile-menu'
               >
                 <div className="flex items-center space-x-3 cursor-pointer group">
                   <h6 className="text-sm font-semibold text-gray-800 dark:text-gray-200 whitespace-nowrap hidden xl:block group-hover:text-teal-500 dark:group-hover:text-teal-400 transition-colors duration-300">
