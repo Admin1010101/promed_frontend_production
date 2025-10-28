@@ -16,7 +16,8 @@ const ResetPassword = () => {
   const navigate = useNavigate();
 
   // Password checks
-  const hasMinLength = password.length >= 12;
+  // 🔑 UPDATED: Minimum length is now 8 characters
+  const hasMinLength = password.length >= 8; 
   const hasUppercase = (password.match(/[A-Z]/g) || []).length >= 2;
   const hasLowercase = (password.match(/[a-z]/g) || []).length >= 2;
   const hasNumbers = (password.match(/[0-9]/g) || []).length >= 2;
@@ -131,7 +132,8 @@ const ResetPassword = () => {
                           {hasMinLength && (
                             <IoCheckmarkCircleOutline className="mr-1 text-green-600 dark:text-green-400" />
                           )}
-                          Minimum 12 characters
+                          {/* 🔑 UPDATED: Display message reflects 8 characters */}
+                          Minimum 8 characters
                         </li>
                         <li
                           className={
