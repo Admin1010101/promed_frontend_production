@@ -16,12 +16,15 @@ const ResetPassword = () => {
   const navigate = useNavigate();
 
   // Password checks
-  // 🔑 UPDATED: Minimum length is now 8 characters
   const hasMinLength = password.length >= 8; 
-  const hasUppercase = (password.match(/[A-Z]/g) || []).length >= 2;
-  const hasLowercase = (password.match(/[a-z]/g) || []).length >= 2;
-  const hasNumbers = (password.match(/[0-9]/g) || []).length >= 2;
-  const hasSpecialChars = (password.match(/[^A-Za-z0-9]/g) || []).length >= 2;
+  // 🔑 UPDATED: Requires at least one uppercase letter (>= 1)
+  const hasUppercase = (password.match(/[A-Z]/g) || []).length >= 1;
+  // 🔑 UPDATED: Requires at least one lowercase letter (>= 1)
+  const hasLowercase = (password.match(/[a-z]/g) || []).length >= 1;
+  // 🔑 UPDATED: Requires at least one number (>= 1)
+  const hasNumbers = (password.match(/[0-9]/g) || []).length >= 1;
+  // 🔑 UPDATED: Requires at least one special character (>= 1)
+  const hasSpecialChars = (password.match(/[^A-Za-z0-9]/g) || []).length >= 1;
 
   const allValid =
     hasMinLength &&
@@ -132,7 +135,6 @@ const ResetPassword = () => {
                           {hasMinLength && (
                             <IoCheckmarkCircleOutline className="mr-1 text-green-600 dark:text-green-400" />
                           )}
-                          {/* 🔑 UPDATED: Display message reflects 8 characters */}
                           Minimum 8 characters
                         </li>
                         <li
@@ -145,7 +147,7 @@ const ResetPassword = () => {
                           {hasUppercase && (
                             <IoCheckmarkCircleOutline className="mr-1 text-green-600 dark:text-green-400" />
                           )}
-                          At least two uppercase letters
+                          At least one uppercase letter
                         </li>
                         <li
                           className={
@@ -157,7 +159,7 @@ const ResetPassword = () => {
                           {hasLowercase && (
                             <IoCheckmarkCircleOutline className="mr-1 text-green-600 dark:text-green-400" />
                           )}
-                          At least two lowercase letters
+                          At least one lowercase letter
                         </li>
                         <li
                           className={
@@ -169,7 +171,7 @@ const ResetPassword = () => {
                           {hasNumbers && (
                             <IoCheckmarkCircleOutline className="mr-1 text-green-600 dark:text-green-400" />
                           )}
-                          At least two numbers
+                          At least one number
                         </li>
                         <li
                           className={
@@ -181,7 +183,7 @@ const ResetPassword = () => {
                           {hasSpecialChars && (
                             <IoCheckmarkCircleOutline className="mr-1 text-green-600 dark:text-green-400" />
                           )}
-                          At least two special characters
+                          At least one special character
                         </li>
                       </ul>
                     </div>

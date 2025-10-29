@@ -49,10 +49,10 @@ const Navbar = ({ isDarkMode, setIsDarkMode }) => {
   const notificationRef = useRef(null);
 
   // ✅ FIX: Destructure 'loading' from AuthContext
-  const { user, logout, loading: authLoading } = useContext(AuthContext); 
-  
+  const { user, logout, loading: authLoading } = useContext(AuthContext);
+
   // isAuthenticated is true ONLY if user object exists AND is loaded
-  const isAuthenticated = !!user && !authLoading; 
+  const isAuthenticated = !!user && !authLoading;
 
   const [showProfileDropdown, setShowProfileDropdown] = useState(false);
   const profileRef = useRef(null);
@@ -120,7 +120,7 @@ const Navbar = ({ isDarkMode, setIsDarkMode }) => {
   useEffect(() => {
     const fetchNotifications = async () => {
       // ✅ FIX: Added check for profile existence before fetching
-      if (!user) return; 
+      if (!user) return;
 
       try {
         const axiosInstance = axiosAuth();
@@ -136,7 +136,8 @@ const Navbar = ({ isDarkMode, setIsDarkMode }) => {
       }
     };
 
-    if (isAuthenticated) { // Will only run if user is loaded AND token is present
+    if (isAuthenticated) {
+      // Will only run if user is loaded AND token is present
       fetchNotifications();
     }
   }, [isAuthenticated, user]); // Added 'user' as dependency for robustness
@@ -201,28 +202,35 @@ const Navbar = ({ isDarkMode, setIsDarkMode }) => {
   const profile = user; // Alias for cleaner access
 
   return (
-    <div className={`fixed top-0 left-0 right-0 z-40 transition-all duration-500 ${
-      scrolled 
-        ? 'bg-white/80 dark:bg-gray-900/80 backdrop-blur-lg shadow-lg' 
-        : 'bg-white dark:bg-gray-900'
-    }`}>
-      
+    <div
+      className={`fixed top-0 left-0 right-0 z-40 transition-all duration-500 ${
+        scrolled
+          ? "bg-white/80 dark:bg-gray-900/80 backdrop-blur-lg shadow-lg"
+          : "bg-white dark:bg-gray-900"
+      }`}
+    >
       <nav className="relative px-6 sm:px-8 py-4 flex justify-between items-center w-full mx-auto">
         {/* Logo Section (Far Left - No change) */}
         <div className="flex items-center flex-shrink-0 group">
-          <img 
-            src={logo} 
-            alt="" 
-            width={50} 
-            height={50} 
-            className="mr-2 transform transition-transform duration-300 group-hover:scale-110 group-hover:rotate-3" 
+          <img
+            src={logo}
+            alt=""
+            width={50}
+            height={50}
+            className="mr-2 transform transition-transform duration-300 group-hover:scale-110 group-hover:rotate-3"
           />
-          <Link
-            className="text-xl sm:text-2xl lg:text-3xl font-bold leading-none bg-gradient-to-r from-gray-900 via-teal-600 to-teal-500 dark:from-gray-100 dark:via-teal-400 dark:to-teal-300 bg-clip-text text-transparent whitespace-nowrap transition-all duration-300 hover:tracking-wide"
-            to="/"
-          >
-            ProMed Health <span className="text-teal-500 dark:text-teal-400">Plus</span>
-          </Link>
+          <div className="flex flex-col leading-tight">
+            <Link
+              className="text-xl sm:text-2xl lg:text-3xl font-bold bg-gradient-to-r from-gray-900 via-teal-600 to-teal-500 dark:from-gray-100 dark:via-teal-400 dark:to-teal-300 bg-clip-text text-transparent whitespace-nowrap transition-all duration-300 hover:tracking-wide"
+              to="/"
+            >
+              ProMed Health{" "}
+              <span className="text-teal-500 dark:text-teal-400">Plus</span>
+            </Link>
+            <span className="text-xs text-gray-500 dark:text-gray-400 italic mt-0.5">
+              v1.0.0 • Beta Release
+            </span>
+          </div>
         </div>
 
         {/* Desktop Navigation Links (Middle - No change) */}
@@ -231,7 +239,9 @@ const Navbar = ({ isDarkMode, setIsDarkMode }) => {
             {[
               { to: "/", label: "Home" },
               // ✅ FIX: Use simple isAuthenticated check, as loading is handled in parent
-              ...(isAuthenticated ? [{ to: "/dashboard/", label: "Dashboard" }] : []), 
+              ...(isAuthenticated
+                ? [{ to: "/dashboard/", label: "Dashboard" }]
+                : []),
               { to: "/about/", label: "About Us" },
               { to: "/products/", label: "Products" },
               { to: "/contact/", label: "Contact" },
@@ -251,7 +261,6 @@ const Navbar = ({ isDarkMode, setIsDarkMode }) => {
 
         {/* Right Side Content/Button Group (Far Right) */}
         <div className="flex items-center space-x-3 sm:space-x-4">
-          
           {/* Mobile menu button (No change) */}
           <div className="lg:hidden">
             <button
@@ -266,8 +275,8 @@ const Navbar = ({ isDarkMode, setIsDarkMode }) => {
           {authLoading ? (
             // Show a loading state if the initial context check is running
             <div className="hidden lg:flex items-center space-x-4">
-                 <div className="h-10 w-10 bg-gray-200 dark:bg-gray-700 rounded-full animate-pulse"></div>
-                 <div className="h-4 w-20 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
+              <div className="h-10 w-10 bg-gray-200 dark:bg-gray-700 rounded-full animate-pulse"></div>
+              <div className="h-4 w-20 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
             </div>
           ) : isAuthenticated ? (
             // ✅ Authenticated UI (Only renders if user data is loaded)
@@ -278,9 +287,15 @@ const Navbar = ({ isDarkMode, setIsDarkMode }) => {
                 className="p-2.5 rounded-xl bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-700 hover:shadow-lg transform hover:scale-110 transition-all duration-300 flex-shrink-0 group"
               >
                 {isDarkMode ? (
-                  <MdLightMode size={22} className="text-yellow-500 group-hover:rotate-180 transition-transform duration-500" />
+                  <MdLightMode
+                    size={22}
+                    className="text-yellow-500 group-hover:rotate-180 transition-transform duration-500"
+                  />
                 ) : (
-                  <MdDarkMode size={22} className="text-teal-600 group-hover:-rotate-180 transition-transform duration-500" />
+                  <MdDarkMode
+                    size={22}
+                    className="text-teal-600 group-hover:-rotate-180 transition-transform duration-500"
+                  />
                 )}
               </button>
 
@@ -302,41 +317,45 @@ const Navbar = ({ isDarkMode, setIsDarkMode }) => {
                   )}
                 </button>
                 {showDropdown && (
-                    <div className="absolute right-0 mt-3 w-80 bg-white dark:bg-gray-800 rounded-2xl shadow-2xl border border-gray-100 dark:border-gray-700 z-50 overflow-hidden animate-slideDown">
-                      <div className="p-4 bg-gradient-to-r from-teal-50 to-teal-100 dark:from-teal-900/30 dark:to-teal-800/30 border-b border-gray-200 dark:border-gray-700">
-                        <h3 className="text-sm font-bold text-gray-800 dark:text-gray-200">Notifications</h3>
-                      </div>
-                      <ul className="max-h-96 overflow-y-auto">
-                        {notifications.length > 0 ? (
-                          notifications.map((notif) => (
-                            <li
-                              key={notif.id}
-                              onClick={() => handleNotificationClick(notif)}
-                              className={`px-4 py-3 flex flex-col border-b border-gray-100 dark:border-gray-700 last:border-b-0 transition-all duration-300 ${
-                                notif.is_read
-                                  ? "bg-gray-50 dark:bg-gray-800/50 text-gray-400"
-                                  : "bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-teal-50 dark:hover:bg-teal-900/20"
-                              } cursor-pointer hover:shadow-md`}
-                            >
-                              <div className="flex justify-between items-start">
-                                <span className="text-sm flex-1">{notif.message}</span>
-                                {notif.data && (
-                                  <IoEyeOutline className="text-teal-500 text-lg ml-2 flex-shrink-0 hover:scale-125 transition-transform duration-300" />
-                                )}
-                              </div>
-                              <span className="text-xs text-gray-400 dark:text-gray-500 mt-1 italic">
-                                {getTimeLabel(notif.date_created)}
-                              </span>
-                            </li>
-                          ))
-                        ) : (
-                          <li className="px-4 py-8 text-sm text-gray-500 dark:text-gray-400 text-center">
-                            No notifications yet
-                          </li>
-                        )}
-                      </ul>
+                  <div className="absolute right-0 mt-3 w-80 bg-white dark:bg-gray-800 rounded-2xl shadow-2xl border border-gray-100 dark:border-gray-700 z-50 overflow-hidden animate-slideDown">
+                    <div className="p-4 bg-gradient-to-r from-teal-50 to-teal-100 dark:from-teal-900/30 dark:to-teal-800/30 border-b border-gray-200 dark:border-gray-700">
+                      <h3 className="text-sm font-bold text-gray-800 dark:text-gray-200">
+                        Notifications
+                      </h3>
                     </div>
-                  )}
+                    <ul className="max-h-96 overflow-y-auto">
+                      {notifications.length > 0 ? (
+                        notifications.map((notif) => (
+                          <li
+                            key={notif.id}
+                            onClick={() => handleNotificationClick(notif)}
+                            className={`px-4 py-3 flex flex-col border-b border-gray-100 dark:border-gray-700 last:border-b-0 transition-all duration-300 ${
+                              notif.is_read
+                                ? "bg-gray-50 dark:bg-gray-800/50 text-gray-400"
+                                : "bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-teal-50 dark:hover:bg-teal-900/20"
+                            } cursor-pointer hover:shadow-md`}
+                          >
+                            <div className="flex justify-between items-start">
+                              <span className="text-sm flex-1">
+                                {notif.message}
+                              </span>
+                              {notif.data && (
+                                <IoEyeOutline className="text-teal-500 text-lg ml-2 flex-shrink-0 hover:scale-125 transition-transform duration-300" />
+                              )}
+                            </div>
+                            <span className="text-xs text-gray-400 dark:text-gray-500 mt-1 italic">
+                              {getTimeLabel(notif.date_created)}
+                            </span>
+                          </li>
+                        ))
+                      ) : (
+                        <li className="px-4 py-8 text-sm text-gray-500 dark:text-gray-400 text-center">
+                          No notifications yet
+                        </li>
+                      )}
+                    </ul>
+                  </div>
+                )}
               </div>
 
               {/* User Profile Dropdown */}
@@ -344,12 +363,12 @@ const Navbar = ({ isDarkMode, setIsDarkMode }) => {
                 className="relative flex-shrink-0"
                 onClick={() => setShowProfileDropdown(true)}
                 ref={profileRef}
-                data-tour='profile-menu'
+                data-tour="profile-menu"
               >
                 <div className="flex items-center space-x-3 cursor-pointer group">
                   <h6 className="text-sm font-semibold text-gray-800 dark:text-gray-200 whitespace-nowrap hidden xl:block group-hover:text-teal-500 dark:group-hover:text-teal-400 transition-colors duration-300">
                     {/* ✅ FIX: Use optional chaining to prevent crash if 'profile' is momentarily null/undefined */}
-                    {profile?.full_name || profile?.email || "User"} 
+                    {profile?.full_name || profile?.email || "User"}
                   </h6>
                   <div className="relative">
                     <img
@@ -409,9 +428,15 @@ const Navbar = ({ isDarkMode, setIsDarkMode }) => {
                 className="p-2.5 rounded-xl bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-700 hover:shadow-lg transform hover:scale-110 transition-all duration-300 flex-shrink-0 group"
               >
                 {isDarkMode ? (
-                  <MdLightMode size={22} className="text-yellow-500 group-hover:rotate-180 transition-transform duration-500" />
+                  <MdLightMode
+                    size={22}
+                    className="text-yellow-500 group-hover:rotate-180 transition-transform duration-500"
+                  />
                 ) : (
-                  <MdDarkMode size={22} className="text-teal-600 group-hover:-rotate-180 transition-transform duration-500" />
+                  <MdDarkMode
+                    size={22}
+                    className="text-teal-600 group-hover:-rotate-180 transition-transform duration-500"
+                  />
                 )}
               </button>
               <Link to="/login">
@@ -451,27 +476,41 @@ const Navbar = ({ isDarkMode, setIsDarkMode }) => {
           {/* Header and Links (No change) */}
           <div className="flex items-center mb-6 justify-between">
             <div className="flex items-center">
-              <img src={logo} alt="" height={50} width={50} className="animate-pulse"/>
-              <Link
-                className="ml-2 text-xl font-bold leading-none bg-gradient-to-r from-gray-900 via-teal-600 to-teal-500 dark:from-gray-100 dark:via-teal-400 dark:to-teal-300 bg-clip-text text-transparent"
-                to="/"
-              >
-                ProMed Health <span className="text-teal-500 dark:text-teal-400">Plus</span>
-              </Link>
+              <img
+                src={logo}
+                alt=""
+                height={50}
+                width={50}
+                className="animate-pulse"
+              />
+              <div className="ml-2 flex flex-col leading-tight">
+                <Link
+                  className="text-xl font-bold leading-none bg-gradient-to-r from-gray-900 via-teal-600 to-teal-500 dark:from-gray-100 dark:via-teal-400 dark:to-teal-300 bg-clip-text text-transparent"
+                  to="/"
+                >
+                  ProMed Health{" "}
+                  <span className="text-teal-500 dark:text-teal-400">Plus</span>
+                </Link>
+                <span className="text-xs text-gray-500 dark:text-gray-400 italic mt-0.5">
+                  v1.0.0 • Beta Release
+                </span>
+              </div>
             </div>
+
             <button className="navbar-close" onClick={closeMobileMenu}>
-              <CloseMenuIconSVG/>
+              <CloseMenuIconSVG />
             </button>
           </div>
-
           <ul className="space-y-1">
             {[
               { to: "/", label: "Home" },
               // ✅ FIX: Use simple isAuthenticated check
-              ...(isAuthenticated ? [
-                { to: "/dashboard/", label: "Dashboard" },
-                { to: "/profile", label: "Profile" }
-              ] : []),
+              ...(isAuthenticated
+                ? [
+                    { to: "/dashboard/", label: "Dashboard" },
+                    { to: "/profile", label: "Profile" },
+                  ]
+                : []),
               { to: "/about/", label: "About Us" },
               { to: "/products/", label: "Products" },
               { to: "/contact/", label: "Contact" },
@@ -487,7 +526,7 @@ const Navbar = ({ isDarkMode, setIsDarkMode }) => {
               </li>
             ))}
           </ul>
-          
+
           {/* Mobile Authenticated Status (Only display if profile is loaded) */}
           {isAuthenticated && (
             <div className="flex items-center space-x-4 mt-6 p-4 bg-gradient-to-r from-teal-50 to-teal-100 dark:from-teal-900/30 dark:to-teal-800/30 rounded-2xl">
@@ -535,7 +574,9 @@ const Navbar = ({ isDarkMode, setIsDarkMode }) => {
                   {showDropdown && (
                     <div className="mt-3 w-full bg-white dark:bg-gray-800 rounded-2xl shadow-2xl border border-gray-100 dark:border-gray-700 overflow-hidden animate-slideDown">
                       <div className="p-3 bg-gradient-to-r from-teal-50 to-teal-100 dark:from-teal-900/30 dark:to-teal-800/30 border-b border-gray-200 dark:border-gray-700">
-                        <h3 className="text-sm font-bold text-gray-800 dark:text-gray-200">Notifications</h3>
+                        <h3 className="text-sm font-bold text-gray-800 dark:text-gray-200">
+                          Notifications
+                        </h3>
                       </div>
                       <ul className="max-h-60 overflow-y-auto">
                         {notifications.length > 0 ? (
@@ -550,7 +591,9 @@ const Navbar = ({ isDarkMode, setIsDarkMode }) => {
                               } cursor-pointer transition-all duration-300`}
                             >
                               <div className="flex justify-between items-start">
-                                <span className="text-sm flex-1">{notif.message}</span>
+                                <span className="text-sm flex-1">
+                                  {notif.message}
+                                </span>
                                 {notif.data && (
                                   <IoEyeOutline className="text-teal-500 text-lg ml-2 flex-shrink-0" />
                                 )}
@@ -633,7 +676,7 @@ const Navbar = ({ isDarkMode, setIsDarkMode }) => {
         notification={selectedNotification}
         handleDelete={deleteNotification}
       />
-      
+
       <style jsx>{`
         @keyframes slideDown {
           from {
@@ -645,7 +688,7 @@ const Navbar = ({ isDarkMode, setIsDarkMode }) => {
             transform: translateY(0);
           }
         }
-        
+
         .animate-slideDown {
           animation: slideDown 0.3s ease-out;
         }

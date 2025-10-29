@@ -89,21 +89,26 @@ const Register = () => {
   const navigate = useNavigate();
 
   // Password validation
-  const hasMinLength = formData.password.length >= 8; // Changed from 12 to 8
-  const hasUppercase = (formData.password.match(/[A-Z]/g) || []).length >= 2;
-  const hasLowercase = (formData.password.match(/[a-z]/g) || []).length >= 2;
-  const hasNumbers = (formData.password.match(/[0-9]/g) || []).length >= 2;
+  const hasMinLength = formData.password.length >= 8; // Kept at 8 characters
+  // 🔑 UPDATED: Requires at least one uppercase letter (>= 1)
+  const hasUppercase = (formData.password.match(/[A-Z]/g) || []).length >= 1;
+  // 🔑 UPDATED: Requires at least one lowercase letter (>= 1)
+  const hasLowercase = (formData.password.match(/[a-z]/g) || []).length >= 1;
+  // 🔑 UPDATED: Requires at least one number (>= 1)
+  const hasNumbers = (formData.password.match(/[0-9]/g) || []).length >= 1;
+  // 🔑 UPDATED: Requires at least one special character (>= 1)
   const hasSpecialChars =
-    (formData.password.match(/[^A-Za-z0-9]/g) || []).length >= 2;
+    (formData.password.match(/[^A-Za-z0-9]/g) || []).length >= 1;
 
+  // 🔑 UPDATED: Display text reflects the new minimum requirements
   const passwordRequirements = [
-    { met: hasMinLength, text: "Minimum 8 characters" }, // Changed from 12 to 8
-    { met: hasUppercase, text: "At least two uppercase letters" },
-    { met: hasLowercase, text: "At least two lowercase letters" },
-    { met: hasNumbers, text: "At least two numbers" },
-    { met: hasSpecialChars, text: "At least two special characters" },
+    { met: hasMinLength, text: "Minimum 8 characters" },
+    { met: hasUppercase, text: "At least one uppercase letter" },
+    { met: hasLowercase, text: "At least one lowercase letter" },
+    { met: hasNumbers, text: "At least one number" },
+    { met: hasSpecialChars, text: "At least one special character/symbol" },
   ];
-  
+
   const handleChange = (field, value) => {
     // This correctly updates the state
     setFormData((prev) => ({ ...prev, [field]: value }));
