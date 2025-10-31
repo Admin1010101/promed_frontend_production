@@ -7,13 +7,14 @@ import {
   IoCheckmarkCircle,
   IoEyeOutline,
   IoEyeOffOutline,
+  IoAlertCircle,
 } from "react-icons/io5";
 import toast from "react-hot-toast";
 import register_bg_img_2 from "../../assets/images/register_bg_img.jpg";
 import { countryCodesList } from "../../utils/data";
 import { states } from "../../utils/data/index";
 
-// --- START: MOVED COMPONENTS OUTSIDE REGISTER ---
+// --- START: COMPONENTS OUTSIDE REGISTER ---
 
 const StepIndicator = ({ step, currentStep }) => (
   <div className="flex items-center">
@@ -37,6 +38,8 @@ const InputField = ({
   onChange,
   placeholder,
   icon,
+  error,
+  helperText,
   ...props
 }) => (
   <div>
@@ -54,17 +57,34 @@ const InputField = ({
         value={value}
         onChange={onChange}
         placeholder={placeholder}
-        // IMPORTANT: Ensure the value and onChange props are correctly passed down
         className={`w-full ${
           icon ? "pl-12" : "pl-4"
-        } pr-4 py-4 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-teal-500/50 focus:border-teal-500 transition-all duration-300`}
+        } pr-4 py-4 bg-white/5 border ${
+          error ? "border-red-500/50" : "border-white/10"
+        } rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 ${
+          error ? "focus:ring-red-500/50" : "focus:ring-teal-500/50"
+        } ${
+          error ? "focus:border-red-500" : "focus:border-teal-500"
+        } transition-all duration-300`}
         {...props}
       />
     </div>
+    {helperText && (
+      <motion.p
+        initial={{ opacity: 0, y: -5 }}
+        animate={{ opacity: 1, y: 0 }}
+        className={`mt-2 text-xs flex items-center gap-1 ${
+          error ? "text-red-400" : "text-gray-400"
+        }`}
+      >
+        {error && <IoAlertCircle className="text-sm" />}
+        {helperText}
+      </motion.p>
+    )}
   </div>
 );
 
-// --- END: MOVED COMPONENTS OUTSIDE REGISTER ---
+// --- END: COMPONENTS OUTSIDE REGISTER ---
 
 const Register = () => {
   const { register } = useContext(AuthContext);
@@ -89,18 +109,13 @@ const Register = () => {
   const navigate = useNavigate();
 
   // Password validation
-  const hasMinLength = formData.password.length >= 8; // Kept at 8 characters
-  // 🔑 UPDATED: Requires at least one uppercase letter (>= 1)
+  const hasMinLength = formData.password.length >= 8;
   const hasUppercase = (formData.password.match(/[A-Z]/g) || []).length >= 1;
-  // 🔑 UPDATED: Requires at least one lowercase letter (>= 1)
   const hasLowercase = (formData.password.match(/[a-z]/g) || []).length >= 1;
-  // 🔑 UPDATED: Requires at least one number (>= 1)
   const hasNumbers = (formData.password.match(/[0-9]/g) || []).length >= 1;
-  // 🔑 UPDATED: Requires at least one special character (>= 1)
   const hasSpecialChars =
     (formData.password.match(/[^A-Za-z0-9]/g) || []).length >= 1;
 
-  // 🔑 UPDATED: Display text reflects the new minimum requirements
   const passwordRequirements = [
     { met: hasMinLength, text: "Minimum 8 characters" },
     { met: hasUppercase, text: "At least one uppercase letter" },
@@ -109,9 +124,48 @@ const Register = () => {
     { met: hasSpecialChars, text: "At least one special character/symbol" },
   ];
 
+  // ✅ NPI Validation
+  const isValidNPI = (npi) => {
+    // Remove any non-digit characters
+    const digitsOnly = npi.replace(/\D/g, "");
+    // Must be exactly 10 digits
+    return digitsOnly.length === 10;
+  };
+
+  const npiError = formData.npiNumber && !isValidNPI(formData.npiNumber);
+
+  // ✅ Step 1 Validation - Check if all required fields are filled and NPI is valid
+  const isStep1Valid = () => {
+    return (
+      formData.fullName.trim() !== "" &&
+      formData.email.trim() !== "" &&
+      formData.phoneNumber.trim() !== "" &&
+      formData.npiNumber.trim() !== "" &&
+      isValidNPI(formData.npiNumber)
+    );
+  };
+
+  // ✅ Step 2 Validation
+  const isStep2Valid = () => {
+    return (
+      formData.facility.trim() !== "" &&
+      formData.facilityPhoneNumber.trim() !== "" &&
+      formData.city.trim() !== "" &&
+      formData.state.trim() !== "" &&
+      formData.country.trim() !== ""
+    );
+  };
+
   const handleChange = (field, value) => {
-    // This correctly updates the state
     setFormData((prev) => ({ ...prev, [field]: value }));
+  };
+
+  // ✅ Handle NPI input - only allow digits
+  const handleNPIChange = (e) => {
+    const value = e.target.value;
+    // Only allow digits and limit to 10 characters
+    const digitsOnly = value.replace(/\D/g, "").slice(0, 10);
+    handleChange("npiNumber", digitsOnly);
   };
 
   const handleSubmit = async (e) => {
@@ -143,6 +197,13 @@ const Register = () => {
       )
     ) {
       setErrorMsg("Password does not meet all complexity requirements.");
+      setIsLoading(false);
+      return;
+    }
+
+    // ✅ Final NPI validation before submission
+    if (!isValidNPI(formData.npiNumber)) {
+      setErrorMsg("NPI number must be exactly 10 digits.");
       setIsLoading(false);
       return;
     }
@@ -181,8 +242,6 @@ const Register = () => {
     }
     setIsLoading(false);
   };
-
-  // The StepIndicator and InputField component definitions have been removed from here.
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 relative overflow-hidden">
@@ -225,12 +284,10 @@ const Register = () => {
               initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.5 }}
-              className="max-w-xl flex items-start gap-6" // <-- Add flex here
+              className="max-w-xl flex items-start gap-6"
             >
-              {/* LINE ON THE LEFT */}
               <div className="w-3 h-20 bg-gradient-to-b from-teal-400 to-blue-500 rounded-full mt-6"></div>
 
-              {/* TEXT CONTENT */}
               <div>
                 <h1 className="text-6xl font-semibold text-white mb-4">
                   Join
@@ -368,11 +425,17 @@ const Register = () => {
                         label="NPI Number"
                         type="text"
                         value={formData.npiNumber}
-                        onChange={(e) =>
-                          handleChange("npiNumber", e.target.value)
-                        }
-                        placeholder="10-digit NPI"
+                        onChange={handleNPIChange}
+                        placeholder="1234567890"
                         maxLength="10"
+                        error={npiError}
+                        helperText={
+                          npiError
+                            ? "NPI must be exactly 10 digits"
+                            : formData.npiNumber
+                            ? `${formData.npiNumber.length}/10 digits`
+                            : "Enter your 10-digit National Provider Identifier"
+                        }
                         required
                       />
                     </motion.div>
@@ -410,7 +473,6 @@ const Register = () => {
                         required
                       />
                       <div className="grid grid-cols-2 gap-4">
-                        {/* Existing City Input */}
                         <InputField
                           label="City"
                           type="text"
@@ -420,7 +482,6 @@ const Register = () => {
                           required
                         />
 
-                        {/* --- State Dropdown Replacement --- */}
                         <div>
                           <label
                             htmlFor="state-select"
@@ -428,7 +489,6 @@ const Register = () => {
                           >
                             State
                           </label>
-                          {/* The 'relative group' div is kept to maintain the styling context from your other components */}
                           <div className="relative group">
                             <select
                               id="state-select"
@@ -439,7 +499,6 @@ const Register = () => {
                               className="w-full pl-4 pr-4 py-4 bg-white/5 border border-white/10 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-teal-500/50 focus:border-teal-500 transition-all duration-300"
                               required
                             >
-                              {/* Default/Placeholder Option */}
                               <option
                                 value=""
                                 disabled
@@ -447,8 +506,6 @@ const Register = () => {
                               >
                                 Select State
                               </option>
-
-                              {/* Map over the states array to create options */}
                               {states.map((state) => (
                                 <option
                                   key={state}
@@ -461,7 +518,6 @@ const Register = () => {
                             </select>
                           </div>
                         </div>
-                        {/* ---------------------------------- */}
                       </div>
                       <InputField
                         label="Country"
@@ -582,9 +638,28 @@ const Register = () => {
                     <motion.button
                       type="button"
                       onClick={() => setCurrentStep(currentStep + 1)}
-                      className="flex-1 py-4 bg-gradient-to-r from-teal-500 to-blue-500 hover:from-teal-400 hover:to-blue-400 text-white font-bold rounded-xl shadow-lg shadow-teal-500/25 transition-all"
-                      whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.98 }}
+                      disabled={
+                        (currentStep === 1 && !isStep1Valid()) ||
+                        (currentStep === 2 && !isStep2Valid())
+                      }
+                      className={`flex-1 py-4 font-bold rounded-xl shadow-lg transition-all ${
+                        (currentStep === 1 && !isStep1Valid()) ||
+                        (currentStep === 2 && !isStep2Valid())
+                          ? "bg-gray-600 text-gray-400 cursor-not-allowed opacity-50"
+                          : "bg-gradient-to-r from-teal-500 to-blue-500 hover:from-teal-400 hover:to-blue-400 text-white shadow-teal-500/25"
+                      }`}
+                      whileHover={
+                        (currentStep === 1 && isStep1Valid()) ||
+                        (currentStep === 2 && isStep2Valid())
+                          ? { scale: 1.02 }
+                          : {}
+                      }
+                      whileTap={
+                        (currentStep === 1 && isStep1Valid()) ||
+                        (currentStep === 2 && isStep2Valid())
+                          ? { scale: 0.98 }
+                          : {}
+                      }
                     >
                       Continue
                     </motion.button>
@@ -607,7 +682,7 @@ const Register = () => {
                   Already have an account?{" "}
                   <Link
                     to="/login"
-                    className="text-teal-400 hover:text-teal-300 font-semibold"
+                    className="text-teal-400 hover:text-teal-300 font-semibold ml-2"
                   >
                     Sign In
                   </Link>

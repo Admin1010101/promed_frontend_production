@@ -9,6 +9,12 @@ import { AuthContext } from "../../utils/context/auth";
 import NotificationModal from "./NotificationModal";
 import axiosAuth from "../../utils/axios";
 import logo from "../../assets/images/logo.png";
+import { PiSignIn } from "react-icons/pi";
+import { MdAppRegistration } from "react-icons/md";
+import { IoHomeOutline } from "react-icons/io5";
+import { TbUsersGroup } from "react-icons/tb";
+import { AiOutlineProduct } from "react-icons/ai";
+import { MdOutlineContactPhone } from "react-icons/md";
 
 const MobileMenuIconSVG = () => (
   <svg
@@ -440,13 +446,14 @@ const Navbar = ({ isDarkMode, setIsDarkMode }) => {
                 )}
               </button>
               <Link to="/login">
-                <button className="px-6 py-2.5 text-sm font-bold tracking-wide text-white bg-gradient-to-r from-teal-600 to-teal-500 rounded-xl hover:shadow-lg transform hover:scale-105 transition-all duration-300 uppercase whitespace-nowrap">
-                  Dashboard Login
+                <button className="px-6 py-2.5 text-sm font-bold tracking-wide text-white bg-gradient-to-r from-teal-600 to-teal-500 rounded-xl hover:shadow-lg transform hover:scale-105 transition-all duration-300 uppercase whitespace-nowrap flex justify-center items-center">
+                  <PiSignIn className="mr-1 font-bold" /> Dashboard Login
                 </button>
               </Link>
               <Link to="/register">
-                <button className="px-6 py-2.5 text-sm font-bold tracking-wide text-teal-600 dark:text-teal-400 border-2 border-teal-500 rounded-xl hover:bg-teal-50 dark:hover:bg-teal-900/20 transform hover:scale-105 transition-all duration-300 uppercase whitespace-nowrap">
-                  Provider Registration
+                <button className="px-6 py-2.5 text-sm font-bold tracking-wide text-teal-600 dark:text-teal-400 border-2 border-teal-500 rounded-xl hover:bg-teal-50 dark:hover:bg-teal-900/20 transform hover:scale-105 transition-all duration-300 uppercase whitespace-nowrap flex justify-center items-center">
+                  <MdAppRegistration className="mr-1 font-bold" /> Provider
+                  Registration
                 </button>
               </Link>
             </div>
@@ -501,9 +508,9 @@ const Navbar = ({ isDarkMode, setIsDarkMode }) => {
               <CloseMenuIconSVG />
             </button>
           </div>
-          <ul className="space-y-1">
+          <ul className="space-y-1 flex flex-col items-start">
             {[
-              { to: "/", label: "Home" },
+              { to: "/", label: "Home", icon: <IoHomeOutline className="mr-1 font-bold" /> },
               // ✅ FIX: Use simple isAuthenticated check
               ...(isAuthenticated
                 ? [
@@ -511,17 +518,25 @@ const Navbar = ({ isDarkMode, setIsDarkMode }) => {
                     { to: "/profile", label: "Profile" },
                   ]
                 : []),
-              { to: "/about/", label: "About Us" },
-              { to: "/products/", label: "Products" },
-              { to: "/contact/", label: "Contact" },
+              { to: "/about/", label: "About Us", icon: <TbUsersGroup className="mr-1 font-bold" /> },
+              {
+                to: "/products/",
+                label: "Products",
+                icon: <AiOutlineProduct className="mr-1 font-bold"/>,
+              },
+              {
+                to: "/contact/",
+                label: "Contact",
+                icon: <MdOutlineContactPhone className="mr-1 font-bold"/>,
+              },
             ].map((item) => (
               <li key={item.to}>
                 <Link
-                  className="block px-4 py-3 text-sm font-bold text-gray-800 dark:text-gray-200 hover:bg-gradient-to-r hover:from-teal-50 hover:to-teal-100 dark:hover:from-teal-900/30 dark:hover:to-teal-800/30 hover:text-teal-600 dark:hover:text-teal-400 rounded-xl transition-all duration-300 transform hover:translate-x-2"
+                  className="flex justify-start items-center px-4 py-3 text-sm font-bold text-gray-800 dark:text-gray-200 hover:bg-gradient-to-r hover:from-teal-50 hover:to-teal-100 dark:hover:from-teal-900/30 dark:hover:to-teal-800/30 hover:text-teal-600 dark:hover:text-teal-400 rounded-xl transition-all duration-300 transform hover:translate-x-2"
                   to={item.to}
                   onClick={closeMobileMenu}
                 >
-                  {item.label}
+                  {item.icon} {item.label}
                 </Link>
               </li>
             ))}
@@ -651,13 +666,14 @@ const Navbar = ({ isDarkMode, setIsDarkMode }) => {
                   Toggle Dark Mode
                 </button>
                 <Link to="/login" onClick={closeMobileMenu}>
-                  <button className="w-full px-4 py-3 text-sm font-bold tracking-wide text-white bg-gradient-to-r from-teal-600 to-teal-500 rounded-xl hover:shadow-lg transform hover:scale-105 transition-all duration-300 uppercase">
-                    Dashboard Login
+                  <button className="w-full px-4 py-3 text-sm font-bold tracking-wide text-white bg-gradient-to-r from-teal-600 to-teal-500 rounded-xl hover:shadow-lg transform hover:scale-105 transition-all duration-300 uppercase flex justify-center items-center">
+                    <PiSignIn className="mr-1 font-bold" /> Dashboard Login
                   </button>
                 </Link>
                 <Link to="/register" onClick={closeMobileMenu}>
-                  <button className="w-full px-4 py-3 text-sm font-bold tracking-wide text-teal-600 dark:text-teal-400 border-2 border-teal-500 rounded-xl hover:bg-teal-50 dark:hover:bg-teal-900/20 transform hover:scale-105 transition-all duration-300 uppercase">
-                    Provider Registration
+                  <button className="w-full px-4 py-3 text-sm font-bold tracking-wide text-teal-600 dark:text-teal-400 border-2 border-teal-500 rounded-xl hover:bg-teal-50 dark:hover:bg-teal-900/20 transform hover:scale-105 transition-all duration-300 uppercase flex justify-center items-center">
+                    <MdAppRegistration className="mr-1 font-bold" /> Provider
+                    Registration
                   </button>
                 </Link>
               </>
