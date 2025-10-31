@@ -1,10 +1,9 @@
 // src/components/dashboard/patients/NewPatientForm.jsx
 import React from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { states } from "../../../utils/data"; // Assuming this utility file exists
+import { states } from "../../../utils/data";
 import { IoCloseOutline } from "react-icons/io5";
 
-// Framer Motion Variants
 const formItemVariants = {
   hidden: { opacity: 0, y: 10 },
   visible: { opacity: 1, y: 0, transition: { duration: 0.3 } },
@@ -24,7 +23,7 @@ const NewPatientForm = ({
   formData,
   handleInputChange,
   handleSavePatient,
-  resetForm, // Used for closing/resetting the modal
+  resetForm,
   errors,
   editingPatient,
 }) => {
@@ -40,21 +39,25 @@ const NewPatientForm = ({
     ) : null;
   };
 
-  const handleWrapperClose = (e) => {
-    // Only close if click is outside the form content or on the dedicated close button
-    if (
-      e.target.id === "patient-form-wrapper" ||
-      e.target.closest("#close-btn")
-    ) {
-      resetForm();
-    }
+  // Calculate surface area for display
+  const calculateSurfaceArea = () => {
+    const length = parseFloat(formData.wound_size_length) || 0;
+    const width = parseFloat(formData.wound_size_width) || 0;
+    return length && width ? (length * width).toFixed(2) : null;
+  };
+
+  // Calculate volume for display
+  const calculateVolume = () => {
+    const length = parseFloat(formData.wound_size_length) || 0;
+    const width = parseFloat(formData.wound_size_width) || 0;
+    const depth = parseFloat(formData.wound_size_depth) || 0;
+    return length && width && depth ? (length * width * depth).toFixed(2) : null;
   };
 
   return (
-    // 💥 FIX 1 & 2: Changed h-full to max-h-[90vh] and added overflow-hidden for border-radius consistency
     <motion.div
       id="patient-form-wrapper"
-      className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl p-6 md:p-8 mx-4 border border-gray-100 dark:border-gray-700 relative w-full max-w-lg md:max-w-4xl max-h-[90vh] overflow-hidden" // max-h-[90vh] ensures it fits, overflow-hidden ensures rounded corners work.
+      className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl p-6 md:p-8 mx-4 border border-gray-100 dark:border-gray-700 relative w-full max-w-lg md:max-w-4xl max-h-[90vh] overflow-hidden"
       initial={{ opacity: 0, y: 50 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: 50 }}
@@ -79,12 +82,10 @@ const NewPatientForm = ({
           e.preventDefault();
           handleSavePatient();
         }}
-        // The inner form content is now scrollable up to the max height of the container minus header/footer space.
         className="space-y-6 overflow-y-auto pr-2"
         initial="hidden"
         animate="visible"
         variants={formContainerVariants}
-        // Simplified max height calculation since the parent now controls it with max-h-[90vh]
         style={{ maxHeight: "calc(90vh - 120px)" }}
       >
         {/* === PATIENT IDENTIFICATION === */}
@@ -92,7 +93,6 @@ const NewPatientForm = ({
           Patient Identification
         </h4>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {/* First Name (Required) */}
           <motion.div variants={formItemVariants}>
             <label
               htmlFor="first_name"
@@ -117,7 +117,6 @@ const NewPatientForm = ({
             {renderError("first_name")}
           </motion.div>
 
-          {/* Last Name (Required) */}
           <motion.div variants={formItemVariants}>
             <label
               htmlFor="last_name"
@@ -142,7 +141,6 @@ const NewPatientForm = ({
             {renderError("last_name")}
           </motion.div>
 
-          {/* Middle Initial */}
           <motion.div variants={formItemVariants}>
             <label
               htmlFor="middle_initial"
@@ -164,7 +162,6 @@ const NewPatientForm = ({
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {/* Date of Birth (Required) */}
           <motion.div variants={formItemVariants} className="md:col-span-1">
             <label
               htmlFor="date_of_birth"
@@ -188,7 +185,6 @@ const NewPatientForm = ({
             {renderError("date_of_birth")}
           </motion.div>
 
-          {/* Phone Number */}
           <motion.div variants={formItemVariants} className="md:col-span-1">
             <label
               htmlFor="phone_number"
@@ -212,7 +208,6 @@ const NewPatientForm = ({
             {renderError("phone_number")}
           </motion.div>
 
-          {/* Email */}
           <motion.div variants={formItemVariants} className="md:col-span-1">
             <label
               htmlFor="email"
@@ -232,7 +227,6 @@ const NewPatientForm = ({
           </motion.div>
         </div>
 
-        {/* Medical Record Number */}
         <motion.div variants={formItemVariants}>
           <label
             htmlFor="medical_record_number"
@@ -256,7 +250,6 @@ const NewPatientForm = ({
           Address Details
         </h4>
 
-        {/* Address */}
         <motion.div variants={formItemVariants}>
           <label
             htmlFor="address"
@@ -276,7 +269,6 @@ const NewPatientForm = ({
         </motion.div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {/* City */}
           <motion.div variants={formItemVariants}>
             <label
               htmlFor="city"
@@ -295,7 +287,6 @@ const NewPatientForm = ({
             />
           </motion.div>
 
-          {/* State */}
           <motion.div variants={formItemVariants}>
             <label
               htmlFor="state"
@@ -319,7 +310,6 @@ const NewPatientForm = ({
             </select>
           </motion.div>
 
-          {/* Zip Code */}
           <motion.div variants={formItemVariants}>
             <label
               htmlFor="zip_code"
@@ -344,7 +334,6 @@ const NewPatientForm = ({
           Insurance Information
         </h4>
 
-        {/* Primary Insurance */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <motion.div variants={formItemVariants}>
             <label
@@ -382,7 +371,6 @@ const NewPatientForm = ({
           </motion.div>
         </div>
 
-        {/* Secondary Insurance */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <motion.div variants={formItemVariants}>
             <label
@@ -420,7 +408,6 @@ const NewPatientForm = ({
           </motion.div>
         </div>
 
-        {/* Tertiary Insurance */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <motion.div variants={formItemVariants}>
             <label
@@ -462,20 +449,22 @@ const NewPatientForm = ({
         <h4 className="text-lg font-semibold text-teal-600 dark:text-teal-400 border-b border-teal-600/50 pb-1 pt-4">
           Wound Information
         </h4>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {/* Wound Size Length */}
           <motion.div variants={formItemVariants}>
             <label
               htmlFor="wound_size_length"
               className="block mb-1 text-sm font-medium text-gray-700 dark:text-gray-300"
             >
-              Wound Size Length (cm)
+              Length (cm) <span className="text-xs text-gray-500">head to toe</span>
             </label>
             <input
               type="number"
+              step="0.01"
               id="wound_size_length"
               name="wound_size_length"
-              placeholder="0"
+              placeholder="0.00"
               min="0"
               value={formData.wound_size_length || ""}
               onChange={handleInputChange}
@@ -489,31 +478,85 @@ const NewPatientForm = ({
               htmlFor="wound_size_width"
               className="block mb-1 text-sm font-medium text-gray-700 dark:text-gray-300"
             >
-              Wound Size Width (cm)
+              Width (cm) <span className="text-xs text-gray-500">side to side</span>
             </label>
             <input
               type="number"
+              step="0.01"
               id="wound_size_width"
               name="wound_size_width"
-              placeholder="0"
+              placeholder="0.00"
               min="0"
               value={formData.wound_size_width || ""}
               onChange={handleInputChange}
               className="block w-full px-3 py-2 text-sm text-gray-800 dark:text-gray-200 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg focus:border-teal-500 focus:ring-teal-500 focus:outline-none transition"
             />
           </motion.div>
+
+          {/* Wound Size Depth */}
+          <motion.div variants={formItemVariants}>
+            <label
+              htmlFor="wound_size_depth"
+              className="block mb-1 text-sm font-medium text-gray-700 dark:text-gray-300"
+            >
+              Depth (cm) <span className="text-xs text-gray-500">deepest point</span>
+            </label>
+            <input
+              type="number"
+              step="0.01"
+              id="wound_size_depth"
+              name="wound_size_depth"
+              placeholder="0.00"
+              min="0"
+              value={formData.wound_size_depth || ""}
+              onChange={handleInputChange}
+              className="block w-full px-3 py-2 text-sm text-gray-800 dark:text-gray-200 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg focus:border-teal-500 focus:ring-teal-500 focus:outline-none transition"
+            />
+          </motion.div>
         </div>
+
+        {/* Calculated Wound Metrics */}
+        {(calculateSurfaceArea() || calculateVolume()) && (
+          <motion.div 
+            variants={formItemVariants}
+            className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800"
+          >
+            <h5 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+              📊 Calculated Wound Measurements
+            </h5>
+            <div className="space-y-1 text-sm text-gray-600 dark:text-gray-400">
+              {calculateSurfaceArea() && (
+                <div className="flex justify-between">
+                  <span>Surface Area (for ordering):</span>
+                  <span className="font-semibold text-teal-600 dark:text-teal-400">
+                    {calculateSurfaceArea()} cm²
+                  </span>
+                </div>
+              )}
+              {calculateVolume() && (
+                <div className="flex justify-between">
+                  <span>Approximate Volume:</span>
+                  <span className="font-semibold text-gray-700 dark:text-gray-300">
+                    {calculateVolume()} cm³
+                  </span>
+                </div>
+              )}
+              {calculateSurfaceArea() && (
+                <div className="flex justify-between pt-2 mt-2 border-t border-blue-300 dark:border-blue-700">
+                  <span>Max Order Amount (120%):</span>
+                  <span className="font-bold text-green-600 dark:text-green-400">
+                    {(parseFloat(calculateSurfaceArea()) * 1.2).toFixed(2)} cm²
+                  </span>
+                </div>
+              )}
+            </div>
+          </motion.div>
+        )}
 
         {/* Submit Button */}
         <motion.div className="pt-6" variants={formItemVariants}>
           <motion.button
             type="submit"
-            onClick={(e) => {
-              console.log("🔴 BUTTON CLICKED");
-              console.log("🔴 Button type:", e.currentTarget.type);
-              console.log("🔴 Event target:", e.target);
-              // Don't call preventDefault here - let the form handle it
-            }}
             className="w-full px-4 py-3 tracking-wide text-white font-bold transition-colors duration-200 transform bg-teal-600 rounded-lg hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2 uppercase shadow-lg"
             whileHover={{ scale: 1.01 }}
             whileTap={{ scale: 0.98 }}
