@@ -195,7 +195,7 @@ const Register = () => {
     setZipError("");
 
     try {
-      const response = await fetch(`http://api.zippopotam.us/us/${zip}`);
+      const response = await fetch(`https://api.zippopotam.us/us/${zip}`);
       
       if (!response.ok) {
         throw new Error("Invalid ZIP code");
