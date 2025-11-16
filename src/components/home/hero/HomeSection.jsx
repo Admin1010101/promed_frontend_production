@@ -56,8 +56,7 @@ const HeroSection = () => {
     }
 
     try {
-      await axios.post(
-        'https://promedhealth-frontdoor-h4c4bkcxfkduezec.z02.azurefd.net/api/v1/contact-us/',
+      await axios.post('http://localhost:8000/api/v1/contact-us/',
         formData
       );
       toast.success("Your message has been sent. We'll get back to you soon!");
@@ -111,7 +110,7 @@ const HeroSection = () => {
             className="w-full h-full object-cover object-right" 
           />
         </motion.div>
-        <div className="absolute inset-0 z-0 bg-gray-900/50 dark:bg-gray-900/60"></div>
+        <div className="absolute inset-0 z-0 bg-gray-900/20 dark:bg-gray-900/60"></div>
         <motion.div 
           className="lg:w-3/4 xl:w-2/4 relative z-10 py-16" 
           initial="hidden"

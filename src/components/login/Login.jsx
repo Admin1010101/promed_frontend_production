@@ -1,325 +1,579 @@
-import React, { useState, useContext } from "react";
-import { AuthContext } from "../../utils/context/auth";
-import { useNavigate, Link } from "react-router-dom";
-import { motion, AnimatePresence } from "framer-motion";
-import { IoArrowBack, IoMail, IoLockClosed, IoEyeOutline, IoEyeOffOutline } from "react-icons/io5";
+import { createContext, useState, useEffect } from "react";
+import axios from "axios";
+import { jwtDecode } from "jwt-decode";
 import toast from "react-hot-toast";
-import login_bg_img_2 from "../../assets/images/login_bg.jpg";
+import axiosAuth from "../axios";
 
-const Login = () => {
-  const { login } = useContext(AuthContext);
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
-  const [method, setMethod] = useState("email"); // ✅ Changed default to 'email'
-  const [errorMsg, setErrorMsg] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
-  const navigate = useNavigate();
+// --- Configuration ---
+// Assuming API_BASE_URL is a constant imported from elsewhere (e.g., constants.js)
+// If not, you may need to define it here or import it from your config file.
+const API_BASE_URL =
+  "https://promedhealth-frontdoor-h4c4bkcxfkduezec.z02.azurefd.net/api/v1";
 
-  const handleLogin = async (e) => {
-    e.preventDefault();
-    setIsLoading(true);
-    setErrorMsg("");
+export const AuthContext = createContext();
 
-    const result = await login(email, password, method);
+export const AuthProvider = ({ children }) => {
+  // --- State Initialization ---
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [isMfaPending, setIsMfaPending] = useState(false);
+  const [isBAARequired, setIsBAARequired] = useState(false);
 
-    // ✅ ADDED: Handle BAA Required response
-    if (result.baa_required) {
-      console.log("🔒 BAA signature required - redirecting to /baa-agreement");
-      navigate("/baa-agreement");
-    } 
-    // Handle MFA Required response
-    else if (result.mfa_required) {
-      console.log("🔐 MFA required - redirecting to /mfa");
-      navigate("/mfa", { state: { session_id: result.session_id, email } });
-    } 
-    // Handle successful login (no BAA/MFA required - shouldn't happen in your setup)
-    else if (result.success) {
-      console.log("✅ Login successful - redirecting to /dashboard");
-      navigate("/dashboard");
-    } 
-    // Handle errors
-    else {
-      let displayError = "An unknown error occurred.";
-      if (typeof result.error === 'object' && result.error !== null) {
-        const firstKey = Object.keys(result.error)[0];
-        displayError = result.error[firstKey] && Array.isArray(result.error[firstKey])
-          ? `${firstKey}: ${result.error[firstKey][0]}`
-          : JSON.stringify(result.error);
-      } else if (typeof result.error === 'string') {
-        displayError = result.error;
-        toast.error(displayError);
+  // --- Helper Functions ---
+
+  const logout = () => {
+    console.log("🚪 Logging out - clearing all tokens and state");
+    localStorage.clear(); // Clear all localStorage tokens
+    sessionStorage.clear(); // Clear all sessionStorage flags
+    setUser(null);
+    setIsMfaPending(false);
+    setIsBAARequired(false);
+  };
+
+  const clearMfaState = () => {
+    console.log("🧹 Clearing temporary MFA state");
+    localStorage.removeItem("session_id");
+    localStorage.removeItem("mfa_method");
+    setIsMfaPending(false);
+  };
+
+  /**
+   * Fetches full provider profile and merges essential data.
+   * Ensures the returned object is the single source of user data for the context state.
+   */
+  const fetchUserData = async (token) => {
+    try {
+      const decodedToken = jwtDecode(token);
+      const axiosInstance = axiosAuth(); // Uses the token provided in the header
+      const response = await axiosInstance.get("/provider/profile/");
+
+      // UNIFY THE USER OBJECT: Avoid nesting user data under a second 'user' key.
+      const unifiedUser = {
+        // Base authentication details (from token)
+        id: decodedToken.user_id,
+        role: decodedToken.role,
+
+        // Profile and related details (from API response)
+        ...response.data, // Contains profile info (image, full_name, email, etc.)
+
+        // Critical flags
+        has_signed_baa: response.data.has_signed_baa,
+      };
+
+      setUser(unifiedUser);
+      return unifiedUser;
+    } catch (error) {
+      console.error("Failed to fetch user data or decode token:", error);
+      // Re-throw to be caught by the caller (e.g., verifyCode, initial load)
+      throw error;
+    }
+  };
+
+  // --- Initial Load Effect ---
+  useEffect(() => {
+    const accessToken = localStorage.getItem("accessToken");
+    const refreshToken = localStorage.getItem("refreshToken");
+    const session_id = localStorage.getItem("session_id");
+    const baaRequiredStatus =
+      sessionStorage.getItem("isBAARequired") === "true";
+
+    if (session_id && !refreshToken) {
+      // MFA in progress
+      setIsMfaPending(true);
+    } else if (baaRequiredStatus && accessToken && !refreshToken) {
+      // BAA in progress (temp token exists)
+      setIsBAARequired(true);
+    } else if (accessToken && refreshToken) {
+      // Full session available
+      fetchUserData(accessToken).catch(() => {
+        // If data fetch fails, assume tokens are stale/invalid
+        logout();
+      });
+    } else {
+      // Clean up any stray temp states if no full session is found
+      if (session_id) clearMfaState();
+      if (baaRequiredStatus) sessionStorage.removeItem("isBAARequired");
+    }
+
+    setLoading(false);
+    // Note: Dependencies are intentionally limited to run only on mount.
+  }, []);
+
+  // --- Core Auth API Functions ---
+
+  const register = async (formData) => {
+    try {
+      const response = await axios.post(
+        `${API_BASE_URL}/provider/register/`,
+        formData
+      );
+      return { success: true, data: response.data };
+    } catch (error) {
+      console.error("Registration error:", error.response);
+      return {
+        success: false,
+        error: error.response?.data || "Registration failed",
+      };
+    }
+  };
+
+  // const login = async (email, password, method = "sms") => {
+  //   try {
+  //     const response = await axios.post(`${API_BASE_URL}/provider/token/`, {
+  //       email: email.trim(),
+  //       password,
+  //       method,
+  //     });
+
+  //     const { access, refresh, mfa_required, session_id } = response.data;
+
+  //     // 1. Handle MFA requirement
+  //     if (mfa_required) {
+  //       localStorage.setItem("accessToken", access);
+  //       localStorage.setItem("session_id", session_id);
+  //       localStorage.setItem("mfa_method", method);
+  //       setIsMfaPending(true);
+  //       return { mfa_required: true, session_id, detail: response.data.detail };
+  //     }
+
+  //     // 2. Handle successful full login
+  //     localStorage.setItem("accessToken", access);
+  //     localStorage.setItem("refreshToken", refresh);
+  //     clearMfaState(); // ensure any lingering MFA state is gone
+
+  //     await fetchUserData(access); // Populate user state immediately
+  //     return { success: true };
+  //   } catch (error) {
+  //     const errorData = error.response?.data;
+
+  //     // 🔑 Handle BAA Required (403)
+  //     if (error.response?.status === 403 && errorData?.baa_required) {
+  //       toast.error("Mandatory BAA agreement required.");
+
+  //       localStorage.setItem("accessToken", errorData.access); // Temp token
+  //       sessionStorage.setItem("isBAARequired", "true"); // Flag for router
+
+  //       // Note: The backend should return enough data for the profile to function temporarily
+  //       setUser(errorData.user || { email: email.trim() });
+  //       setIsBAARequired(true);
+  //       clearMfaState();
+
+  //       return { baa_required: true, user: errorData.user };
+  //     }
+
+  //     // --- Standard Error Parsing ---
+  //     let errorMessage =
+  //       "Login failed. Please check your credentials and try again.";
+  //     // ... (Add your detailed error parsing logic here) ...
+
+  //     clearMfaState();
+  //     return { success: false, error: errorMessage };
+  //   }
+  // };
+
+const login = async (email, password, method = "sms") => {
+  try {
+    const response = await axios.post(`${API_BASE_URL}/provider/token/`, {
+      email: email.trim(),
+      password,
+      method,
+    });
+
+    const { access, refresh, mfa_required, session_id } = response.data;
+
+    // 1. Handle MFA requirement
+    if (mfa_required) {
+      localStorage.setItem("accessToken", access);
+      localStorage.setItem("session_id", session_id);
+      localStorage.setItem("mfa_method", method);
+      setIsMfaPending(true);
+      return { mfa_required: true, session_id, detail: response.data.detail };
+    }
+
+    // 2. Handle successful full login
+    localStorage.setItem("accessToken", access);
+    localStorage.setItem("refreshToken", refresh);
+    clearMfaState(); // ensure any lingering MFA state is gone
+
+    await fetchUserData(access); // Populate user state immediately
+    return { success: true };
+  } catch (error) {
+    const errorData = error.response?.data;
+
+    // 🔑 Handle BAA Required (403)
+    if (error.response?.status === 403 && errorData?.baa_required) {
+      localStorage.setItem("accessToken", errorData.access); // Temp token
+      sessionStorage.setItem("isBAARequired", "true"); // Flag for router
+
+      setUser(errorData.user || { email: email.trim() });
+      setIsBAARequired(true);
+      clearMfaState();
+
+      return { 
+        baa_required: true, 
+        user: errorData.user,
+        error: "Mandatory BAA agreement required." 
+      };
+    }
+
+    // --- Extract Error Message from API Response ---
+    let errorMessage = "Login failed. Please check your credentials and try again.";
+    
+    if (errorData?.detail) {
+      // Handle if detail is an array
+      if (Array.isArray(errorData.detail)) {
+        errorMessage = errorData.detail.join(" ");
+      } 
+      // Handle if detail is a string
+      else if (typeof errorData.detail === "string") {
+        errorMessage = errorData.detail;
       }
-      setErrorMsg(displayError);
+    }
+    // Handle other error formats (non_field_errors, specific field errors, etc.)
+    else if (errorData?.non_field_errors) {
+      errorMessage = Array.isArray(errorData.non_field_errors) 
+        ? errorData.non_field_errors.join(" ")
+        : errorData.non_field_errors;
+    }
+    else if (errorData?.email || errorData?.password) {
+      const errors = [];
+      if (errorData.email) errors.push(...(Array.isArray(errorData.email) ? errorData.email : [errorData.email]));
+      if (errorData.password) errors.push(...(Array.isArray(errorData.password) ? errorData.password : [errorData.password]));
+      errorMessage = errors.join(" ");
     }
 
-    setIsLoading(false);
-  };
+    // REMOVED toast.error() from here - let the component handle it
 
-  const containerVariants = {
-    hidden: { opacity: 0 },
-    visible: {
-      opacity: 1,
-      transition: {
-        staggerChildren: 0.1,
-        delayChildren: 0.2
-      }
-    }
-  };
-
-  const itemVariants = {
-    hidden: { y: 20, opacity: 0 },
-    visible: {
-      y: 0,
-      opacity: 1,
-      transition: { type: "spring", stiffness: 100 }
-    }
-  };
-
-  const imageVariants = {
-    hidden: { scale: 1.2, opacity: 0 },
-    visible: {
-      scale: 1,
-      opacity: 1,
-      transition: { duration: 1.2, ease: "easeOut" }
-    }
-  };
-
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 relative overflow-hidden">
-      {/* Animated background elements */}
-      <div className="absolute inset-0 overflow-hidden">
-        <div className="absolute -top-1/2 -left-1/2 w-full h-full bg-gradient-to-br from-teal-500/10 to-transparent rounded-full blur-3xl animate-pulse"></div>
-        <div className="absolute -bottom-1/2 -right-1/2 w-full h-full bg-gradient-to-tl from-blue-500/10 to-transparent rounded-full blur-3xl animate-pulse delay-1000"></div>
-      </div>
-
-      <div className="relative z-10 flex min-h-screen">
-        {/* Back Button */}
-        <motion.div
-          initial={{ opacity: 0, x: -20 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ delay: 0.5 }}
-          className="absolute top-6 left-6 z-50"
-        >
-          <Link
-            to="/"
-            className="group flex items-center justify-center w-12 h-12 bg-white/10 backdrop-blur-md hover:bg-white/20 text-white rounded-full shadow-xl transition-all duration-300 border border-white/20"
-            title="Back to Home"
-          >
-            <IoArrowBack className="text-xl group-hover:-translate-x-1 transition-transform" />
-          </Link>
-        </motion.div>
-
-        {/* Left Panel - Image */}
-        <motion.div
-          className="hidden lg:flex lg:w-3/5 relative"
-          initial="hidden"
-          animate="visible"
-          variants={imageVariants}
-        >
-          <div
-            className="absolute inset-0 bg-cover bg-center"
-            style={{ backgroundImage: `url(${login_bg_img_2})` }}
-          />
-          <div className="absolute inset-0 bg-gradient-to-r from-slate-900/95 via-slate-900/80 to-transparent"></div>
-
-          <div className="relative z-10 flex items-center px-16 xl:px-24">
-            <motion.div
-              initial={{ opacity: 0, y: 30 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.8, duration: 0.8 }}
-              className="max-w-xl"
-            >
-              <motion.div
-                initial={{ scale: 0.9, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                transition={{ delay: 1, duration: 0.5 }}
-                className="mb-8"
-              >
-                <div className="flex items-center gap-3 mb-6">
-                  <div className="w-2 h-16 bg-gradient-to-b from-teal-400 to-blue-500 rounded-full"></div>
-                  <h1 className="text-6xl font-semibold text-white">
-                    ProMed Health
-                    <span className="block text-teal-400">
-                      Plus
-                    </span>
-                  </h1>
-                </div>
-              </motion.div>
-
-              <motion.p
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 1.2, duration: 0.8 }}
-                className="text-xl text-gray-300 leading-relaxed font-light"
-              >
-                Improving Patient Outcomes with Proven Wound Care Solutions
-              </motion.p>
-
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 1.4, duration: 0.8 }}
-                className="mt-12 flex gap-4"
-              >
-                {["Trusted", "Innovative", "Comprehensive"].map((item, idx) => (
-                  <div key={idx} className="px-4 py-2 bg-white/5 backdrop-blur-sm border border-white/10 rounded-full">
-                    <span className="text-teal-400 text-sm font-medium">{item}</span>
-                  </div>
-                ))}
-              </motion.div>
-            </motion.div>
-          </div>
-        </motion.div>
-
-        {/* Right Panel - Login Form */}
-        <div className="flex-1 flex items-center justify-center px-6 py-12">
-          <motion.div
-            className="w-full max-w-md"
-            variants={containerVariants}
-            initial="hidden"
-            animate="visible"
-          >
-            <motion.div variants={itemVariants} className="text-center mb-10">
-              <h2 className="text-4xl font-bold text-white mb-3">
-                Welcome Back
-              </h2>
-              <p className="text-gray-400 text-lg">
-                Sign in to access your dashboard
-              </p>
-            </motion.div>
-
-            <motion.div
-              variants={itemVariants}
-              className="bg-white/5 backdrop-blur-xl rounded-2xl p-8 shadow-2xl border border-white/10"
-            >
-              <form onSubmit={handleLogin} className="space-y-6">
-                {/* Email Input */}
-                <motion.div variants={itemVariants}>
-                  <label className="block text-sm font-semibold text-gray-300 mb-2">
-                    Email Address
-                  </label>
-                  <div className="relative group">
-                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                      <IoMail className="text-gray-400 group-focus-within:text-teal-400 transition-colors" />
-                    </div>
-                    <input
-                      type="email"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      placeholder="example@example.com"
-                      className="w-full pl-12 pr-4 py-4 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-teal-500/50 focus:border-teal-500 transition-all duration-300"
-                      required
-                    />
-                  </div>
-                </motion.div>
-
-                {/* Password Input */}
-                <motion.div variants={itemVariants}>
-                  <div className="flex justify-between items-center mb-2">
-                    <label className="block text-sm font-semibold text-gray-300">
-                      Password
-                    </label>
-                    <Link
-                      to="/forgot-password"
-                      className="text-sm text-teal-400 hover:text-teal-300 transition-colors"
-                    >
-                      Forgot?
-                    </Link>
-                  </div>
-                  <div className="relative group">
-                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                      <IoLockClosed className="text-gray-400 group-focus-within:text-teal-400 transition-colors" />
-                    </div>
-                    <input
-                      type={showPassword ? "text" : "password"}
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      placeholder="••••••••"
-                      className="w-full pl-12 pr-12 py-4 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-teal-500/50 focus:border-teal-500 transition-all duration-300"
-                      required
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword(!showPassword)}
-                      className="absolute inset-y-0 right-0 pr-4 flex items-center text-gray-400 hover:text-teal-400 transition-colors"
-                    >
-                      {showPassword ? <IoEyeOffOutline size={20} /> : <IoEyeOutline size={20} />}
-                    </button>
-                  </div>
-                </motion.div>
-
-                {/* Error Message */}
-                <AnimatePresence>
-                  {errorMsg && (
-                    <motion.div
-                      initial={{ opacity: 0, height: 0 }}
-                      animate={{ opacity: 1, height: "auto" }}
-                      exit={{ opacity: 0, height: 0 }}
-                      className="bg-red-500/10 border border-red-500/20 rounded-xl p-4"
-                    >
-                      <p className="text-red-400 text-sm">{errorMsg}</p>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-
-                {/* Submit Button */}
-                <motion.button
-                  variants={itemVariants}
-                  type="submit"
-                  disabled={isLoading}
-                  className="w-full py-4 bg-gradient-to-r from-teal-500 to-blue-500 hover:from-teal-400 hover:to-blue-400 text-white font-bold rounded-xl shadow-lg shadow-teal-500/25 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed relative overflow-hidden group"
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                >
-                  <span className="relative z-10">
-                    {isLoading ? (
-                      <span className="flex items-center justify-center gap-2">
-                        <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
-                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                        </svg>
-                        Signing in...
-                      </span>
-                    ) : (
-                      "Sign In"
-                    )}
-                  </span>
-                  <div className="absolute inset-0 bg-white/20 transform scale-x-0 group-hover:scale-x-100 transition-transform origin-left"></div>
-                </motion.button>
-              </form>
-
-              {/* Register Link */}
-              <motion.div variants={itemVariants} className="mt-6 text-center">
-                <p className="text-gray-400 text-sm">
-                  Don't have an account?{" "}
-                  <Link
-                    to="/register"
-                    className="text-teal-400 hover:text-teal-300 font-semibold transition-colors"
-                  >
-                    Create Account
-                  </Link>
-                </p>
-              </motion.div>
-            </motion.div>
-
-            {/* Security Badge */}
-            <motion.div
-              variants={itemVariants}
-              className="mt-8 text-center"
-            >
-              <div className="inline-flex items-center gap-2 px-4 py-2 bg-white/5 backdrop-blur-sm rounded-full border border-white/10">
-                <svg className="w-4 h-4 text-teal-400" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M2.166 4.999A11.954 11.954 0 0010 1.944 11.954 11.954 0 0017.834 5c.11.65.166 1.32.166 2.001 0 5.225-3.34 9.67-8 11.317C5.34 16.67 2 12.225 2 7c0-.682.057-1.35.166-2.001zm11.541 3.708a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                </svg>
-                <span className="text-xs text-gray-400 font-medium">Secured by 256-bit encryption</span>
-              </div>
-            </motion.div>
-          </motion.div>
-        </div>
-      </div>
-    </div>
-  );
+    clearMfaState();
+    return { success: false, error: errorMessage };
+  }
 };
 
-export default Login;
+  const signBAA = async (baaFormData) => {
+    try {
+      const axiosInstance = axiosAuth(); // Uses the temporary BAA access token
+      const response = await axiosInstance.put(
+        `${API_BASE_URL}/provider/sign-baa/`,
+        baaFormData
+      );
+
+      const { access, session_id, mfa_required, method, detail } =
+        response.data;
+
+      if (!mfa_required || !session_id) {
+        throw new Error("BAA signed, but the server failed to initiate MFA.");
+      }
+
+      toast.success("BAA signed! Verification code sent.");
+
+      // 1. Clear BAA lock state
+      setIsBAARequired(false);
+      sessionStorage.removeItem("isBAARequired");
+
+      // 2. Set MFA state for router to redirect to /mfa
+      localStorage.setItem("accessToken", access);
+      localStorage.setItem("session_id", session_id);
+      localStorage.setItem("mfa_method", method || "email");
+      setIsMfaPending(true);
+
+      return { success: true, mfa_required: true, detail };
+    } catch (error) {
+      console.error(
+        "❌ Failed to sign BAA:",
+        error.response?.data || error.message
+      );
+      toast.error("Failed to sign BAA. Please log in again.");
+
+      if (error.response?.status === 401 || error.response?.status === 403) {
+        logout();
+      }
+      return {
+        success: false,
+        error: error.response?.data || "Failed to sign BAA",
+      };
+    }
+  };
+
+  // ✅ CRITICAL FIX AREA: Ensuring state is set before returning success
+  const verifyCode = async (code) => {
+    try {
+      const session_id = localStorage.getItem("session_id");
+      const accessToken = localStorage.getItem("accessToken");
+
+      if (!session_id || !accessToken) {
+        throw new Error("No active MFA session found. Please log in again.");
+      }
+
+      const response = await axios.post(
+        `${API_BASE_URL}/verify-code/`,
+        { code, session_id },
+        {
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      const { refresh: finalRefreshToken, access: newAccessToken } =
+        response.data;
+
+      if (!finalRefreshToken || !newAccessToken) {
+        throw new Error("Missing final tokens in verification response.");
+      }
+
+      // 1. Final tokens stored
+      localStorage.setItem("refreshToken", finalRefreshToken);
+      localStorage.setItem("accessToken", newAccessToken);
+      clearMfaState();
+
+      // 2. Await full user data fetch and state update (PREVENTS RACE CONDITION)
+      await fetchUserData(newAccessToken);
+
+      // 3. Return success only after state is guaranteed to be updated
+      return { success: true };
+    } catch (error) {
+      // Unified error handling block
+      console.error(
+        "❌ MFA verification error:",
+        error.response?.data || error.message
+      );
+
+      let errorMessage =
+        error.message || "Invalid verification code. Please try again.";
+
+      if (error.response?.data?.error) {
+        errorMessage = error.response.data.error;
+      }
+
+      if (
+        error.response?.status === 401 ||
+        error.response?.status === 403 ||
+        errorMessage.includes("session")
+      ) {
+        logout();
+        return {
+          success: false,
+          error: "Session expired. Please log in again.",
+        };
+      }
+
+      // IMPORTANT: If fetchUserData failed, it will also throw/be caught here, and we log out.
+      // If we made it past token exchange but fetchUserData failed, the throw inside the try block
+      // is caught here, and we'll hit the logout if the error is session-related.
+
+      return { success: false, error: errorMessage };
+    }
+  };
+
+  const getPatients = async () => {
+    try {
+      // ✅ Guard against calling before user is ready
+      if (!user) {
+        console.warn("getPatients called before user authentication completed");
+        return { success: false, error: "Authentication not complete" };
+      }
+
+      const axiosInstance = axiosAuth();
+      const response = await axiosInstance.get("/patients/");
+      return { success: true, data: response.data };
+    } catch (error) {
+      console.error("Error fetching patients:", error);
+      return {
+        success: false,
+        error:
+          error.response?.data?.error ||
+          error.response?.data?.detail ||
+          "Failed to fetch patients",
+      };
+    }
+  };
+
+  const postPatient = async (patientData) => {
+    try {
+      // ✅ Guard against calling before user is ready
+      if (!user) {
+        console.warn("postPatient called before user authentication completed");
+        return { success: false, error: "Authentication not complete" };
+      }
+
+      const axiosInstance = axiosAuth();
+      const response = await axiosInstance.post("/patients/", patientData);
+      return { success: true, data: response.data };
+    } catch (error) {
+      console.error("Error creating patient:", error);
+      return {
+        success: false,
+        error:
+          error.response?.data?.error ||
+          error.response?.data?.detail ||
+          "Failed to create patient",
+      };
+    }
+  };
+
+  const updatePatient = async (patientId, patientData) => {
+    console.log("🔵 AuthContext.updatePatient called");
+    console.log("🔵 patientId:", patientId);
+    console.log("🔵 patientData:", patientData);
+    console.log("🔵 user:", user);
+
+    try {
+      // ✅ Guard against calling before user is ready
+      if (!user) {
+        console.warn(
+          "⚠️ updatePatient called before user authentication completed"
+        );
+        return { success: false, error: "Authentication not complete" };
+      }
+
+      console.log("✅ User authenticated, creating axios instance");
+      const axiosInstance = axiosAuth();
+
+      const url = `/patients/${patientId}/`;
+      console.log("📤 Making PUT request to:", url);
+      console.log("📤 Request payload:", patientData);
+
+      const response = await axiosInstance.put(url, patientData);
+
+      console.log("📥 Response received:", response);
+      console.log("📥 Response status:", response.status);
+      console.log("📥 Response data:", response.data);
+
+      return { success: true, data: response.data };
+    } catch (error) {
+      console.error("💥 Error in updatePatient:", error);
+      console.error("💥 Error response:", error.response);
+      console.error("💥 Error request:", error.request);
+      console.error("💥 Error message:", error.message);
+
+      return {
+        success: false,
+        error:
+          error.response?.data?.error ||
+          error.response?.data?.detail ||
+          error.message ||
+          "Failed to update patient",
+      };
+    }
+  };
+
+  const deletePatient = async (patientId) => {
+    try {
+      // ✅ Guard against calling before user is ready
+      if (!user) {
+        console.warn(
+          "deletePatient called before user authentication completed"
+        );
+        return { success: false, error: "Authentication not complete" };
+      }
+
+      const axiosInstance = axiosAuth();
+      await axiosInstance.delete(`/patients/${patientId}/`);
+      return { success: true };
+    } catch (error) {
+      console.error("Error deleting patient:", error);
+      return {
+        success: false,
+        error:
+          error.response?.data?.error ||
+          error.response?.data?.detail ||
+          "Failed to delete patient",
+      };
+    }
+  };
+
+  const uploadDocumentAndEmail = async (documentType, files) => {
+    try {
+      // ✅ Guard against calling before user is ready
+      if (!user) {
+        console.warn(
+          "uploadDocumentAndEmail called before user authentication completed"
+        );
+        return { success: false, error: "Authentication not complete" };
+      }
+
+      const axiosInstance = axiosAuth();
+      const formData = new FormData();
+      formData.append("document_type", documentType);
+      files.forEach((file) => {
+        formData.append("files", file);
+      });
+
+      const response = await axiosInstance.post(
+        "/documents/upload/",
+        formData,
+        {
+          headers: {
+            "Content-Type": "multipart/form-data",
+          },
+        }
+      );
+      return { success: true, data: response.data };
+    } catch (error) {
+      console.error("Error uploading documents:", error);
+      return {
+        success: false,
+        error:
+          error.response?.data?.error ||
+          error.response?.data?.detail ||
+          "Failed to upload documents",
+      };
+    }
+  };
+
+  const completeTour = async () => {
+  try {
+    if (!user) {
+      console.warn("completeTour called before user authentication completed");
+      return { success: false, error: "Authentication not complete" };
+    }
+
+    const axiosInstance = axiosAuth();
+    const response = await axiosInstance.put("/provider/complete-tour/");
+    
+    // Update local user state to reflect tour completion
+    setUser(prev => ({
+      ...prev,
+      has_completed_tour: true,
+      tour_completed_at: new Date().toISOString()
+    }));
+    
+    return { success: true, data: response.data };
+  } catch (error) {
+    console.error("Error marking tour complete:", error);
+    return {
+      success: false,
+      error: error.response?.data?.error || "Failed to complete tour",
+    };
+  }
+};
+
+  // --- Provider Return ---
+
+  return (
+    <AuthContext.Provider
+      value={{
+        user,
+        loading,
+        isMfaPending,
+        isBAARequired,
+        register,
+        logout,
+        login,
+        verifyCode,
+        signBAA,
+        clearMfaState,
+        getPatients,
+        postPatient,
+        updatePatient,
+        deletePatient,
+        uploadDocumentAndEmail,
+        completeTour
+      }}
+    >
+      {/* Renders children only when loading is complete */}
+      {!loading && children}
+    </AuthContext.Provider>
+  );
+};
