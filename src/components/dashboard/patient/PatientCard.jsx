@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useContext } from "react";
 import { motion } from "framer-motion";
 import { FaEdit, FaTrashAlt, FaUser, FaShoppingCart } from "react-icons/fa";
 import {
@@ -18,6 +18,7 @@ import NotesModal from "../documemts/NotesModal";
 import NewOrderForm from "../../orders/NewOrderForm";
 import IvrFormModal from "./PatientIVR";
 import PatientIVRHistoryModal from "./PatientIVRHistoryModal";
+import { AuthContext } from "../../../utils/context/auth";
 
 // ✅ Centralized API configuration
 const API_BASE_URL =
@@ -93,6 +94,7 @@ const PatientCard = ({
   onDelete,
   onPatientUpdate,
 }) => {
+  const { user } = useContext(AuthContext); 
   const [openOrderModal, setOpenOrderModal] = useState(false);
   const [openNotesModal, setOpenNotesModal] = useState(false);
   const [openIvrModal, setOpenIvrModal] = useState(false);
@@ -290,19 +292,78 @@ const PatientCard = ({
     setNotesRefreshTrigger((prev) => prev + 1);
   };
 
-  const getIvrInitialData = () => ({
-    patientId: patient.id,
-    physicianName: `${patient.first_name} ${patient.last_name}`,
-    contactName: `${patient.first_name} ${patient.last_name}`,
-    phone: patient.phone_number,
-    facilityAddress: patient.address,
-    facilityCityStateZip: `${patient.city || ""}, ${patient.state || ""} ${
-      patient.zip_code || ""
-    }`,
-  });
+  const getIvrInitialData = () => {
+    const city = user?.user?.city || user?.city || "";
+    const state = user?.user?.state || user?.state || "";
+    const country = user?.user?.country || user?.country || "";
+    
+    const facilityAddressParts = [city, state, country].filter(Boolean);
+    const facilityAddress = facilityAddressParts.join(", ");
+
+    return {
+      // Basic IDs
+      id: patient.id,
+      patientId: patient.id,
+      
+      // Patient name
+      first_name: patient.first_name,
+      last_name: patient.last_name,
+      full_name: `${patient.first_name} ${patient.last_name}`,
+      
+      // Contact info
+      email: patient.email,
+      phone_number: patient.phone_number,
+      phone: patient.phone_number,
+      
+      // Address
+      address: patient.address,
+      city: patient.city,
+      state: patient.state,
+      zip_code: patient.zip_code,
+      
+      // Insurance
+      primary_insurance: patient.primary_insurance,
+      primary_insurance_number: patient.primary_insurance_number,
+      primaryInsuranceName: patient.primary_insurance,
+      primaryPolicyNumber: patient.primary_insurance_number,
+      
+      secondary_insurance: patient.secondary_insurance,
+      secondary_insurance_number: patient.secondary_insurance_number,
+      secondaryInsuranceName: patient.secondary_insurance,
+      secondaryPolicyNumber: patient.secondary_insurance_number,
+      
+      // Wound measurements
+      wound_size_length: patient.wound_size_length,
+      wound_size_width: patient.wound_size_width,
+      wound_size_depth: patient.wound_size_depth,
+      
+      // ✅ PROVIDER/FACILITY INFO (from logged-in user context)
+      providerName: user?.user?.full_name || user?.full_name || "",
+      provider_full_name: user?.user?.full_name || user?.full_name || "",
+      provider_facility: user?.user?.facility || user?.facility || "",
+      provider_city: user?.user?.city || user?.city || "",
+      provider_state: user?.user?.state || user?.state || "",
+      provider_email: user?.user?.email || user?.email || "",
+      provider_facility_phone: user?.user?.facility_phone_number || user?.facility_phone_number || "",
+      provider_phone: user?.user?.phone_number || user?.phone_number || "",
+      
+      // Legacy fields (for IVR form compatibility)
+      physicianName: user?.user?.full_name || user?.full_name || "",
+      contactName: user?.user?.full_name || user?.full_name || "",
+      facilityName: user?.user?.facility || user?.facility || "",
+      provider_facility_address: facilityAddress, // Not stored in user model
+      facilityCityStateZip: user?.user?.city && user?.user?.state 
+        ? `${user.user.city}, ${user.user.state}`.trim()
+        : user?.city && user?.state
+        ? `${user.city}, ${user.state}`.trim()
+        : "",
+      contactPhEmail: user?.user?.email || user?.email || "",
+    };
+  };
+
 
   const handleIvrFormComplete = (result) => {
-    console.log("✅ IVR Form Submitted:", result);
+    // console.log("✅ IVR Form Submitted:", result);
     setOpenIvrModal(false);
 
     if (result && result.sas_url) {

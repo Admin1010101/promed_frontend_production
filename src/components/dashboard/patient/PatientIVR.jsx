@@ -38,23 +38,26 @@ const WOUND_BILLING_CODES = [
 // --- Initial State Function ---
 
 const getInitialState = (data) => ({
+
   patientId: data?.id || data?.patientId || null,
   salesRepresentative: data?.salesRepresentative || "",
   selectedProducts: [],
-  // Physician/Facility Demographics
-  physicianName: data?.providerName || "",
-  physicianSpecialty: data?.specialty || "",
-  facilityName: data?.facilityName || "",
+  // Physician/Facility Demographics - FROM PROVIDER DATA
+  physicianName: data?.providerName || data?.provider_full_name || "",
+  physicianSpecialty: data?.specialty || data?.provider_specialty || "",
+  facilityName: data?.provider_facility || data?.facilityName || "",
   managementCo: "",
-  facilityAddress: data?.facilityAddress || "",
-  facilityCityStateZip: data?.facilityCityStateZip || "",
-  contactName: data?.contactName || "",
-  contactPhEmail: "",
+  facilityAddress: data?.provider_facility_address || data?.facilityAddress || "",
+  facilityCityStateZip: data?.provider_city && data?.provider_state 
+    ? `${data.provider_city}, ${data.provider_state}`.trim()
+    : (data?.facilityCityStateZip || ""),
+  contactName: data?.providerName || data?.provider_full_name || "",
+  contactPhEmail: data?.provider_email || "",
   facilityNpi: "",
   taxId: "",
   ptan: "",
   medicaidNumber: "",
-  phone: data?.phone || "",
+  phone: data?.provider_facility_phone || data?.provider_phone || "",
   fax: "",
   // Place of Service
   placeOfService: "",
@@ -96,6 +99,7 @@ const InputLine = ({ label, name, value, onChange, className = "", type = "text"
             value={value || ''}
             onChange={onChange}
             disabled={disabled}
+            style={{ color: disabled ? '#6b7280' : '#000000', WebkitTextFillColor: disabled ? '#6b7280' : '#000000' }}  // ADD THIS LINE
             className={`border-b-2 border-gray-600 h-8 px-1 text-sm outline-none transition-colors ${
                 disabled ? 'bg-gray-100 border-dashed text-gray-500' : 'focus:border-blue-500'
             }`}
@@ -365,6 +369,7 @@ export default function IvrFormModal({
                             name="salesRepresentative"
                             value={formData.salesRepresentative}
                             onChange={handleChange}
+                            style={{ color: '#000000', WebkitTextFillColor: '#000000' }}
                             className="border-b border-gray-600 w-full sm:w-3/5 text-sm outline-none focus:border-blue-500"
                         />
                     </div>
@@ -376,7 +381,7 @@ export default function IvrFormModal({
             {/* 2. Product Checkboxes */}
             <div className="p-3 border border-gray-300 bg-blue-50/50">
               <h3 className="text-sm font-bold text-gray-700 mb-2 border-b-2 border-blue-800 pb-1">
-                PRODUCTS REQUESTED
+                PRODUCTS REQUESTED <span className="text-red-600">*</span>
               </h3>
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-x-6 gap-y-2">
                 {PRODUCT_CHECKBOXES.map((product) => (
@@ -414,7 +419,7 @@ export default function IvrFormModal({
                 />
 
                 <InputLine
-                  label="FACILITY NAME"
+                  label="FACILITY NAME *"
                   name="facilityName"
                   value={formData.facilityName}
                   onChange={handleChange}
@@ -531,6 +536,7 @@ export default function IvrFormModal({
                     value={formData.otherPosSpecify}
                     onChange={handleChange}
                     disabled={formData.placeOfService !== "OTHER"}
+                    style={{ color: formData.placeOfService !== "OTHER" ? '#6b7280' : '#000000', WebkitTextFillColor: formData.placeOfService !== "OTHER" ? '#6b7280' : '#000000' }}  
                     className={`flex-1 min-w-0 border-b-2 border-gray-600 h-8 px-1 text-sm outline-none transition-colors mt-1 sm:mt-0 ${
                       formData.placeOfService !== "OTHER"
                         ? "bg-gray-100 border-dashed"
@@ -722,13 +728,14 @@ export default function IvrFormModal({
               {/* Large Text Areas */}
               <div className="flex flex-col">
                 <label className="text-sm font-bold text-gray-700 uppercase mb-1">
-                  ICD-10 CODES:
+                  ICD-10 CODES: <span className="text-red-600">*</span>
                 </label>
                 <textarea
                   name="icd10Codes"
                   value={formData.icd10Codes}
                   onChange={handleChange}
                   rows="3"
+                  style={{ color: '#000000', WebkitTextFillColor: '#000000' }}
                   className="border-2 border-gray-400 p-2 text-sm focus:border-blue-500 outline-none resize-y rounded-md"
                 ></textarea>
               </div>
@@ -742,6 +749,7 @@ export default function IvrFormModal({
                   value={formData.totalWoundSize}
                   onChange={handleChange}
                   rows="3"
+                  style={{ color: '#000000', WebkitTextFillColor: '#000000' }}  
                   className="border-2 border-gray-400 p-2 text-sm focus:border-blue-500 outline-none resize-y rounded-md"
                 ></textarea>
               </div>
@@ -749,13 +757,14 @@ export default function IvrFormModal({
               {/* Signature */}
               <div className="flex flex-col pt-4 border-t border-gray-300">
                 <label className="text-sm font-bold text-gray-700 uppercase mb-1">
-                  PHYSICIAN SIGNATURE NAME (TYPED):
+                  PHYSICIAN SIGNATURE NAME (TYPED): <span className="text-red-600">*</span>
                 </label>
                 <input
                   type="text"
                   name="physicianSignatureName"
                   value={formData.physicianSignatureName}
                   onChange={handleChange}
+                  style={{ color: '#000000', WebkitTextFillColor: '#000000' }}
                   className="border-b-2 border-gray-600 h-8 px-1 text-base focus:border-blue-500 outline-none font-semibold"
                 />
               </div>

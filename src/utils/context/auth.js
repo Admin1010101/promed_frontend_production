@@ -179,8 +179,13 @@ const login = async (email, password, method = "sms") => {
       method,
     });
 
-    const { access, refresh, mfa_required, session_id } = response.data;
-
+    const { access, refresh, mfa_required, session_id, user } = response.data;
+    const userRole = user?.role; // Extracting role from user object if available
+    // Store role from backend response
+    if (userRole) {
+      localStorage.setItem("userRole", userRole);
+      // console.log("Stored role in localStorage:", userRole);
+    }
     // 1. Handle MFA requirement
     if (mfa_required) {
       localStorage.setItem("accessToken", access);
@@ -193,6 +198,7 @@ const login = async (email, password, method = "sms") => {
     // 2. Handle successful full login
     localStorage.setItem("accessToken", access);
     localStorage.setItem("refreshToken", refresh);
+    
     clearMfaState(); // ensure any lingering MFA state is gone
 
     await fetchUserData(access); // Populate user state immediately
@@ -204,7 +210,10 @@ const login = async (email, password, method = "sms") => {
     if (error.response?.status === 403 && errorData?.baa_required) {
       localStorage.setItem("accessToken", errorData.access); // Temp token
       sessionStorage.setItem("isBAARequired", "true"); // Flag for router
-
+      const userRole = errorData.user?.role;
+      if (userRole) {
+        localStorage.setItem("userRole", userRole);
+      }
       setUser(errorData.user || { email: email.trim() });
       setIsBAARequired(true);
       clearMfaState();
@@ -321,6 +330,13 @@ const login = async (email, password, method = "sms") => {
       if (!finalRefreshToken || !newAccessToken) {
         throw new Error("Missing final tokens in verification response.");
       }
+
+      const decodedToken = jwtDecode(newAccessToken);
+      const userRole = decodedToken.role;
+      if (userRole) {
+      localStorage.setItem("userRole", userRole);
+      console.log("✅ Stored role after MFA:", userRole);
+    }
 
       // 1. Final tokens stored
       localStorage.setItem("refreshToken", finalRefreshToken);

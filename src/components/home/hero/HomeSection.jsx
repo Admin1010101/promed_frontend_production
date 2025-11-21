@@ -56,7 +56,7 @@ const HeroSection = () => {
     }
 
     try {
-      await axios.post('http://localhost:8000/api/v1/contact-us/',
+      await axios.post('https://promedhealth-frontdoor-h4c4bkcxfkduezec.z02.azurefd.net/api/v1/contact-us/',
         formData
       );
       toast.success("Your message has been sent. We'll get back to you soon!");

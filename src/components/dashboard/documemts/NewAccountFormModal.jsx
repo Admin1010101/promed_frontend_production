@@ -164,50 +164,27 @@ export default function NewAccountFormModal({
 
             {/* Basic Fields */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-200">
-                <label className={labelClass}>Distributor:</label>
-                <input
-                  type="text"
-                  name="distributor"
-                  value={formData.distributor}
-                  onChange={handleChange}
-                  className={inputClass}
-                />
-              </div>
-              <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-200">
-                <label className={labelClass}>Sales Rep Name:</label>
-                <input
-                  type="text"
-                  name="salesRepName"
-                  value={formData.salesRepName}
-                  onChange={handleChange}
-                  className={inputClass}
-                />
-              </div>
+            <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-200">
+              <label className={labelClass}>Sales Rep Name:</label>
+              <input
+                type="text"
+                name="salesRepName"
+                value={formData.salesRepName}
+                onChange={handleChange}
+                className={inputClass}
+              />
             </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-200">
-                <label className={labelClass}>ISO If Applicable:</label>
-                <input
-                  type="text"
-                  name="isoIfApplicable"
-                  value={formData.isoIfApplicable}
-                  onChange={handleChange}
-                  className={inputClass}
-                />
-              </div>
-              <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-200">
-                <label className={labelClass}>Sales Rep Cell:</label>
-                <input
-                  type="text"
-                  name="salesRepCell"
-                  value={formData.salesRepCell}
-                  onChange={handleChange}
-                  className={inputClass}
-                />
-              </div>
+            <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-200">
+              <label className={labelClass}>Sales Rep Cell:</label>
+              <input
+                type="text"
+                name="salesRepCell"
+                value={formData.salesRepCell}
+                onChange={handleChange}
+                className={inputClass}
+              />
             </div>
+          </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-200">
