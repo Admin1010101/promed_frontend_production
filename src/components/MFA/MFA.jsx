@@ -146,7 +146,7 @@ const MFA = () => {
                 className="space-y-6"
               >
                 <p className="text-xl text-gray-300 leading-relaxed">
-                  We sent a secure code to your registered device for identity verification.
+                  We sent a secure code to your registered e-mail for identity verification.
                 </p>
 
                 <div className="flex items-center gap-4 p-4 bg-white/5 backdrop-blur-sm rounded-xl border border-white/10">
