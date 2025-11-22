@@ -12,7 +12,6 @@ import {
 import { Loader2 } from "lucide-react";
 
 const API_BASE_URL =
-  process.env.REACT_APP_API_URL ||
   "https://promedhealth-frontdoor-h4c4bkcxfkduezec.z02.azurefd.net/api/v1";
 
 const SalesRepDashboard = ({ user }) => {
