@@ -12,7 +12,7 @@ import {
 const Footer = () => {
   const year = new Date().getFullYear();
   return (
-    <footer className="bg-white dark:bg-gray-900 text-gray-800 dark:text-gray-300 flex-1 px-6 mt-55 lg:mt-10">
+    <footer className="bg-white dark:bg-gray-900 text-gray-800 dark:text-gray-300 flex-1 px-6 -mt-16">
       {/* Top Row: Socials */}
       <div className="flex flex-col lg:flex-row items-center justify-center border-b-2 border-gray-200 dark:border-gray-700 p-6 lg:justify-between">
         <div className="mb-4 lg:mb-0">

@@ -1,8 +1,9 @@
-import React, { useState, useRef, useEffect, useCallback } from "react";
+import React, { useState, useRef, useEffect, useCallback, useContext } from "react";
 import { X, Check, Loader2 } from "lucide-react";
 import { motion } from "framer-motion";
 import logo from "../../../assets/images/logo.png";
 import toast from "react-hot-toast";
+import { AuthContext } from "../../../utils/context/auth";
 
 // --- Configuration Data ---
 
@@ -227,7 +228,8 @@ export default function IvrFormModal({
   const [formData, setFormData] = useState(() => getInitialState(initialData));
   const [isSubmitting, setIsSubmitting] = useState(false);
   const patientIdRef = useRef(initialData?.id || initialData?.patientId);
-
+  const {getProvider} = useContext(AuthContext);
+  const provider = getProvider();
   const formRef = useRef(null);
 
   const handleChange = useCallback((e) => {
@@ -258,11 +260,42 @@ export default function IvrFormModal({
   }, []);
 
   useEffect(() => {
-    if (initialData) {
-      setFormData(getInitialState(initialData));
+      if (!initialData || !provider) return;
+
+      setFormData((prev) => ({
+        ...getInitialState(initialData),
+
+        // --- Provider (physician) data ---
+        physicianName: provider.full_name || "",
+        physicianSpecialty: provider.specialty || "",
+        facilityName: provider.facility || "",
+        facilityAddress: provider.address || "",
+        facilityCityStateZip:
+          `${provider.city || ""}, ${provider.state || ""} ${provider.zip || ""}`,
+
+        contactName: provider.full_name || "",
+        contactPhEmail: provider.email || "",
+        phone: provider.phone_number || "",
+        fax: provider.facility_phone_number || "",
+
+        facilityNpi: provider.npi_number || "",
+        physicianSignatureName: provider.full_name || "",
+
+        // --- Patient wound data from order form ---
+        icd10Codes: initialData?.woundDetails?.icd10 || "",
+        locationOfWound: initialData?.woundDetails?.location || "",
+        totalWoundSize:
+          `${initialData?.woundDetails?.length} x ${initialData?.woundDetails?.width} x ${initialData?.woundDetails?.depth}`,
+
+        // --- Product selected based on kit size ---
+        selectedProducts: initialData?.recommendedKit
+          ? [`CareKit ${initialData.recommendedKit}`]
+          : [],
+      }));
+
       patientIdRef.current = initialData.id || initialData.patientId;
-    }
-  }, [initialData]);
+    }, [initialData, provider]);
+
 
   const validateForm = useCallback(() => {
     const errors = [];

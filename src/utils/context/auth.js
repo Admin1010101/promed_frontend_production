@@ -585,7 +585,8 @@ const login = async (email, password, method = "sms") => {
         updatePatient,
         deletePatient,
         uploadDocumentAndEmail,
-        completeTour
+        completeTour,
+        getProvider: () => user?.user || null
       }}
     >
       {/* Renders children only when loading is complete */}
