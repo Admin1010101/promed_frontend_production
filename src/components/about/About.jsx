@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from "framer-motion"; // Make sure AnimatePre
 import { IoMailOutline, IoCallOutline } from "react-icons/io5";
 import { states, about_approach_data, about_team } from "../../utils/data";
 import about_bg_img from '../../assets/images/about_bg_img.jpg';
-
+import FloatingParticles from "../home/FloatingParticles";
 import toast from 'react-hot-toast'; 
 import axios from "axios"; 
 
@@ -153,7 +153,7 @@ const About = () => {
   return (
     <div className={darkModeClass}>
       <div className="bg-white dark:bg-gray-900 transition-colors duration-500 min-h-screen">
-        
+        <FloatingParticles/>
         {/* ... (Hero Section content remains the same) ... */}
         <motion.header
           className="bg-white dark:bg-gray-900 text-gray-800 dark:text-white pt-32 pb-16 transition-colors duration-500"
