@@ -2101,7 +2101,7 @@ const renderSuccess = (type = 'order') => {
 };
 
   // ============================================================================
-// RENDER PATIENTS LIST - ULTRA COOL VERSION
+// RENDER PATIENTS LIST - ULTRA COOL VERSIONs
 // Replace your existing renderPatientsList() function with this
 // ============================================================================
 
