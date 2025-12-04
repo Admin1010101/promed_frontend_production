@@ -199,9 +199,7 @@ const AdvancedCareDashboard = () => {
       drainage: woundDetails.drainage,
       conservative_care: woundDetails.conservative_care,
       chronic: woundDetails.chronic,
-      length: woundDetails.size_length,
-      width: woundDetails.size_width,
-      depth: woundDetails.size_depth
+      
     },
 
     // 🔹 Kit size + Duration from Step 3
@@ -342,6 +340,47 @@ const AdvancedCareDashboard = () => {
     setLoading(false);
   }
 };
+
+
+const handleStep1Next = async () => {
+  // If existing patient, continue to step 2
+  if (selectedPatient) {
+    setOrderStep(2);
+    return;
+  }
+
+  // If new patient, create in backend first
+  if (newPatientData.first_name) {
+    try {
+      const token = localStorage.getItem('accessToken');
+      const response = await fetch(`${API_BASE_URL}/patients/`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(newPatientData)
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        alert("Failed to create patient");
+        return;
+      }
+      console.log('New patient created with ID:', data);
+      // Save created patient
+      setSelectedPatient(data);
+
+      // Continue to wound step
+      setOrderStep(2);
+    } catch (err) {
+      console.error(err);
+      alert("Server error when creating patient");
+    }
+  }
+};
+
 
   // Reorder Handler
   const handleReorder = async (orderId) => {
@@ -652,7 +691,7 @@ const AdvancedCareDashboard = () => {
               Back
             </button>
             <button 
-              onClick={() => setOrderStep(2)}
+              onClick={handleStep1Next}
               disabled={!selectedPatient && !newPatientData.first_name}
               className="px-6 py-3 bg-teal-500 hover:bg-teal-600 text-white rounded-lg font-semibold transition disabled:opacity-50 disabled:cursor-not-allowed"
             >
@@ -963,14 +1002,14 @@ const AdvancedCareDashboard = () => {
         <div className="flex gap-4 justify-center mt-8">
           {type === 'order' && (
             <>
-              <button 
+              {/* <button 
                 onClick={() => {
                   setOpenIvrModal(true);
                 }}
                 className="px-6 py-3 bg-blue-500 hover:bg-blue-600 text-white rounded-lg font-semibold transition"
               >
                 Submit IVR
-              </button>
+              </button> */}
               <button 
                 onClick={() => setCurrentView('dashboard')}
                 className="px-6 py-3 bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-white rounded-lg font-semibold hover:bg-gray-300 dark:hover:bg-gray-600 transition"
